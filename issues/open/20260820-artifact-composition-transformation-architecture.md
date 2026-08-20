@@ -12,11 +12,11 @@ As of 2026-08-21, Phase 2 is complete and Phase 3 is now active:
 - Phase 2: OPA is the first GraphProjection consumer and Dagu is the second; the Dagu proof completed without adapter-specific leakage or a generic-core correction.
 - Phase 3 is now the active phase, but it will be implemented incrementally rather than by completing this parent issue in one change.
 
-Next child issue:
+Completed first Phase 3 child:
 
-- `issues/open/20260821-artifact-transform-registry-lineage-stale-proof.md` — `ArtifactTransform` contract + registry + one deterministic GraphProjection-to-Mermaid transform + source revision lineage + stale/current proof.
+- `issues/closed/20260821-artifact-transform-registry-lineage-stale-proof.md` — `ArtifactTransform` contract + registry + one deterministic GraphProjection-to-Mermaid transform + source revision lineage + current/stale/regenerate proof.
 
-Workspace persistence v2, relationship persistence/navigation, regenerate UI, and Architecture Graph UI remain outside that child.
+Workspace persistence v2, relationship persistence/navigation, regenerate UI, and Architecture Graph UI remain deferred beyond this proof.
 
 ## Goal
 
@@ -517,7 +517,7 @@ OPA CLI 等を使う transform/evaluation は各 adapter の security requiremen
 
 ### Phase 3: transformation
 
-Active child: `issues/open/20260821-artifact-transform-registry-lineage-stale-proof.md`. The first slice stops after registry + deterministic transform + lineage/source revision + stale proof; regenerate UI is deferred.
+Completed proof child: `issues/closed/20260821-artifact-transform-registry-lineage-stale-proof.md`. Registry + deterministic transform + lineage/source revision + stale/regenerate proof are complete; regenerate UI remains deferred.
 
 9. `ArtifactTransform` registry を追加
 10. deterministic な小さな transform で end-to-end 検証
