@@ -98,5 +98,9 @@
     "edgeLabelMaxShift": 25,
     "elkWrapping": "auto",
     "elkWrappingNodeThreshold": 20
+  },
+  "demo": {
+    "defaultAdapter": "bpmn",
+    "enabledAdapters": ["bpmn", "mermaid"]
   }
 }

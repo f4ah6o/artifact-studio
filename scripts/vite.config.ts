@@ -10,6 +10,7 @@ export default defineConfig({
     alias: {
       "bpmn-js": resolve(here, "node_modules", "bpmn-js"),
       "bpmn-js-i18n": resolve(here, "node_modules", "bpmn-js-i18n"),
+      mermaid: resolve(here, "node_modules", "mermaid"),
     },
   },
   server: {

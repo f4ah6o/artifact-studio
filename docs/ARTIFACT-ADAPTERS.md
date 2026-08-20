@@ -51,7 +51,8 @@ Status: implemented today.
 
 ### Mermaid
 
-Target:
+Status: implemented.
+
 
 - Canonical model: Mermaid source text plus optional structured generation metadata
 - Renderer: Mermaid
@@ -83,31 +84,31 @@ Bento is unusually well suited to the adapter model because the artifact is alre
 
 ## Persistence
 
-Browser persistence should be namespaced by artifact type:
+Browser persistence uses a workspace envelope so each enabled adapter can retain its latest source independently:
 
 ```text
-artifact-studio:last-artifact:v1
+artifact-studio:workspace:v1
 ```
-
-Stored envelope:
 
 ```json
 {
-  "adapter": "bpmn",
   "version": 1,
-  "updatedAt": "...",
-  "source": "...serialized artifact..."
+  "activeAdapter": "mermaid",
+  "artifacts": {
+    "bpmn": { "source": "...BPMN XML...", "updatedAt": "..." },
+    "mermaid": { "source": "...Mermaid...", "updatedAt": "..." }
+  }
 }
 ```
 
-For a recent-artifacts list, move the same envelope to IndexedDB without changing adapter semantics.
+The previous BPMN-only and single-artifact keys are migrated on first load. For history or larger artifacts, move the same adapter/source semantics to IndexedDB.
 
 ## Migration path
 
-1. Keep the current BPMN application working.
-2. Extract current BPMN-specific frontend logic into a `bpmn` adapter.
-3. Introduce an adapter registry and artifact selector.
-4. Move local persistence from a BPMN-only key to the generic envelope.
-5. Add Mermaid as the second adapter; it is small enough to validate the abstraction.
+1. Keep the BPMN application working while extracting shell behavior. **Done.**
+2. Introduce an adapter registry and header selector. **Done for BPMN + Mermaid.**
+3. Move persistence to a multi-adapter workspace envelope. **Done.**
+4. Add Mermaid generation, source editing, parser validation, preview, format, restore and export. **Done.**
+5. Move more BPMN-specific frontend logic behind a formal adapter contract.
 6. Add n8n workflow JSON as the first non-text/non-BPMN structured artifact.
-7. Add Bento using its native `.bento.html` + embedded `bento/slides` JSON format.
+7. Add Bento using its native `.bento.html` format.

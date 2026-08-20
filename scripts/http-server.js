@@ -18,6 +18,9 @@ import { codexAppServer, createCodexAppServerProvider } from './agents/codex-app
 import { deliver } from './delivery.js';
 import { auditLog } from './audit.js';
 import { validateLogicCoreSchema } from './schema-gate.js';
+import { CFG } from './utils.js';
+import { resolveDemoConfig } from './demo-config.js';
+import { generateMermaidArtifact } from './artifacts/mermaid.js';
 
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.BPMN_API_KEY || null; // protects this HTTP app, unrelated to Codex auth
@@ -182,7 +185,7 @@ const server = createServer(async (req, res) => {
 
   // Config (frontend bootstrap — Codex owns LLM authentication).
   if (method === 'GET' && url === '/api/v1/config') {
-    return json(res, 200, { codex: await getCodexStatus() });
+    return json(res, 200, { codex: await getCodexStatus(), demo: resolveDemoConfig(process.env, CFG) });
   }
 
   // Frontend static files
@@ -313,6 +316,22 @@ const server = createServer(async (req, res) => {
       const durationMs = Date.now() - t0;
       auditLog({ event: 'completed', correlationId, durationMs });
       return json(res, 200, { correlationId, status: 'success', logicCore });
+    }
+
+    // Mermaid artifact generation — source-only output, rendered and validated in the browser.
+    if (url === '/api/v1/artifacts/mermaid/generate') {
+      auditLog({ event: 'request', correlationId, clientId, endpoint: '/artifacts/mermaid/generate' });
+      if (typeof body.userText !== 'string' || !body.userText.trim()) {
+        return json(res, 400, { error: 'Provide userText (string)' });
+      }
+
+      const result = await generateMermaidArtifact({
+        userText: body.userText,
+        llmProvider: createCodexAppServerProvider(),
+      });
+      const durationMs = Date.now() - t0;
+      auditLog({ event: 'completed', correlationId, durationMs, artifact: 'mermaid' });
+      return json(res, 200, { correlationId, status: 'success', source: result.source });
     }
 
     // Orchestrate — Codex app-server is the only AI runtime for the web app.
