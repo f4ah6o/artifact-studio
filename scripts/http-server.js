@@ -14,13 +14,13 @@ import { runPipeline, validateLogicCore } from './pipeline.js';
 import { bpmnToLogicCore } from './import.js';
 import { orchestrate } from './orchestrator.js';
 import { chatAgent } from './agents/chat.js';
-import { createLlmProvider } from './agents/llm-provider.js';
+import { codexAppServer, createCodexAppServerProvider } from './agents/codex-app-server-provider.js';
 import { deliver } from './delivery.js';
 import { auditLog } from './audit.js';
 import { validateLogicCoreSchema } from './schema-gate.js';
 
 const PORT = process.env.PORT || 3000;
-const API_KEY = process.env.BPMN_API_KEY || null; // null = no auth (dev mode)
+const API_KEY = process.env.BPMN_API_KEY || null; // protects this HTTP app, unrelated to Codex auth
 const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
 const RATE_LIMIT = { windowMs: 60_000, max: 30 };
 const rateBuckets = new Map();
@@ -34,7 +34,7 @@ export function startupCheck(env, logger = console.warn) {
     );
   }
   if (!env.BPMN_API_KEY) {
-    logger('⚠️  Starting with no API key — dev mode only. Set BPMN_API_KEY for production.');
+    logger('⚠️  Starting with no BPMN API key — dev mode only. Set BPMN_API_KEY for production.');
   }
 }
 
@@ -144,15 +144,28 @@ function json(res, status, data) {
   res.end(body);
 }
 
-// Resolves an LLM config from environment variables, or null if no key is set.
-// Reads process.env on every call so key/model changes are picked up at request time.
-export function resolveEnvLlmConfig() {
-  if (!process.env.OPENAI_API_KEY) return null;
-  return {
-    baseUrl: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
-    apiKey: process.env.OPENAI_API_KEY,
-    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-  };
+export async function getCodexStatus() {
+  try {
+    const result = await codexAppServer.accountRead({ refreshToken: false });
+    const account = result?.account || null;
+    return {
+      available: true,
+      authenticated: Boolean(account) || result?.requiresOpenaiAuth === false,
+      accountType: account?.type || null,
+      planType: account?.planType || null,
+      model: process.env.CODEX_MODEL || null,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      available: false,
+      authenticated: false,
+      accountType: null,
+      planType: null,
+      model: process.env.CODEX_MODEL || null,
+      error: error.message,
+    };
+  }
 }
 
 const server = createServer(async (req, res) => {
@@ -167,16 +180,9 @@ const server = createServer(async (req, res) => {
     });
   }
 
-  // Config (frontend bootstrap — reveals whether a server-side LLM key exists)
+  // Config (frontend bootstrap — Codex owns LLM authentication).
   if (method === 'GET' && url === '/api/v1/config') {
-    const envCfg = resolveEnvLlmConfig();
-    // Read BPMN_API_KEY fresh here (not the module-load API_KEY const that
-    // checkAuth uses): keeps the dev/prod model-gating decision at request
-    // time so tests can simulate production against the booted server.
-    const devMode = !process.env.BPMN_API_KEY;
-    const payload = { envKeyConfigured: Boolean(envCfg) };
-    if (devMode) payload.model = envCfg ? envCfg.model : null;
-    return json(res, 200, payload);
+    return json(res, 200, { codex: await getCodexStatus() });
   }
 
   // Frontend static files
@@ -206,7 +212,7 @@ const server = createServer(async (req, res) => {
     } catch { return res.writeHead(404).end(); }
   }
 
-  // Auth + rate limiting (skip for health check)
+  // Auth + rate limiting (skip for health/config/static files)
   if (!checkAuth(req, res)) return;
   if (!checkRateLimit(req, res)) return;
 
@@ -222,6 +228,21 @@ const server = createServer(async (req, res) => {
   const t0 = Date.now();
 
   try {
+    // Codex managed ChatGPT login. Intended for single-user/local MVP.
+    if (url === '/api/v1/codex/login') {
+      const result = await codexAppServer.loginChatGpt();
+      return json(res, 200, {
+        status: 'login_started',
+        loginId: result?.loginId || null,
+        authUrl: result?.authUrl || null,
+      });
+    }
+
+    if (url === '/api/v1/codex/logout') {
+      await codexAppServer.logout();
+      return json(res, 200, { status: 'logged_out' });
+    }
+
     // Generate
     if (url === '/api/v1/generate') {
       auditLog({ event: 'request', correlationId, clientId, endpoint: '/generate' });
@@ -284,27 +305,14 @@ const server = createServer(async (req, res) => {
       return json(res, 200, { correlationId, status: 'success', logicCore });
     }
 
-    // Orchestrate
+    // Orchestrate — Codex app-server is the only AI runtime for the web app.
     if (url === '/api/v1/orchestrate') {
       auditLog({ event: 'request', correlationId, clientId, endpoint: '/orchestrate' });
 
-      const options = { ruleProfile: body.ruleProfile || null };
-
-      // Optional LLM provider for text→BPMN or review-fix loops
-      if (!body.llmConfig) {
-        const envCfg = resolveEnvLlmConfig();
-        if (envCfg) body.llmConfig = envCfg;
-      }
-
-      if (body.llmConfig) {
-        const { baseUrl, apiKey, model, timeout } = body.llmConfig;
-        if (!baseUrl || !apiKey || !model) {
-          return json(res, 400, { error: 'llmConfig requires baseUrl, apiKey, model' });
-        }
-        const safeTimeout = typeof timeout === 'number' && timeout > 0 && timeout <= 300_000
-          ? timeout : 120_000;
-        options.llmProvider = createLlmProvider({ baseUrl, apiKey, model, timeout: safeTimeout });
-      }
+      const options = {
+        ruleProfile: body.ruleProfile || null,
+        llmProvider: createCodexAppServerProvider(),
+      };
 
       const input = body.userText || body.logicCore;
       if (!input) {
@@ -336,7 +344,7 @@ const server = createServer(async (req, res) => {
       });
     }
 
-    // Chat (discovery conversation, pre-generation)
+    // Chat (discovery/grilling) through Codex app-server.
     if (url === '/api/v1/chat') {
       auditLog({ event: 'request', correlationId, clientId, endpoint: '/chat' });
 
@@ -344,21 +352,7 @@ const server = createServer(async (req, res) => {
         return json(res, 400, { error: 'messages must be a non-empty array' });
       }
 
-      if (!body.llmConfig) {
-        const envCfg = resolveEnvLlmConfig();
-        if (envCfg) body.llmConfig = envCfg;
-      }
-      if (!body.llmConfig) {
-        return json(res, 400, { error: 'llmConfig is required (or set OPENAI_API_KEY on the server)' });
-      }
-      const { baseUrl, apiKey, model, timeout } = body.llmConfig;
-      if (!baseUrl || !apiKey || !model) {
-        return json(res, 400, { error: 'llmConfig requires baseUrl, apiKey, model' });
-      }
-      const safeTimeout = typeof timeout === 'number' && timeout > 0 && timeout <= 300_000
-        ? timeout : 120_000;
-      const llmProvider = createLlmProvider({ baseUrl, apiKey, model, timeout: safeTimeout });
-
+      const llmProvider = createCodexAppServerProvider();
       const result = await chatAgent({ messages: body.messages, llmProvider });
       const durationMs = Date.now() - t0;
       auditLog({ event: 'completed', correlationId, durationMs, readyToGenerate: result.readyToGenerate });
@@ -397,13 +391,14 @@ if (isEntryPoint) {
   startupCheck(process.env);
   server.listen(PORT, () => {
     console.log(`BPMN Generator HTTP API listening on port ${PORT}`);
-    console.log(`  POST /api/v1/generate   — Logic-Core → BPMN + SVG`);
-    console.log(`  POST /api/v1/validate   — Logic-Core → Validation`);
-    console.log(`  POST /api/v1/import     — BPMN XML → Logic-Core`);
-    console.log(`  POST /api/v1/orchestrate — Multi-agent review + generate + compliance`);
-    console.log(`  POST /api/v1/chat       — Discovery conversation (pre-generation)`);
-    console.log(`  GET  /health            — Health check`);
-    console.log(`  GET  /api/v1/config     — Frontend bootstrap (env-key status)`);
+    console.log(`  POST /api/v1/generate    — Logic-Core → BPMN + SVG`);
+    console.log(`  POST /api/v1/validate    — Logic-Core → Validation`);
+    console.log(`  POST /api/v1/import      — BPMN XML → Logic-Core`);
+    console.log(`  POST /api/v1/orchestrate — Codex-assisted review + generate + compliance`);
+    console.log(`  POST /api/v1/chat        — Codex discovery / grilling`);
+    console.log(`  POST /api/v1/codex/login — Start managed ChatGPT login`);
+    console.log(`  GET  /health             — Health check`);
+    console.log(`  GET  /api/v1/config      — Codex/auth bootstrap status`);
   });
 }
 

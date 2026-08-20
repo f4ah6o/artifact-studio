@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI BPMN Modeler</title>
+  <link rel="stylesheet" href="https://unpkg.com/bpmn-js@18.22.1/dist/assets/diagram-js.css">
+  <link rel="stylesheet" href="https://unpkg.com/bpmn-js@18.22.1/dist/assets/bpmn-font/css/bpmn.css">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <strong>AI BPMN Modeler</strong>
+      <span class="subtle">Logic-Core ↔ BPMN</span>
+    </div>
+    <div class="actions">
+      <span id="codex-state" class="subtle">Codex確認中…</span>
+      <button id="codex-login-button" class="button secondary" type="button" hidden>ChatGPTに接続</button>
+      <label class="button secondary" for="file-input">BPMNを開く</label>
+      <input id="file-input" type="file" accept=".bpmn,.xml,text/xml,application/xml" hidden>
+      <button id="validate-button" class="button secondary" type="button">検証</button>
+      <button id="export-button" class="button secondary" type="button">BPMNを書き出す</button>
+    </div>
+  </header>
+
+  <section class="promptbar">
+    <textarea id="process-prompt" rows="2" placeholder="例: 事務担当者が申請し、事務業務責任者、統合管理責任者、部門責任者の順に承認する。差戻し時は申請者へ戻す。"></textarea>
+    <button id="generate-button" class="button primary" type="button">AIで生成</button>
+  </section>
+
+  <main class="workspace">
+    <section class="diagram-pane">
+      <div id="canvas" aria-label="BPMN modeler"></div>
+      <div id="empty-state" class="empty-state">
+        <strong>プロセスを記述して生成</strong>
+        <span>または既存の .bpmn を開いて編集できます。</span>
+      </div>
+      <div id="status" class="status">初期化中…</div>
+    </section>
+
+    <aside class="sidebar">
+      <section class="panel selected-panel">
+        <div class="panel-heading">選択中</div>
+        <div id="selected-element" class="muted">BPMN要素を選択してください。</div>
+      </section>
+
+      <section class="panel findings-panel">
+        <div class="panel-heading row">
+          <span>Findings</span>
+          <span id="finding-count" class="count">0</span>
+        </div>
+        <div id="findings" class="findings">
+          <div class="muted">検証結果はここに表示されます。</div>
+        </div>
+      </section>
+
+      <section class="panel ai-panel">
+        <div class="panel-heading row">
+          <span>AI grilling</span>
+          <button id="review-button" class="link-button" type="button">現在の図をレビュー</button>
+        </div>
+        <div id="chat-log" class="chat-log">
+          <div class="assistant-message">図を作成した後、「現在の図をレビュー」で業務上の未定義事項を質問させられます。</div>
+        </div>
+        <form id="chat-form" class="chat-form">
+          <textarea id="chat-input" rows="2" placeholder="この工程の例外は？"></textarea>
+          <button class="button primary" type="submit">送信</button>
+        </form>
+      </section>
+    </aside>
+  </main>
+
+  <script src="https://unpkg.com/bpmn-js@18.22.1/dist/bpmn-modeler.production.min.js"></script>
+  <script type="module" src="/static/app.js"></script>
+</body>
+</html>
