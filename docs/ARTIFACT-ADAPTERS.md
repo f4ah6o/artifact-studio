@@ -69,16 +69,17 @@ Target:
 - Format: stable JSON normalization and deterministic node positioning
 - Export: n8n workflow JSON
 
-### Bento/page-style output
+### Bento
 
 Target:
 
-- Canonical model: portable page/layout JSON owned by Artifact Studio
-- Renderer: adapter-specific web renderer
-- Validation: component schema, link/media constraints and layout checks
-- Export: portable JSON/HTML where the target supports it
+- Canonical artifact: Bento's own single-file `.bento.html` format
+- Canonical document data: the readable `application/bento+json` block (`#bento-doc`) embedded in that file
+- Renderer/editor: the Bento runtime already embedded in the artifact
+- AI editing: operate on the Bento document JSON and preserve the surrounding runtime
+- Export: `.bento.html`
 
-Do not make a third-party hosted page service's private/internal representation the canonical model. Treat hosted publishing as a delivery adapter layered on top of the portable page model.
+Bento is unusually well suited to the adapter model because the artifact is already local-first, self-contained and AI-editable. Artifact Studio should not invent a competing page schema for Bento; it should use Bento's documented format as the adapter boundary.
 
 ## Persistence
 
@@ -109,4 +110,4 @@ For a recent-artifacts list, move the same envelope to IndexedDB without changin
 4. Move local persistence from a BPMN-only key to the generic envelope.
 5. Add Mermaid as the second adapter; it is small enough to validate the abstraction.
 6. Add n8n workflow JSON as the first non-text/non-BPMN structured artifact.
-7. Add page/Bento-style artifacts behind a portable page schema and separate publishing adapter.
+7. Add Bento using its native `.bento.html` + embedded `bento/slides` JSON format.
