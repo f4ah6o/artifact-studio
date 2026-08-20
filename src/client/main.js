@@ -8,6 +8,17 @@ import {
   inferAdapterFromFileName,
   loadArtifactAdapter,
 } from './artifact-adapters.js';
+import {
+  currentArtifactRecord,
+  persistArtifactContent,
+  persistArtifactRecord,
+  readArtifactContent,
+  textContent,
+} from './artifact-content.js';
+import {
+  notifyArtifactRuntimeChange,
+  registerArtifactRuntime,
+} from './artifact-runtime-registry.js';
 
 const WORKSPACE_STORAGE_KEY = 'artifact-studio:workspace:v1';
 const LAST_ARTIFACT_STORAGE_KEY = 'artifact-studio:last-artifact:v1';
@@ -151,11 +162,14 @@ function readWorkspace() {
 
 function persistArtifact(adapterId, source) {
   if (!state.workspace) state.workspace = emptyWorkspace();
+  const normalizedSource = String(source ?? '');
   state.workspace.artifacts[adapterId] = {
-    source: String(source ?? ''),
+    source: normalizedSource,
     updatedAt: new Date().toISOString(),
   };
   writeWorkspace();
+  persistArtifactContent(adapterId, textContent(normalizedSource));
+  notifyArtifactRuntimeChange();
 }
 
 function persistActiveAdapter(adapterId) {
@@ -169,7 +183,9 @@ function persistActiveAdapter(adapterId) {
 
 function storedArtifactSource(adapterId) {
   const source = state.workspace?.artifacts?.[adapterId]?.source;
-  return typeof source === 'string' ? source : null;
+  if (typeof source === 'string') return source;
+  const content = readArtifactContent(adapterId);
+  return content?.kind === 'text' ? content.source : null;
 }
 
 function createAiSessionId() {
@@ -1127,6 +1143,34 @@ els.file.addEventListener('change', () => handleFile(els.file.files?.[0]));
 els.mermaidSource.addEventListener('input', scheduleMermaidRender);
 els.review.addEventListener('click', reviewCurrent);
 els.chatForm.addEventListener('submit', handleChatSubmit);
+registerArtifactRuntime('bpmn', {
+  async currentArtifact() {
+    if (!state.diagramLoaded) return null;
+    const { xml } = await modeler.saveXML({ format: true });
+    return currentArtifactRecord('bpmn', textContent(xml));
+  },
+});
+
+registerArtifactRuntime('mermaid', {
+  currentArtifact() {
+    const source = els.mermaidSource.value;
+    if (!source.trim()) return null;
+    return currentArtifactRecord('mermaid', textContent(source));
+  },
+  async openArtifact(artifact) {
+    if (artifact?.content?.kind !== 'text') {
+      throw new Error('Mermaid requires text artifact content');
+    }
+    persistArtifactRecord(artifact);
+    els.mermaidSource.value = artifact.content.source;
+    persistArtifact('mermaid', artifact.content.source);
+    await activateAdapter('mermaid', { restore: false, announce: false });
+    await renderMermaidCurrent();
+    setStatus('Derived Mermaid artifact を開きました');
+    return currentArtifactRecord('mermaid', textContent(els.mermaidSource.value));
+  },
+});
+
 els.codexLogin.addEventListener('click', loginCodex);
 
 async function bootstrap() {

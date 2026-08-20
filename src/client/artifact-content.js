@@ -25,11 +25,11 @@ function parseEnvelope(raw) {
   return null;
 }
 
-export function readArtifactEnvelope(storage = localStorage) {
-  return parseEnvelope(storage.getItem(ARTIFACT_CONTENT_STORAGE_KEY)) || emptyEnvelope();
+function artifactId(adapterId) {
+  return `artifact:${adapterId}`;
 }
 
-function normalizeStoredEntry(entry) {
+function normalizeStoredContent(entry) {
   if (!entry || typeof entry !== 'object') return null;
   try {
     if (entry.content) return normalizeArtifactContent(entry.content);
@@ -40,27 +40,86 @@ function normalizeStoredEntry(entry) {
   return null;
 }
 
-export function readArtifactContent(adapterId, storage = localStorage) {
-  let entry = readArtifactEnvelope(storage).artifacts?.[adapterId];
+function normalizeStoredRecord(adapterId, entry) {
+  const content = normalizeStoredContent(entry);
+  if (!content) return null;
+  const id = typeof entry?.id === 'string' && entry.id.trim() ? entry.id : artifactId(adapterId);
+  const record = { id, adapterId, content };
+  if (typeof entry?.revision === 'string' && entry.revision.trim())
+    record.revision = entry.revision;
+  if (entry?.lineage && typeof entry.lineage === 'object' && !Array.isArray(entry.lineage)) {
+    record.lineage = entry.lineage;
+  }
+  return record;
+}
 
-  // Migration bridge: if a future/older shell already stored generic content in
-  // the legacy workspace envelope, import it without coupling writes to the
-  // shell's text-only in-memory snapshot.
-  if (!entry)
-    entry = parseEnvelope(storage.getItem(LEGACY_WORKSPACE_STORAGE_KEY))?.artifacts?.[adapterId];
-  return normalizeStoredEntry(entry);
+export function readArtifactEnvelope(storage = localStorage) {
+  return parseEnvelope(storage.getItem(ARTIFACT_CONTENT_STORAGE_KEY)) || emptyEnvelope();
+}
+
+export function readArtifactRecord(adapterId, storage = localStorage) {
+  const id = String(adapterId || '');
+  if (!id) return null;
+  let entry = readArtifactEnvelope(storage).artifacts?.[id];
+
+  // Migration bridge: import generic content from the legacy shell envelope
+  // without changing its v1/latest-per-adapter persistence contract.
+  if (!entry) entry = parseEnvelope(storage.getItem(LEGACY_WORKSPACE_STORAGE_KEY))?.artifacts?.[id];
+  return normalizeStoredRecord(id, entry);
+}
+
+export function readArtifactContent(adapterId, storage = localStorage) {
+  return readArtifactRecord(adapterId, storage)?.content || null;
+}
+
+export function persistArtifactRecord(artifact, storage = localStorage) {
+  if (!artifact || typeof artifact !== 'object' || Array.isArray(artifact)) {
+    throw new ArtifactContentError('artifact record is required');
+  }
+  const adapterId = typeof artifact.adapterId === 'string' ? artifact.adapterId.trim() : '';
+  if (!adapterId) throw new ArtifactContentError('adapter id is required');
+  const content = normalizeArtifactContent(artifact.content);
+  const id =
+    typeof artifact.id === 'string' && artifact.id.trim() ? artifact.id : artifactId(adapterId);
+  const envelope = readArtifactEnvelope(storage);
+  const entry = {
+    id,
+    content,
+    updatedAt: new Date().toISOString(),
+  };
+  if (typeof artifact.revision === 'string' && artifact.revision.trim())
+    entry.revision = artifact.revision;
+  if (
+    artifact.lineage &&
+    typeof artifact.lineage === 'object' &&
+    !Array.isArray(artifact.lineage)
+  ) {
+    entry.lineage = artifact.lineage;
+  }
+  envelope.artifacts[adapterId] = entry;
+  storage.setItem(ARTIFACT_CONTENT_STORAGE_KEY, JSON.stringify(envelope));
+  return normalizeStoredRecord(adapterId, entry);
 }
 
 export function persistArtifactContent(adapterId, content, storage = localStorage) {
   if (!adapterId) throw new ArtifactContentError('adapter id is required');
-  const normalized = normalizeArtifactContent(content);
-  const envelope = readArtifactEnvelope(storage);
-  envelope.artifacts[adapterId] = {
-    content: normalized,
-    updatedAt: new Date().toISOString(),
+  const existing = readArtifactRecord(adapterId, storage);
+  return persistArtifactRecord(
+    {
+      ...(existing || { id: artifactId(adapterId), adapterId }),
+      content,
+    },
+    storage,
+  );
+}
+
+export function currentArtifactRecord(adapterId, content, storage = localStorage) {
+  const existing = readArtifactRecord(adapterId, storage);
+  return {
+    ...(existing || { id: artifactId(adapterId), adapterId }),
+    adapterId,
+    content: normalizeArtifactContent(content),
   };
-  storage.setItem(ARTIFACT_CONTENT_STORAGE_KEY, JSON.stringify(envelope));
-  return envelope.artifacts[adapterId];
 }
 
 export {

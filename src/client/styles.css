@@ -402,6 +402,33 @@ textarea:focus {
   background: #d97706;
 }
 
+.transform-actions,
+.artifact-lineage {
+  display: grid;
+  gap: 8px;
+}
+.artifact-lineage {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e5e7eb;
+}
+.artifact-lineage:empty {
+  display: none;
+}
+.artifact-lineage-row {
+  display: grid;
+  gap: 2px;
+  font-size: 12px;
+}
+.artifact-freshness {
+  font-size: 12px;
+  font-weight: 700;
+}
+.transform-button {
+  width: 100%;
+  justify-content: flex-start;
+}
+
 @media (max-width: 900px) {
   .topbar {
     align-items: flex-start;

@@ -1,9 +1,14 @@
 import { renderGraphProjection } from './graph-renderer.js';
 import {
+  currentArtifactRecord,
   persistArtifactContent,
   readArtifactContent,
   workspaceContent,
 } from './artifact-content.js';
+import {
+  notifyArtifactRuntimeChange,
+  registerArtifactRuntime,
+} from './artifact-runtime-registry.js';
 
 const els = {
   adapter: document.querySelector('#adapter-select'),
@@ -53,6 +58,7 @@ function setStatus(message) {
 
 function persistNow() {
   persistArtifactContent('opa', workspaceContent(workspace));
+  notifyArtifactRuntimeChange();
 }
 
 function schedulePersist() {
@@ -390,6 +396,31 @@ function exportWorkspace() {
     'application/json',
   );
 }
+
+registerArtifactRuntime('opa', {
+  currentArtifact() {
+    if (!hasFiles()) return null;
+    return currentArtifactRecord('opa', workspaceContent(workspace));
+  },
+  async project(artifact) {
+    if (artifact?.content?.kind !== 'workspace') {
+      throw new Error('OPA project requires workspace artifact content');
+    }
+    const query = els.query.value.trim() || artifact.content.entrypoints?.[0] || '';
+    if (!query) {
+      throw new Error('OPA transform requires a query or workspace entrypoint');
+    }
+    const response = await fetch('/api/v1/artifacts/opa/deps', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ workspace: artifact.content, query }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || `${response.status} ${response.statusText}`);
+    if (!data.result?.graph) throw new Error('OPA project did not return GraphProjection');
+    return data.result.graph;
+  },
+});
 
 els.source.addEventListener('input', () => {
   const path = selectedPath();

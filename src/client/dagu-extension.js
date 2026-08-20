@@ -1,5 +1,14 @@
 import { getArtifactAdapter, supportsCapability } from './artifact-adapters.js';
-import { persistArtifactContent, readArtifactContent, textContent } from './artifact-content.js';
+import {
+  currentArtifactRecord,
+  persistArtifactContent,
+  readArtifactContent,
+  textContent,
+} from './artifact-content.js';
+import {
+  notifyArtifactRuntimeChange,
+  registerArtifactRuntime,
+} from './artifact-runtime-registry.js';
 import { renderGraphProjection } from './graph-renderer.js';
 
 const descriptor = getArtifactAdapter('dagu');
@@ -48,6 +57,7 @@ function setStatus(message) {
 
 function persistNow() {
   persistArtifactContent('dagu', textContent(els.source.value));
+  notifyArtifactRuntimeChange();
 }
 
 function schedulePersist() {
@@ -285,6 +295,21 @@ function syncUi() {
     );
   }
 }
+
+registerArtifactRuntime('dagu', {
+  currentArtifact() {
+    if (!hasSource()) return null;
+    return currentArtifactRecord('dagu', textContent(els.source.value));
+  },
+  async project(artifact) {
+    if (artifact?.content?.kind !== 'text') {
+      throw new Error('Dagu project requires text artifact content');
+    }
+    const result = await api('project', { source: artifact.content.source });
+    if (!result.graph) throw new Error('Dagu project did not return GraphProjection');
+    return result.graph;
+  },
+});
 
 els.source.addEventListener('input', scheduleProject);
 

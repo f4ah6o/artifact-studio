@@ -517,13 +517,15 @@ OPA CLI 等を使う transform/evaluation は各 adapter の security requiremen
 
 ### Phase 3: transformation
 
-Completed proof child: `issues/closed/20260821-artifact-transform-registry-lineage-stale-proof.md`. Registry + deterministic transform + lineage/source revision + stale/regenerate proof are complete; regenerate UI remains deferred.
+Completed proof child: `issues/closed/20260821-artifact-transform-registry-lineage-stale-proof.md`. Registry + deterministic transform + lineage/source revision + stale/regenerate proof are complete.
+
+Completed Studio workflow child: `issues/closed/20260821-artifact-transform-regenerate-ui.md`. The existing transform registry is now exposed as a generic Artifact capability in the UI; GraphProjection -> Mermaid can be executed, selected/exported as a derived artifact, reports current/stale from lineage, and requires explicit Regenerate to refresh. No adapter-specific transform routing, background regeneration, detached semantics, or workspace v2 was introduced.
 
 9. `ArtifactTransform` registry を追加
 10. deterministic な小さな transform で end-to-end 検証
 11. lineage 記録
 12. revision/hash ベース stale 判定
-13. regenerate UI
+13. regenerate UI ✅
 
 ### Phase 4: artifact graph
 

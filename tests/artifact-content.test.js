@@ -1,8 +1,11 @@
 import { describe, expect, test } from 'vite-plus/test';
 import {
   ARTIFACT_CONTENT_STORAGE_KEY,
+  currentArtifactRecord,
   persistArtifactContent,
+  persistArtifactRecord,
   readArtifactContent,
+  readArtifactRecord,
   textContent,
   workspaceContent,
 } from '../src/client/artifact-content.js';
@@ -42,6 +45,41 @@ describe('generic artifact content persistence', () => {
       entrypoints: [],
       activeFile: 'policy.rego',
       inputFile: null,
+    });
+  });
+
+  test('preserves derived artifact identity and lineage when canonical content changes', () => {
+    const storage = memoryStorage();
+    const lineage = {
+      derivedFrom: [{ artifactId: 'artifact:dagu', revision: 'sha256:source-v1' }],
+      transform: 'graph-projection-to-mermaid',
+      transformVersion: '1',
+    };
+
+    persistArtifactRecord(
+      {
+        id: 'derived-mermaid',
+        adapterId: 'mermaid',
+        content: textContent('flowchart TD\n  a --> b\n'),
+        lineage,
+      },
+      storage,
+    );
+    persistArtifactContent('mermaid', textContent('flowchart TD\n  a --> c\n'), storage);
+
+    expect(readArtifactRecord('mermaid', storage)).toEqual({
+      id: 'derived-mermaid',
+      adapterId: 'mermaid',
+      content: textContent('flowchart TD\n  a --> c\n'),
+      lineage,
+    });
+    expect(
+      currentArtifactRecord('mermaid', textContent('flowchart TD\n  a --> d\n'), storage),
+    ).toEqual({
+      id: 'derived-mermaid',
+      adapterId: 'mermaid',
+      content: textContent('flowchart TD\n  a --> d\n'),
+      lineage,
     });
   });
 });

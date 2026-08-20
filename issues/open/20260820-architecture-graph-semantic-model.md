@@ -826,6 +826,11 @@ Public repoに入れないもの:
 - 固有承認制度
 - private endpoint / credentials
 
+## Prerequisite progress
+
+- 2026-08-21: `issues/closed/20260821-artifact-transform-regenerate-ui.md` completed the Studio-facing generic transform/lineage freshness workflow. This satisfies the transform-side prerequisite without starting Architecture Graph UI.
+- Architecture Graph implementation remains blocked intentionally on the later prerequisites: workspace v2 stable artifact identity, relationship persistence/SemanticRef, Business Data Model semantic identities, ER projection, and reload-safe lineage freshness.
+
 ## Acceptance criteria for first implementation milestone
 
 - [ ] Adapter independenceを維持したArchitecture Graph logical contractが存在する
