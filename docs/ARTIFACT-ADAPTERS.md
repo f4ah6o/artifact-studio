@@ -2,6 +2,9 @@
 
 [日本語](ARTIFACT-ADAPTERS.ja.md)
 
+
+The shared contracts used by adapters are documented in [`ADAPTER-CORE.md`](ADAPTER-CORE.md).
+
 Artifact Studio treats BPMN as the first implementation of a generic artifact workflow:
 
 ```text

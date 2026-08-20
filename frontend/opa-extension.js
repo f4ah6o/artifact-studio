@@ -1,4 +1,4 @@
-import { loadArtifactAdapter } from './artifact-adapters.js';
+import { renderGraphProjection } from './graph-renderer.js';
 import { persistArtifactContent, readArtifactContent, workspaceContent } from './artifact-content.js';
 
 const els = {
@@ -232,15 +232,6 @@ function showJson(title, value) {
   els.result.append(pre);
 }
 
-function graphToMermaid(graph) {
-  const lines = ['flowchart LR'];
-  const safe = id => `n_${String(id).replace(/[^A-Za-z0-9_]/g, '_')}`;
-  const label = text => String(text).replaceAll('"', '&quot;');
-  for (const node of graph?.nodes || []) lines.push(`  ${safe(node.id)}["${label(node.label)}"]`);
-  for (const edge of graph?.edges || []) lines.push(`  ${safe(edge.from)} --> ${safe(edge.to)}`);
-  return `${lines.join('\n')}\n`;
-}
-
 async function showGraph(graph, raw) {
   els.resultHeading.textContent = 'Dependencies';
   els.result.replaceChildren();
@@ -249,8 +240,7 @@ async function showGraph(graph, raw) {
     const preview = document.createElement('div');
     preview.className = 'opa-graph-result';
     els.result.append(preview);
-    const mermaid = await loadArtifactAdapter('mermaid');
-    await mermaid.render(graphToMermaid(graph), preview);
+    await renderGraphProjection(graph, preview);
   } catch {
     showJson('Dependencies', raw);
   }

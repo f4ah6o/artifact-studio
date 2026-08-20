@@ -102,6 +102,7 @@ describe('OPA derived data', () => {
       },
       'data.policy.allow',
     );
+    expect(graph.kind).toBe('graph');
     expect(graph.nodes).toEqual(
       expect.arrayContaining([
         { id: 'query', label: 'data.policy.allow', kind: 'query' },

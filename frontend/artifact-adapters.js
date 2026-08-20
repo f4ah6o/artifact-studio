@@ -1,3 +1,5 @@
+import { adapterCapabilities, supportsAction, supportsCapability, supportsView } from '../shared/artifact-capabilities.js';
+
 let mermaidPromise = null;
 
 async function mermaidRuntime() {
@@ -48,7 +50,7 @@ export const artifactAdapters = Object.freeze({
     exportFileName: 'process.bpmn',
     promptPlaceholder: '業務プロセスを自然言語で記述してください。',
     contentKind: 'text',
-    capabilities: { validate: true, format: true, actions: [], views: ['model'] },
+    capabilities: adapterCapabilities({ validate: true, format: true, views: ['model'] }),
   }),
   mermaid: Object.freeze({
     id: 'mermaid',
@@ -57,7 +59,7 @@ export const artifactAdapters = Object.freeze({
     exportFileName: 'diagram.mmd',
     promptPlaceholder: '作りたい図を自然言語で記述してください。',
     contentKind: 'text',
-    capabilities: { validate: true, format: true, actions: [], views: ['source', 'preview'] },
+    capabilities: adapterCapabilities({ validate: true, format: true, views: ['source', 'preview'] }),
   }),
   opa: Object.freeze({
     id: 'opa',
@@ -66,12 +68,13 @@ export const artifactAdapters = Object.freeze({
     exportFileName: 'policy.opa-workspace.json',
     promptPlaceholder: 'OPA workspace はソースエディタから編集してください。',
     contentKind: 'workspace',
-    capabilities: {
+    capabilities: adapterCapabilities({
       validate: true,
       format: true,
+      project: true,
       actions: ['evaluate', 'test', 'coverage', 'dependencies'],
       views: ['source', 'dependencies', 'decision', 'tests'],
-    },
+    }),
   }),
 });
 
@@ -93,3 +96,5 @@ export async function loadArtifactAdapter(id) {
   if (id === 'mermaid') return loadMermaidAdapter();
   return adapter;
 }
+
+export { supportsAction, supportsCapability, supportsView };

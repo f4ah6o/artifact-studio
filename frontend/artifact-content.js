@@ -1,23 +1,17 @@
+import {
+  ARTIFACT_CONTENT_KINDS,
+  ArtifactContentError,
+  contentMatchesKind,
+  normalizeArtifactContent,
+  textContent,
+  workspaceContent,
+} from '../shared/artifact-content.js';
+
 const ARTIFACT_CONTENT_STORAGE_KEY = 'artifact-studio:artifact-content:v1';
 const LEGACY_WORKSPACE_STORAGE_KEY = 'artifact-studio:workspace:v1';
 
 function emptyEnvelope() {
   return { version: 1, artifacts: {} };
-}
-
-export function textContent(source = '') {
-  return { kind: 'text', source: String(source) };
-}
-
-export function workspaceContent(workspace = {}) {
-  const files = workspace.files && typeof workspace.files === 'object' ? { ...workspace.files } : {};
-  return {
-    kind: 'workspace',
-    files,
-    entrypoints: Array.isArray(workspace.entrypoints) ? [...workspace.entrypoints] : [],
-    activeFile: workspace.activeFile || Object.keys(files)[0] || null,
-    inputFile: workspace.inputFile || null,
-  };
 }
 
 function parseEnvelope(raw) {
@@ -34,6 +28,17 @@ export function readArtifactEnvelope(storage = localStorage) {
   return parseEnvelope(storage.getItem(ARTIFACT_CONTENT_STORAGE_KEY)) || emptyEnvelope();
 }
 
+function normalizeStoredEntry(entry) {
+  if (!entry || typeof entry !== 'object') return null;
+  try {
+    if (entry.content) return normalizeArtifactContent(entry.content);
+    if (typeof entry.source === 'string') return textContent(entry.source);
+  } catch {
+    // Corrupt adapter content is ignored rather than preventing the shell from opening.
+  }
+  return null;
+}
+
 export function readArtifactContent(adapterId, storage = localStorage) {
   let entry = readArtifactEnvelope(storage).artifacts?.[adapterId];
 
@@ -41,24 +46,28 @@ export function readArtifactContent(adapterId, storage = localStorage) {
   // the legacy workspace envelope, import it without coupling writes to the
   // shell's text-only in-memory snapshot.
   if (!entry) entry = parseEnvelope(storage.getItem(LEGACY_WORKSPACE_STORAGE_KEY))?.artifacts?.[adapterId];
-  if (!entry || typeof entry !== 'object') return null;
-  if (entry.content?.kind === 'workspace' && entry.content.files && typeof entry.content.files === 'object') {
-    return workspaceContent(entry.content);
-  }
-  if (entry.content?.kind === 'text' && typeof entry.content.source === 'string') return textContent(entry.content.source);
-  if (typeof entry.source === 'string') return textContent(entry.source);
-  return null;
+  return normalizeStoredEntry(entry);
 }
 
 export function persistArtifactContent(adapterId, content, storage = localStorage) {
-  if (!adapterId || !content || !['text', 'workspace'].includes(content.kind)) throw new Error('Invalid artifact content');
+  if (!adapterId) throw new ArtifactContentError('adapter id is required');
+  const normalized = normalizeArtifactContent(content);
   const envelope = readArtifactEnvelope(storage);
   envelope.artifacts[adapterId] = {
-    content: content.kind === 'workspace' ? workspaceContent(content) : textContent(content.source),
+    content: normalized,
     updatedAt: new Date().toISOString(),
   };
   storage.setItem(ARTIFACT_CONTENT_STORAGE_KEY, JSON.stringify(envelope));
   return envelope.artifacts[adapterId];
 }
 
-export { ARTIFACT_CONTENT_STORAGE_KEY, LEGACY_WORKSPACE_STORAGE_KEY };
+export {
+  ARTIFACT_CONTENT_KINDS,
+  ARTIFACT_CONTENT_STORAGE_KEY,
+  ArtifactContentError,
+  contentMatchesKind,
+  LEGACY_WORKSPACE_STORAGE_KEY,
+  normalizeArtifactContent,
+  textContent,
+  workspaceContent,
+};

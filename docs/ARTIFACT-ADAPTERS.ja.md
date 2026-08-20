@@ -2,6 +2,9 @@
 
 [English](ARTIFACT-ADAPTERS.md)
 
+
+adapterが利用するshared contractは [`ADAPTER-CORE.ja.md`](ADAPTER-CORE.ja.md) にまとめる。
+
 Artifact Studio は BPMN 固有アプリではなく、artifact typeごとに adapter を差し替えられる workbench として構成する。
 
 ```text

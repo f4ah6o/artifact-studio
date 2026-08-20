@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { normalizeGraphProjection } from '../../shared/graph-projection.js';
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 const MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
@@ -493,7 +494,7 @@ export function dependencyProjection(payload, query) {
   const unique = [
     ...new Map(refs.map((entry) => [`${entry.kind}:${entry.value}`, entry])).values(),
   ];
-  return {
+  return normalizeGraphProjection({
     nodes: [
       { id: 'query', label: query, kind: 'query' },
       ...unique.map((entry, index) => ({
@@ -507,7 +508,7 @@ export function dependencyProjection(payload, query) {
       to: `dependency-${index}`,
       kind: 'depends-on',
     })),
-  };
+  });
 }
 
 export async function dependenciesWorkspace(workspace, query) {
