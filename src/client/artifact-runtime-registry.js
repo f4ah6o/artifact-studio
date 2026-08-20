@@ -1,3 +1,5 @@
+import { readArtifactRecordById } from './artifact-content.js';
+
 const runtimes = new Map();
 const listeners = new Set();
 
@@ -48,7 +50,11 @@ export async function findCurrentArtifactById(artifactId) {
     const artifact = await runtime.currentArtifact();
     if (artifact?.id === id) return artifact;
   }
-  return null;
+  try {
+    return readArtifactRecordById(id);
+  } catch {
+    return null;
+  }
 }
 
 export async function projectArtifact(artifact) {

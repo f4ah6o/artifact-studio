@@ -529,7 +529,9 @@ Completed Studio workflow child: `issues/closed/20260821-artifact-transform-rege
 
 ### Phase 4: artifact graph
 
-14. workspace persistence v2
+Completed workspace child: `issues/closed/20260821-artifact-workspace-v2-persistence.md`. Multiple stable artifact identities, active selection, legacy migration, derived lineage persistence, and reload-safe freshness are now implemented without a Git backend.
+
+14. workspace persistence v2 ✅
 15. relationship persistence
 16. read-only artifact graph view
 17. reference navigation

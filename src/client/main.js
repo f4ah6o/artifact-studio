@@ -9,20 +9,24 @@ import {
   loadArtifactAdapter,
 } from './artifact-adapters.js';
 import {
+  activeArtifactRecord,
+  artifactWorkspaceSnapshot,
+  createArtifactRecord,
   currentArtifactRecord,
+  listArtifactRecords,
   persistArtifactContent,
   persistArtifactRecord,
   readArtifactContent,
+  readArtifactRecordById,
+  replaceArtifactWorkspace,
+  selectArtifactRecord,
   textContent,
+  workspaceContent,
 } from './artifact-content.js';
 import {
   notifyArtifactRuntimeChange,
   registerArtifactRuntime,
 } from './artifact-runtime-registry.js';
-
-const WORKSPACE_STORAGE_KEY = 'artifact-studio:workspace:v1';
-const LAST_ARTIFACT_STORAGE_KEY = 'artifact-studio:last-artifact:v1';
-const LEGACY_BPMN_STORAGE_KEY = 'ai-bpmn-modeler:last-diagram:v1';
 
 function translate(template, replacements = {}) {
   const translated = translations[template] || template;
@@ -40,6 +44,8 @@ const modeler = new BpmnModeler({
 
 const els = {
   adapterSelect: document.querySelector('#adapter-select'),
+  artifactSelect: document.querySelector('#artifact-select'),
+  newArtifact: document.querySelector('#new-artifact-button'),
   adapterDescription: document.querySelector('#adapter-description'),
   prompt: document.querySelector('#process-prompt'),
   generate: document.querySelector('#generate-button'),
@@ -91,18 +97,16 @@ function setStatus(message) {
   els.status.textContent = message;
 }
 
-function emptyWorkspace() {
-  return {
-    version: 1,
-    activeAdapter: null,
-    artifacts: {},
-    aiSessions: {},
-  };
+function emptyContentForAdapter(adapterId) {
+  const adapter = getArtifactAdapter(adapterId);
+  return adapter.contentKind === 'workspace'
+    ? workspaceContent({ files: {}, entrypoints: [], activeFile: null, inputFile: null })
+    : textContent('');
 }
 
 function writeWorkspace() {
   try {
-    localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(state.workspace));
+    state.workspace = replaceArtifactWorkspace(state.workspace || artifactWorkspaceSnapshot());
     return true;
   } catch (error) {
     console.warn('Artifact Studio workspaceの保存に失敗しました', error);
@@ -111,79 +115,39 @@ function writeWorkspace() {
 }
 
 function readWorkspace() {
-  const workspace = emptyWorkspace();
+  return artifactWorkspaceSnapshot();
+}
 
-  try {
-    const raw = localStorage.getItem(WORKSPACE_STORAGE_KEY);
-    if (raw) {
-      const stored = JSON.parse(raw);
-      if (stored?.version === 1 && stored.artifacts && typeof stored.artifacts === 'object') {
-        return {
-          version: 1,
-          activeAdapter: typeof stored.activeAdapter === 'string' ? stored.activeAdapter : null,
-          artifacts: stored.artifacts,
-          aiSessions:
-            stored.aiSessions && typeof stored.aiSessions === 'object' ? stored.aiSessions : {},
-        };
-      }
-    }
-
-    const previous = localStorage.getItem(LAST_ARTIFACT_STORAGE_KEY);
-    if (previous) {
-      const stored = JSON.parse(previous);
-      if (typeof stored?.adapter === 'string' && typeof stored?.source === 'string') {
-        workspace.activeAdapter = stored.adapter;
-        workspace.artifacts[stored.adapter] = {
-          source: stored.source,
-          updatedAt: stored.updatedAt || new Date().toISOString(),
-        };
-      }
-    }
-
-    if (!workspace.artifacts.bpmn) {
-      const legacyRaw = localStorage.getItem(LEGACY_BPMN_STORAGE_KEY);
-      if (legacyRaw) {
-        const legacy = JSON.parse(legacyRaw);
-        if (legacy?.version === 1 && typeof legacy.xml === 'string' && legacy.xml.trim()) {
-          workspace.activeAdapter ||= 'bpmn';
-          workspace.artifacts.bpmn = {
-            source: legacy.xml,
-            updatedAt: legacy.savedAt || new Date().toISOString(),
-          };
-        }
-      }
-    }
-  } catch (error) {
-    console.warn('保存済みworkspaceの読み込みに失敗しました', error);
-  }
-
-  return workspace;
+function syncWorkspaceState() {
+  state.workspace = artifactWorkspaceSnapshot();
+  return state.workspace;
 }
 
 function persistArtifact(adapterId, source) {
-  if (!state.workspace) state.workspace = emptyWorkspace();
-  const normalizedSource = String(source ?? '');
-  state.workspace.artifacts[adapterId] = {
-    source: normalizedSource,
-    updatedAt: new Date().toISOString(),
-  };
-  writeWorkspace();
-  persistArtifactContent(adapterId, textContent(normalizedSource));
+  persistArtifactContent(adapterId, textContent(String(source ?? '')));
+  syncWorkspaceState();
+  renderArtifactSelector();
   notifyArtifactRuntimeChange();
 }
 
-function persistActiveAdapter(adapterId) {
-  if (!state.workspace) state.workspace = emptyWorkspace();
-  state.workspace.activeAdapter = adapterId;
-  if (writeWorkspace()) {
-    localStorage.removeItem(LAST_ARTIFACT_STORAGE_KEY);
-    localStorage.removeItem(LEGACY_BPMN_STORAGE_KEY);
+function persistActiveAdapter(adapterId, artifactId = null) {
+  let artifact = artifactId ? readArtifactRecordById(artifactId) : activeArtifactRecord();
+  if (!artifact || artifact.adapterId !== adapterId) {
+    artifact = listArtifactRecords(localStorage, adapterId)[0] || null;
   }
+  if (!artifact) {
+    artifact = createArtifactRecord(adapterId, emptyContentForAdapter(adapterId), localStorage, {
+      activate: true,
+    });
+  } else if (activeArtifactRecord()?.id !== artifact.id) {
+    artifact = selectArtifactRecord(artifact.id);
+  }
+  syncWorkspaceState();
+  renderArtifactSelector();
+  return artifact;
 }
 
 function storedArtifactSource(adapterId) {
-  const source = state.workspace?.artifacts?.[adapterId]?.source;
-  if (typeof source === 'string') return source;
   const content = readArtifactContent(adapterId);
   return content?.kind === 'text' ? content.source : null;
 }
@@ -195,7 +159,7 @@ function createAiSessionId() {
 }
 
 function ensureAiSession(adapterId = state.activeAdapter) {
-  if (!state.workspace) state.workspace = emptyWorkspace();
+  state.workspace = artifactWorkspaceSnapshot();
   if (!state.workspace.aiSessions || typeof state.workspace.aiSessions !== 'object') {
     state.workspace.aiSessions = {};
   }
@@ -550,6 +514,40 @@ function updateActionStates() {
   els.review.disabled = !state.llmAvailable || !loaded;
 }
 
+function artifactOptionLabel(artifact) {
+  const adapter = getArtifactAdapter(artifact.adapterId);
+  const shortId = artifact.id.split(':').at(-1)?.slice(0, 8) || artifact.id;
+  return `${adapter?.label || artifact.adapterId}${artifact.lineage ? ' · derived' : ''} · ${shortId}`;
+}
+
+function renderArtifactSelector() {
+  const artifacts = listArtifactRecords().filter((artifact) =>
+    state.enabledAdapters.includes(artifact.adapterId),
+  );
+  const active = activeArtifactRecord();
+  els.artifactSelect.replaceChildren();
+  for (const artifact of artifacts) {
+    const option = document.createElement('option');
+    option.value = artifact.id;
+    option.textContent = artifactOptionLabel(artifact);
+    els.artifactSelect.append(option);
+  }
+  if (!artifacts.length) {
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = 'No artifacts';
+    els.artifactSelect.append(option);
+  }
+  els.artifactSelect.disabled = !artifacts.length;
+  if (active && artifacts.some((artifact) => artifact.id === active.id)) {
+    els.artifactSelect.value = active.id;
+  }
+}
+
+function flushArtifactEditors() {
+  window.dispatchEvent(new CustomEvent('artifact-studio:flush-active-artifact'));
+}
+
 function updateAdapterUi() {
   const adapter = currentAdapter();
   if (!adapter) return;
@@ -575,6 +573,7 @@ function updateAdapterUi() {
   }
 
   updateActionStates();
+  renderArtifactSelector();
   renderAiControls();
 }
 
@@ -730,7 +729,18 @@ async function restoreAdapterArtifact(adapterId) {
   if (source === null) return false;
 
   if (adapterId === 'bpmn') {
-    if (!source.trim()) return false;
+    if (!source.trim()) {
+      state.suppressSync = true;
+      try {
+        await modeler.createDiagram();
+        state.diagramLoaded = true;
+        updateAdapterUi();
+        await fitDiagramToViewport();
+      } finally {
+        state.suppressSync = false;
+      }
+      return false;
+    }
     try {
       await importDiagram(source, { persist: false });
       try {
@@ -756,11 +766,12 @@ async function restoreAdapterArtifact(adapterId) {
 
 async function activateAdapter(
   adapterId,
-  { restore = true, persistBeforeSwitch = true, announce = true } = {},
+  { restore = true, persistBeforeSwitch = true, announce = true, artifactId = null } = {},
 ) {
   if (!state.enabledAdapters.includes(adapterId)) return false;
 
-  if (persistBeforeSwitch && state.activeAdapter !== adapterId) {
+  if (persistBeforeSwitch && (state.activeAdapter !== adapterId || artifactId)) {
+    flushArtifactEditors();
     try {
       await persistCurrentArtifact();
     } catch (error) {
@@ -772,13 +783,18 @@ async function activateAdapter(
   clearTimeout(state.mermaidRenderTimer);
   state.activeAdapter = adapterId;
   state.validation = { errors: [], warnings: [] };
-  persistActiveAdapter(adapterId);
+  persistActiveAdapter(adapterId, artifactId);
   updateAdapterUi();
   renderFindings();
+  window.dispatchEvent(
+    new CustomEvent('artifact-studio:active-artifact-changed', {
+      detail: { artifactId: activeArtifactRecord()?.id || null, adapterId },
+    }),
+  );
 
   let restored = false;
   if (restore) {
-    if (adapterId === 'bpmn' && state.diagramLoaded) {
+    if (adapterId === 'bpmn' && state.diagramLoaded && !artifactId) {
       restored = true;
       await fitDiagramToViewport();
     } else {
@@ -1119,6 +1135,38 @@ els.adapterSelect.addEventListener('change', () => {
     setStatus(`adapter切替エラー: ${error.message}`),
   );
 });
+els.artifactSelect.addEventListener('change', () => {
+  const artifact = readArtifactRecordById(els.artifactSelect.value);
+  if (!artifact) return;
+  activateAdapter(artifact.adapterId, { artifactId: artifact.id, announce: false }).catch((error) =>
+    setStatus(`artifact切替エラー: ${error.message}`),
+  );
+});
+els.newArtifact.addEventListener('click', () => {
+  flushArtifactEditors();
+  Promise.resolve(persistCurrentArtifact())
+    .then(() =>
+      createArtifactRecord(
+        state.activeAdapter,
+        emptyContentForAdapter(state.activeAdapter),
+        localStorage,
+        {
+          activate: true,
+        },
+      ),
+    )
+    .then((artifact) => {
+      syncWorkspaceState();
+      return activateAdapter(artifact.adapterId, {
+        artifactId: artifact.id,
+        restore: true,
+        persistBeforeSwitch: false,
+        announce: false,
+      });
+    })
+    .then(() => setStatus(`新しい${currentAdapter().label} Artifactを作成しました`))
+    .catch((error) => setStatus(`Artifact作成エラー: ${error.message}`));
+});
 els.codexModel.addEventListener('change', () => {
   const session = currentAiSession();
   session.model = els.codexModel.value || null;
@@ -1186,7 +1234,8 @@ async function bootstrap() {
   }
 
   const configuredDefault = config?.demo?.defaultAdapter || 'bpmn';
-  const storedAdapter = state.workspace.activeAdapter;
+  const storedArtifact = activeArtifactRecord();
+  const storedAdapter = storedArtifact?.adapterId || null;
   const initialAdapter = state.enabledAdapters.includes(storedAdapter)
     ? storedAdapter
     : state.enabledAdapters.includes(configuredDefault)
@@ -1197,6 +1246,7 @@ async function bootstrap() {
     restore: true,
     persistBeforeSwitch: false,
     announce: false,
+    artifactId: storedAdapter === initialAdapter ? storedArtifact?.id || null : null,
   });
 
   if (restored) {

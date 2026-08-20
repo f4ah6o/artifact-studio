@@ -397,6 +397,27 @@ function exportWorkspace() {
   );
 }
 
+window.addEventListener('artifact-studio:flush-active-artifact', () => {
+  if (!opaActive) return;
+  clearTimeout(persistTimer);
+  persistNow();
+});
+
+window.addEventListener('artifact-studio:active-artifact-changed', (event) => {
+  if (event.detail?.adapterId !== 'opa') return;
+  clearTimeout(persistTimer);
+  workspace = restoreWorkspace();
+  if (opaActive) {
+    renderWorkspace();
+    renderFindings([]);
+    setStatus(
+      hasFiles()
+        ? 'OPA workspace 準備完了'
+        : 'OPA workspace — Rego / data / input を開いてください',
+    );
+  }
+});
+
 registerArtifactRuntime('opa', {
   currentArtifact() {
     if (!hasFiles()) return null;

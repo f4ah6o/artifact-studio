@@ -48,7 +48,8 @@ select {
   align-items: center;
   gap: 10px;
 }
-.adapter-picker select {
+.adapter-picker select,
+.artifact-picker select {
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   padding: 6px 28px 6px 9px;

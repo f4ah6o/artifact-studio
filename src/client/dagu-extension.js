@@ -296,6 +296,25 @@ function syncUi() {
   }
 }
 
+window.addEventListener('artifact-studio:flush-active-artifact', () => {
+  if (!daguActive) return;
+  clearTimeout(persistTimer);
+  persistNow();
+});
+
+window.addEventListener('artifact-studio:active-artifact-changed', (event) => {
+  if (event.detail?.adapterId !== 'dagu') return;
+  clearTimeout(persistTimer);
+  clearTimeout(projectTimer);
+  els.source.value = restoredSource();
+  if (daguActive) {
+    renderSelected();
+    renderFindings([]);
+    syncActionStates();
+    project().catch((error) => setStatus(`Dagu graph preview エラー: ${error.message}`));
+  }
+});
+
 registerArtifactRuntime('dagu', {
   currentArtifact() {
     if (!hasSource()) return null;

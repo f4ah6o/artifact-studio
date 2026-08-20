@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vite-plus/test';
 import {
-  ARTIFACT_CONTENT_STORAGE_KEY,
+  ARTIFACT_WORKSPACE_STORAGE_KEY,
   currentArtifactRecord,
   persistArtifactContent,
   persistArtifactRecord,
@@ -38,7 +38,7 @@ describe('generic artifact content persistence', () => {
       storage,
     );
 
-    expect(JSON.parse(storage.getItem(ARTIFACT_CONTENT_STORAGE_KEY)).version).toBe(1);
+    expect(JSON.parse(storage.getItem(ARTIFACT_WORKSPACE_STORAGE_KEY)).version).toBe(2);
     expect(readArtifactContent('opa', storage)).toEqual({
       kind: 'workspace',
       files: { 'policy.rego': 'package policy\n' },
@@ -67,7 +67,7 @@ describe('generic artifact content persistence', () => {
     );
     persistArtifactContent('mermaid', textContent('flowchart TD\n  a --> c\n'), storage);
 
-    expect(readArtifactRecord('mermaid', storage)).toEqual({
+    expect(readArtifactRecord('mermaid', storage)).toMatchObject({
       id: 'derived-mermaid',
       adapterId: 'mermaid',
       content: textContent('flowchart TD\n  a --> c\n'),
@@ -75,7 +75,7 @@ describe('generic artifact content persistence', () => {
     });
     expect(
       currentArtifactRecord('mermaid', textContent('flowchart TD\n  a --> d\n'), storage),
-    ).toEqual({
+    ).toMatchObject({
       id: 'derived-mermaid',
       adapterId: 'mermaid',
       content: textContent('flowchart TD\n  a --> d\n'),
