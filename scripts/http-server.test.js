@@ -6,7 +6,7 @@
  */
 
 import { describe, test, expect, beforeAll, afterAll } from 'vite-plus/test';
-import { server } from './http-server.js';
+import { getCodexStatus, server } from './http-server.js';
 
 let baseUrl;
 
@@ -20,6 +20,37 @@ afterAll(async () => {
   await new Promise((resolve) => server.close(resolve));
 });
 
+function advertisedModels() {
+  return [
+    {
+      id: 'model-default',
+      model: 'model-default',
+      displayName: 'Model Default',
+      description: 'Default model',
+      hidden: false,
+      isDefault: true,
+      defaultReasoningEffort: 'low',
+      supportedReasoningEfforts: [
+        { reasoningEffort: 'low', description: 'low' },
+        { reasoningEffort: 'high', description: 'high' },
+      ],
+    },
+    {
+      id: 'model-other',
+      model: 'model-other',
+      displayName: 'Model Other',
+      description: 'Other model',
+      hidden: false,
+      isDefault: false,
+      defaultReasoningEffort: 'medium',
+      supportedReasoningEfforts: [
+        { reasoningEffort: 'medium', description: 'medium' },
+        { reasoningEffort: 'high', description: 'high' },
+      ],
+    },
+  ];
+}
+
 describe('HTTP API', () => {
   test('GET /health reports ok', async () => {
     const res = await fetch(`${baseUrl}/health`);
@@ -27,6 +58,37 @@ describe('HTTP API', () => {
     const data = await res.json();
     expect(data.status).toBe('ok');
     expect(typeof data.uptime).toBe('number');
+  });
+
+  test('Codex status exposes model/list catalog and advertised defaults', async () => {
+    const client = {
+      accountRead: async () => ({ account: { type: 'chatgpt', planType: 'plus' } }),
+      listModels: async () => advertisedModels(),
+    };
+    const status = await getCodexStatus({ client, env: {} });
+
+    expect(status).toMatchObject({
+      available: true,
+      authenticated: true,
+      planType: 'plus',
+      model: 'model-default',
+      effort: 'low',
+    });
+    expect(status.models.map((model) => model.model)).toEqual(['model-default', 'model-other']);
+  });
+
+  test('Codex environment model/effort remain deterministic bootstrap defaults', async () => {
+    const client = {
+      accountRead: async () => ({ account: { type: 'chatgpt', planType: 'plus' } }),
+      listModels: async () => advertisedModels(),
+    };
+    const status = await getCodexStatus({
+      client,
+      env: { CODEX_MODEL: 'model-other', CODEX_EFFORT: 'high' },
+    });
+
+    expect(status.model).toBe('model-other');
+    expect(status.effort).toBe('high');
   });
 
   test('POST /api/v1/chat rejects missing messages before invoking Codex', async () => {

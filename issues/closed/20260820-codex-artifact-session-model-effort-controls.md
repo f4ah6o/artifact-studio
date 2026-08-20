@@ -1,6 +1,6 @@
 # Codex Artifact Session / Model / Effort Controls
 
-Status: open
+Status: closed
 Date: 2026-08-20
 Target: Artifact Studio app server / Web UI
 Related:
@@ -274,23 +274,51 @@ Requirements:
 
 ## Acceptance criteria
 
-- [ ] 同じ Artifact work session の連続 AI operation が同一 Codex thread を利用する。
-- [ ] 別 Artifact の AI operation が意図せず同一 thread を共有しない。
-- [ ] new AI session 操作で context を明示的に切れる。
-- [ ] page reload 後、利用可能な既存 thread を継続できる。
-- [ ] stale / unavailable thread を deterministic に回復でき、context reset が観測可能である。
-- [ ] `model/list` から利用可能 model を取得し UI に表示する。
-- [ ] model 未指定時も advertised/default model を UI で識別できる。
-- [ ] selected model の `supportedReasoningEfforts` のみ effort selector に表示する。
-- [ ] current model / effort が UI に表示される。
-- [ ] model / effort の変更が app-server process 再起動なしで次の turn に反映される。
-- [ ] `CODEX_MODEL` / `CODEX_EFFORT` の bootstrap behavior が regression しない。
-- [ ] raw provider credentials / auth token / unrelated thread metadata を browser に露出しない。
-- [ ] canonical artifact content に Codex thread/session metadata を混ぜない。
-- [ ] chat / orchestrate / artifact generation が同じ AI work-session contract を共有する。
-- [ ] relevant unit/integration tests と `vp check`, `vp test --run`, `vp build` が green。
-- [ ] completion evidence を追記して `issues/closed/` に移せる。
+- [x] 同じ Artifact work session の連続 AI operation が同一 Codex thread を利用する。
+- [x] 別 Artifact の AI operation が意図せず同一 thread を共有しない。
+- [x] new AI session 操作で context を明示的に切れる。
+- [x] page reload 後、利用可能な既存 thread を継続できる。
+- [x] stale / unavailable thread を deterministic に回復でき、context reset が観測可能である。
+- [x] `model/list` から利用可能 model を取得し UI に表示する。
+- [x] model 未指定時も advertised/default model を UI で識別できる。
+- [x] selected model の `supportedReasoningEfforts` のみ effort selector に表示する。
+- [x] current model / effort が UI に表示される。
+- [x] model / effort の変更が app-server process 再起動なしで次の turn に反映される。
+- [x] `CODEX_MODEL` / `CODEX_EFFORT` の bootstrap behavior が regression しない。
+- [x] raw provider credentials / auth token / unrelated thread metadata を browser に露出しない。
+- [x] canonical artifact content に Codex thread/session metadata を混ぜない。
+- [x] chat / orchestrate / artifact generation が同じ AI work-session contract を共有する。
+- [x] relevant unit/integration tests と `vp check`, `vp test --run`, `vp build` が green。
+- [x] completion evidence を追記して `issues/closed/` に移せる。
 
 ## Completion evidence
 
-未完了。実装完了時に app-server protocol evidence、session continuation tests、model/effort catalog tests、UI behavior、regression gates、commit / CI evidence を記録する。
+2026-08-20 implementation completed on `main`.
+
+### Codex app-server protocol evidence
+
+- The installed Codex app-server schema was generated with `codex app-server generate-json-schema --experimental` before implementation.
+- `model/list` is confirmed to return paginated `{ data, nextCursor }` model catalog entries with `id`, `model`, `displayName`, `hidden`, `isDefault`, `defaultReasoningEffort`, and `supportedReasoningEfforts`.
+- `thread/resume` is the protocol operation for continuing a persisted thread by `threadId`; the current schema explicitly says to prefer `threadId` when possible.
+- `turn/start.model` and `turn/start.effort` are confirmed by the current schema to override the current and subsequent turns, so UI changes do not require restarting app-server.
+- A live missing-thread probe returned `no rollout found for thread id ...`; only this stale/unavailable-thread class is treated as recoverable. Authentication and unrelated app-server failures are not silently converted into context resets.
+- A live `model/list` probe returned six visible models in the current account; the advertised default at verification time was `gpt-5.6-sol` with default reasoning effort `low`. Artifact Studio does not hard-code those values.
+
+### Implementation evidence
+
+- `CodexAppServerClient` now supports catalog pagination, `thread/resume`, continued turns, model/effort overrides, and observable stale-thread recovery.
+- `AiWorkSessionStore` keeps the provider `threadId` server-side and exposes only an opaque Artifact work-session id plus safe model/effort/reset state to the browser.
+- Browser workspace persistence stores per-Artifact AI work-session identity and model/effort selection separately from canonical BPMN/Mermaid content. Reloading the page reuses the same work-session id; switching Artifact adapters resolves a different work session; replacing artifact content starts a new work-session id.
+- `/chat`, `/orchestrate`, and Mermaid AI generation use the same work-session contract. Frontend chat history is no longer resent as pseudo-session context; Codex thread continuation is the conversation authority.
+- Model and effort selectors are populated from `model/list`; changing model rebuilds effort choices from that model's advertised supported efforts and falls back to its advertised default effort.
+- `New AI session` clears only Codex runtime context. It does not mutate canonical artifact content.
+- Raw Codex thread ids, auth tokens, and provider credentials are never returned to the browser.
+
+### Regression evidence
+
+- `vp check`: exit 0, 0 errors. Existing repository lint warnings remain non-blocking.
+- `vp test --run`: 14 test files passed, 1 skipped; 383 tests passed, 1 skipped.
+- `vp build`: green; 2467 modules transformed and production frontend bundle generated successfully.
+- `git diff --check`: green.
+- Added deterministic fake app-server protocol coverage for model catalog pagination, thread continuation, next-turn model/effort changes, stale-thread recovery, session isolation, reset semantics, and safe public session state.
+

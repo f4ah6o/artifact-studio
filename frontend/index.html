@@ -19,6 +19,18 @@
     </div>
     <div class="actions">
       <span id="codex-state" class="subtle">Codex確認中…</span>
+      <div class="codex-controls" aria-label="Codex AI controls">
+        <label class="codex-control">
+          <span>Model</span>
+          <select id="codex-model-select" aria-label="Codex model" disabled></select>
+        </label>
+        <label class="codex-control">
+          <span>Effort</span>
+          <select id="codex-effort-select" aria-label="Codex reasoning effort" disabled></select>
+        </label>
+        <span id="ai-session-state" class="subtle">Session: 新規</span>
+        <button id="ai-session-reset-button" class="button secondary" type="button" disabled>New AI session</button>
+      </div>
       <button id="codex-login-button" class="button secondary" type="button" hidden>ChatGPTに接続</button>
       <label id="file-open-label" class="button secondary" for="file-input">ファイルを開く</label>
       <input id="file-input" type="file" multiple hidden>

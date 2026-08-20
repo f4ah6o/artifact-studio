@@ -22,15 +22,67 @@ function turnState() {
   };
 }
 
+export class CodexAppServerError extends Error {
+  constructor(message, { code = null, data = null, method = null } = {}) {
+    super(message);
+    this.name = 'CodexAppServerError';
+    this.code = code;
+    this.data = data;
+    this.method = method;
+  }
+}
+
+export function isRecoverableThreadResumeError(error) {
+  const message = String(error?.message || '');
+  return (
+    /no rollout found for thread id/i.test(message) ||
+    /thread(?: id)? .*not found/i.test(message) ||
+    /unknown thread/i.test(message) ||
+    /thread .*does not exist/i.test(message)
+  );
+}
+
+export function normalizeCodexModels(models) {
+  return (Array.isArray(models) ? models : [])
+    .filter((entry) => entry && typeof entry.model === 'string' && entry.model)
+    .map((entry) => ({
+      id: typeof entry.id === 'string' && entry.id ? entry.id : entry.model,
+      model: entry.model,
+      displayName:
+        typeof entry.displayName === 'string' && entry.displayName
+          ? entry.displayName
+          : entry.model,
+      description: typeof entry.description === 'string' ? entry.description : '',
+      hidden: Boolean(entry.hidden),
+      isDefault: Boolean(entry.isDefault),
+      defaultReasoningEffort:
+        typeof entry.defaultReasoningEffort === 'string' ? entry.defaultReasoningEffort : null,
+      supportedReasoningEfforts: (Array.isArray(entry.supportedReasoningEfforts)
+        ? entry.supportedReasoningEfforts
+        : []
+      )
+        .filter(
+          (option) =>
+            option && typeof option.reasoningEffort === 'string' && option.reasoningEffort,
+        )
+        .map((option) => ({
+          reasoningEffort: option.reasoningEffort,
+          description: typeof option.description === 'string' ? option.description : '',
+        })),
+    }));
+}
+
 export class CodexAppServerClient {
   constructor({
     command = process.env.CODEX_BIN || 'codex',
+    args = ['app-server'],
     cwd = process.env.CODEX_CWD || process.cwd(),
     timeout = DEFAULT_TIMEOUT,
     model = process.env.CODEX_MODEL || null,
-    effort = process.env.CODEX_EFFORT || 'medium',
+    effort = process.env.CODEX_EFFORT || null,
   } = {}) {
     this.command = command;
+    this.args = args;
     this.cwd = cwd;
     this.timeout = timeout;
     this.model = model;
@@ -51,7 +103,7 @@ export class CodexAppServerClient {
     if (this.startPromise) return this.startPromise;
 
     this.startPromise = (async () => {
-      this.proc = spawn(this.command, ['app-server'], {
+      this.proc = spawn(this.command, this.args, {
         cwd: this.cwd,
         stdio: ['pipe', 'pipe', 'pipe'],
       });
@@ -85,8 +137,8 @@ export class CodexAppServerClient {
 
       await this.#requestRaw('initialize', {
         clientInfo: {
-          name: 'bpmn_generator',
-          title: 'AI BPMN Modeler',
+          name: 'artifact_studio',
+          title: 'Artifact Studio',
           version: '0.1.0',
         },
       });
@@ -111,6 +163,21 @@ export class CodexAppServerClient {
     return this.request('account/read', { refreshToken });
   }
 
+  async listModels({ includeHidden = false, limit = 100 } = {}) {
+    const data = [];
+    let cursor = null;
+
+    do {
+      const params = { includeHidden, limit };
+      if (cursor) params.cursor = cursor;
+      const result = await this.request('model/list', params);
+      data.push(...(Array.isArray(result?.data) ? result.data : []));
+      cursor = result?.nextCursor || null;
+    } while (cursor);
+
+    return data;
+  }
+
   async loginChatGpt() {
     return this.request('account/login/start', {
       type: 'chatgpt',
@@ -125,24 +192,56 @@ export class CodexAppServerClient {
 
   async runTurn(
     text,
-    { model = this.model, effort = this.effort, outputSchema = null, timeout = this.timeout } = {},
+    {
+      threadId = null,
+      model = this.model,
+      effort = this.effort,
+      outputSchema = null,
+      timeout = this.timeout,
+    } = {},
   ) {
     await this.start();
 
-    const threadParams = {
-      cwd: this.cwd,
-      approvalPolicy: 'never',
-      sandbox: 'read-only',
-      serviceName: 'bpmn_generator',
-    };
-    if (model) threadParams.model = model;
+    let resolvedThreadId = threadId;
+    let contextReset = false;
+    let contextResetReason = null;
 
-    const threadResult = await this.#requestRaw('thread/start', threadParams);
-    const threadId = threadResult?.thread?.id;
-    if (!threadId) throw new Error('Codex app-server did not return a thread id');
+    if (resolvedThreadId) {
+      const resumeParams = {
+        threadId: resolvedThreadId,
+        cwd: this.cwd,
+        approvalPolicy: 'never',
+        sandbox: 'read-only',
+      };
+      if (model) resumeParams.model = model;
+
+      try {
+        const resumed = await this.#requestRaw('thread/resume', resumeParams);
+        resolvedThreadId = resumed?.thread?.id || resolvedThreadId;
+      } catch (error) {
+        if (!isRecoverableThreadResumeError(error)) throw error;
+        resolvedThreadId = null;
+        contextReset = true;
+        contextResetReason = 'stale_thread';
+      }
+    }
+
+    if (!resolvedThreadId) {
+      const threadParams = {
+        cwd: this.cwd,
+        approvalPolicy: 'never',
+        sandbox: 'read-only',
+        serviceName: 'artifact_studio',
+      };
+      if (model) threadParams.model = model;
+
+      const threadResult = await this.#requestRaw('thread/start', threadParams);
+      resolvedThreadId = threadResult?.thread?.id;
+      if (!resolvedThreadId) throw new Error('Codex app-server did not return a thread id');
+    }
 
     const turnParams = {
-      threadId,
+      threadId: resolvedThreadId,
       input: [{ type: 'text', text }],
       cwd: this.cwd,
       approvalPolicy: 'never',
@@ -157,7 +256,13 @@ export class CodexAppServerClient {
     if (!turnId) throw new Error('Codex app-server did not return a turn id');
 
     const result = await this.#waitForTurn(turnId, timeout);
-    return { threadId, turnId, text: result };
+    return {
+      threadId: resolvedThreadId,
+      turnId,
+      text: result,
+      contextReset,
+      contextResetReason,
+    };
   }
 
   close() {
@@ -189,6 +294,7 @@ export class CodexAppServerClient {
       }, this.timeout);
 
       this.pending.set(id, {
+        method,
         resolve: (result) => {
           clearTimeout(timer);
           resolve(result);
@@ -221,8 +327,13 @@ export class CodexAppServerClient {
       this.pending.delete(message.id);
       if (message.error) {
         pending.reject(
-          new Error(
+          new CodexAppServerError(
             `Codex app-server ${message.error.code ?? ''}: ${message.error.message || 'request failed'}`,
+            {
+              code: message.error.code ?? null,
+              data: message.error.data ?? null,
+              method: pending.method,
+            },
           ),
         );
       } else {
@@ -378,14 +489,11 @@ function messagesToText(messages) {
 export function createCodexAppServerProvider({
   client = codexAppServer,
   model = process.env.CODEX_MODEL || null,
-  effort = process.env.CODEX_EFFORT || 'medium',
+  effort = process.env.CODEX_EFFORT || null,
+  session = null,
 } = {}) {
   return async function callCodex(systemOrMessages, userPromptOrOptions, maybeOptions) {
-    const { messages, options } = normalizeMessages(
-      systemOrMessages,
-      userPromptOrOptions,
-      maybeOptions,
-    );
+    const { messages } = normalizeMessages(systemOrMessages, userPromptOrOptions, maybeOptions);
     // `json_object` means "return JSON", not "apply this Structured Output schema".
     // Passing a generic { type: 'object' } to Codex app-server is invalid under
     // strict Structured Outputs (object schemas require additionalProperties: false)
@@ -394,10 +502,20 @@ export function createCodexAppServerProvider({
     const outputSchema = null;
 
     const result = await client.runTurn(messagesToText(messages), {
-      model,
-      effort,
+      threadId: session?.threadId || null,
+      model: session?.model ?? model,
+      effort: session?.effort ?? effort,
       outputSchema,
     });
+
+    if (session) {
+      session.threadId = result.threadId;
+      if (result.contextReset) {
+        session.contextReset = true;
+        session.contextResetReason = result.contextResetReason || null;
+      }
+    }
+
     return result.text;
   };
 }

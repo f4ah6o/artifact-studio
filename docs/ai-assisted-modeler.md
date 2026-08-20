@@ -38,11 +38,19 @@ spawn codex app-server
   -> initialize
   -> initialized
   -> account/read
-  -> thread/start
-  -> turn/start
+  -> model/list
+  -> thread/start (new Artifact AI work session)
+     OR thread/resume (continued work session)
+  -> turn/start (current model / reasoning effort)
   -> item/* notifications
   -> turn/completed
 ```
+
+Artifact Studio keeps Codex runtime metadata separate from canonical artifact content. The browser persists only an opaque `aiSessionId` plus the selected model/effort for each Artifact work session; raw Codex `threadId` values stay server-side. Reloading the page reuses the same work-session identity, while switching to another Artifact resolves a different session. Opening replacement artifact content starts a new work-session identity.
+
+The model selector is populated from app-server `model/list`. The advertised default model and each model's `defaultReasoningEffort` / `supportedReasoningEfforts` are authoritative. `CODEX_MODEL` and `CODEX_EFFORT` remain deployment/bootstrap overrides. Changing the UI selection is applied by `turn/start` on subsequent turns and does not restart app-server.
+
+`thread/resume` is attempted for an existing work session. If Codex reports that the persisted rollout no longer exists, Artifact Studio starts a new thread and exposes the context reset in the safe AI-session status instead of leaking or accepting a browser-supplied thread id.
 
 For the browser UI, ChatGPT login is initiated through `account/login/start` with `type: chatgpt`; the returned authorization URL is opened in the user's browser. There is no OpenAI API-key input in the BPMN UI.
 
@@ -103,6 +111,8 @@ The frontend also calls `/api/v1/chat` with the current Logic-Core as context fo
 - editable bpmn-js modeler
 - natural-language generation through `/api/v1/orchestrate`
 - Codex app-server adapter over stdio
+- Artifact-scoped Codex thread continuation with explicit AI-session reset
+- app-server `model/list` driven model/reasoning-effort controls
 - ChatGPT managed-login bootstrap through app-server
 - `.bpmn` import/export
 - BPMN-to-Logic-Core synchronization after edits
@@ -171,7 +181,6 @@ The semantic-operation executor is an application service, not a Codex filesyste
 
 ## Later integrations
 
-- one Codex thread per BPMN review session, with `thread/resume` for continued grilling
 - streaming `item/agentMessage/delta` into the right pane
 - approval/request UI if future Codex tools genuinely require it
 - role/policy references outside BPMN, keyed by BPMN element ID

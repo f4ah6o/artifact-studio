@@ -23,7 +23,9 @@ import { chatAgent } from './agents/chat.js';
 import {
   codexAppServer,
   createCodexAppServerProvider,
+  normalizeCodexModels,
 } from './agents/codex-app-server-provider.js';
+import { AiWorkSessionStore, resolveCodexDefaults } from './agents/ai-work-sessions.js';
 import { deliver } from './delivery.js';
 import { auditLog } from './audit.js';
 import { validateLogicCoreSchema } from './schema-gate.js';
@@ -37,6 +39,7 @@ const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
 const RATE_LIMIT = { windowMs: 60_000, max: 30 };
 const rateBuckets = new Map();
 const startTime = Date.now();
+const aiWorkSessions = new AiWorkSessionStore();
 
 export function startupCheck(env, logger = console.warn) {
   if (env.NODE_ENV === 'production' && !env.BPMN_API_KEY) {
@@ -162,16 +165,25 @@ function json(res, status, data) {
   res.end(body);
 }
 
-export async function getCodexStatus() {
+export async function getCodexStatus({ client = codexAppServer, env = process.env } = {}) {
   try {
-    const result = await codexAppServer.accountRead({ refreshToken: false });
+    const result = await client.accountRead({ refreshToken: false });
     const account = result?.account || null;
+    const models = normalizeCodexModels(
+      await client.listModels({ includeHidden: false, limit: 100 }),
+    ).filter((model) => !model.hidden);
+    const defaults = resolveCodexDefaults(models, {
+      configuredModel: env.CODEX_MODEL || null,
+      configuredEffort: env.CODEX_EFFORT || null,
+    });
     return {
       available: true,
       authenticated: Boolean(account) || result?.requiresOpenaiAuth === false,
       accountType: account?.type || null,
       planType: account?.planType || null,
-      model: process.env.CODEX_MODEL || null,
+      model: defaults.model,
+      effort: defaults.effort,
+      models,
       error: null,
     };
   } catch (error) {
@@ -180,10 +192,36 @@ export async function getCodexStatus() {
       authenticated: false,
       accountType: null,
       planType: null,
-      model: process.env.CODEX_MODEL || null,
+      model: env.CODEX_MODEL || null,
+      effort: env.CODEX_EFFORT || null,
+      models: [],
       error: error.message,
     };
   }
+}
+
+async function prepareAiRequest(body) {
+  const aiSessionId =
+    typeof body.aiSessionId === 'string' && body.aiSessionId
+      ? body.aiSessionId
+      : crypto.randomUUID();
+  const models = normalizeCodexModels(
+    await codexAppServer.listModels({ includeHidden: false, limit: 100 }),
+  ).filter((model) => !model.hidden);
+  const defaults = resolveCodexDefaults(models, {
+    configuredModel: process.env.CODEX_MODEL || null,
+    configuredEffort: process.env.CODEX_EFFORT || null,
+  });
+  const selection = {};
+  if (typeof body.model === 'string' && body.model) selection.model = body.model;
+  if (typeof body.effort === 'string' && body.effort) selection.effort = body.effort;
+  const session = aiWorkSessions.prepare(aiSessionId, selection, { models, defaults });
+  const llmProvider = createCodexAppServerProvider({ session });
+  return { session, llmProvider };
+}
+
+function publicAiSession(session) {
+  return aiWorkSessions.publicState(session);
 }
 
 const server = createServer(async (req, res) => {
@@ -281,6 +319,23 @@ const server = createServer(async (req, res) => {
     if (url === '/api/v1/codex/logout') {
       await codexAppServer.logout();
       return json(res, 200, { status: 'logged_out' });
+    }
+
+    if (url === '/api/v1/ai/session/status') {
+      if (typeof body.aiSessionId !== 'string' || !body.aiSessionId) {
+        return json(res, 400, { error: 'aiSessionId is required' });
+      }
+      const { session } = await prepareAiRequest(body);
+      return json(res, 200, { aiSession: publicAiSession(session) });
+    }
+
+    if (url === '/api/v1/ai/session/reset') {
+      if (typeof body.aiSessionId !== 'string' || !body.aiSessionId) {
+        return json(res, 400, { error: 'aiSessionId is required' });
+      }
+      const { session } = await prepareAiRequest(body);
+      aiWorkSessions.reset(session.id);
+      return json(res, 200, { aiSession: publicAiSession(session) });
     }
 
     // Generate
@@ -382,22 +437,29 @@ const server = createServer(async (req, res) => {
         return json(res, 400, { error: 'Provide userText (string)' });
       }
 
+      const ai = await prepareAiRequest(body);
       const result = await generateMermaidArtifact({
         userText: body.userText,
-        llmProvider: createCodexAppServerProvider(),
+        llmProvider: ai.llmProvider,
       });
       const durationMs = Date.now() - t0;
       auditLog({ event: 'completed', correlationId, durationMs, artifact: 'mermaid' });
-      return json(res, 200, { correlationId, status: 'success', source: result.source });
+      return json(res, 200, {
+        correlationId,
+        status: 'success',
+        source: result.source,
+        aiSession: publicAiSession(ai.session),
+      });
     }
 
     // Orchestrate — Codex app-server is the only AI runtime for the web app.
     if (url === '/api/v1/orchestrate') {
       auditLog({ event: 'request', correlationId, clientId, endpoint: '/orchestrate' });
 
+      const ai = await prepareAiRequest(body);
       const options = {
         ruleProfile: body.ruleProfile || null,
-        llmProvider: createCodexAppServerProvider(),
+        llmProvider: ai.llmProvider,
       };
 
       const input = body.userText || body.logicCore;
@@ -442,6 +504,7 @@ const server = createServer(async (req, res) => {
         compliance: result.compliance,
         history: result.history,
         iterations: result.iterations,
+        aiSession: publicAiSession(ai.session),
       });
     }
 
@@ -453,8 +516,8 @@ const server = createServer(async (req, res) => {
         return json(res, 400, { error: 'messages must be a non-empty array' });
       }
 
-      const llmProvider = createCodexAppServerProvider();
-      const result = await chatAgent({ messages: body.messages, llmProvider });
+      const ai = await prepareAiRequest(body);
+      const result = await chatAgent({ messages: body.messages, llmProvider: ai.llmProvider });
       const durationMs = Date.now() - t0;
       auditLog({
         event: 'completed',
@@ -463,7 +526,11 @@ const server = createServer(async (req, res) => {
         readyToGenerate: result.readyToGenerate,
       });
 
-      return json(res, 200, { ...result, correlationId });
+      return json(res, 200, {
+        ...result,
+        correlationId,
+        aiSession: publicAiSession(ai.session),
+      });
     }
 
     // Telemetry
@@ -486,7 +553,12 @@ const server = createServer(async (req, res) => {
     return json(res, 404, { error: 'Not Found' });
   } catch (err) {
     auditLog({ event: 'error', correlationId, error: err.message });
-    return json(res, 500, { correlationId, status: 'internal_error', error: err.message });
+    const statusCode = Number.isInteger(err?.statusCode) ? err.statusCode : 500;
+    return json(res, statusCode, {
+      correlationId,
+      status: statusCode >= 500 ? 'internal_error' : 'request_error',
+      error: err.message,
+    });
   }
 });
 
@@ -503,6 +575,7 @@ if (isEntryPoint) {
     console.log(`  POST /api/v1/orchestrate — Codex-assisted review + generate + compliance`);
     console.log(`  POST /api/v1/chat        — Codex discovery / grilling`);
     console.log(`  POST /api/v1/codex/login — Start managed ChatGPT login`);
+    console.log(`  POST /api/v1/ai/session/reset — Reset the current AI work session`);
     console.log(`  GET  /health             — Health check`);
     console.log(`  GET  /api/v1/config      — Codex/auth bootstrap status`);
   });

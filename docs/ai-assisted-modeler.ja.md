@@ -38,11 +38,19 @@ spawn codex app-server
   -> initialize
   -> initialized
   -> account/read
-  -> thread/start
-  -> turn/start
+  -> model/list
+  -> thread/start (新しいArtifact AI work session)
+     OR thread/resume (継続work session)
+  -> turn/start (current model / reasoning effort)
   -> item/* notifications
   -> turn/completed
 ```
+
+Codex runtime metadataはcanonical artifact contentと分離する。browserへ保存するのはArtifact work sessionごとのopaqueな `aiSessionId` と選択中model/effortだけで、raw Codex `threadId` はserver側だけに保持する。page reloadでは同じwork-session identityを再利用し、別Artifactへ切り替えると別sessionを解決する。外部fileでartifact内容を置き換えた場合は新しいwork-session identityを開始する。
+
+model selectorはapp-serverの `model/list` から構築する。advertised default modelと各modelの `defaultReasoningEffort` / `supportedReasoningEfforts` をauthorityとし、`CODEX_MODEL` / `CODEX_EFFORT` はdeployment/bootstrap overrideとして残す。UIでmodel/effortを変更すると次の `turn/start` 以降へ反映し、app-server processは再起動しない。
+
+既存work sessionでは `thread/resume` を試す。Codexがpersist済みrolloutの消失を返した場合だけ新しいthreadへ回復し、context resetをsafeなAI-session statusへ出す。browserからraw `threadId` を入力・注入するAPIにはしない。
 
 browser UIのChatGPT loginは `account/login/start` (`type: chatgpt`) から開始し、返されたauthorization URLをbrowserで開く。BPMN UIにOpenAI API key入力欄を持たせない。
 
@@ -101,6 +109,8 @@ Natural language
 - editable `bpmn-js` modeler
 - `/api/v1/orchestrate` によるnatural-language generation
 - stdio Codex app-server adapter
+- Artifact scoped Codex thread continuationと明示的AI-session reset
+- app-server `model/list` driven model/reasoning-effort controls
 - app-server経由ChatGPT managed login
 - `.bpmn` import/export
 - edit後のBPMN -> Logic-Core synchronization

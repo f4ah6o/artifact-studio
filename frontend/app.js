@@ -48,6 +48,10 @@ const els = {
   chatLog: document.querySelector('#chat-log'),
   codexState: document.querySelector('#codex-state'),
   codexLogin: document.querySelector('#codex-login-button'),
+  codexModel: document.querySelector('#codex-model-select'),
+  codexEffort: document.querySelector('#codex-effort-select'),
+  aiSessionState: document.querySelector('#ai-session-state'),
+  aiSessionReset: document.querySelector('#ai-session-reset-button'),
 };
 
 const state = {
@@ -62,7 +66,7 @@ const state = {
   syncTimer: null,
   mermaidRenderTimer: null,
   mermaidRenderGeneration: 0,
-  chatHistory: [],
+  chatHistories: new Map(),
   llmAvailable: false,
   codex: null,
 };
@@ -76,6 +80,7 @@ function emptyWorkspace() {
     version: 1,
     activeAdapter: null,
     artifacts: {},
+    aiSessions: {},
   };
 }
 
@@ -101,6 +106,8 @@ function readWorkspace() {
           version: 1,
           activeAdapter: typeof stored.activeAdapter === 'string' ? stored.activeAdapter : null,
           artifacts: stored.artifacts,
+          aiSessions:
+            stored.aiSessions && typeof stored.aiSessions === 'object' ? stored.aiSessions : {},
         };
       }
     }
@@ -158,6 +165,170 @@ function persistActiveAdapter(adapterId) {
 function storedArtifactSource(adapterId) {
   const source = state.workspace?.artifacts?.[adapterId]?.source;
   return typeof source === 'string' ? source : null;
+}
+
+function createAiSessionId() {
+  return globalThis.crypto?.randomUUID?.() || `ai-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function ensureAiSession(adapterId = state.activeAdapter) {
+  if (!state.workspace) state.workspace = emptyWorkspace();
+  if (!state.workspace.aiSessions || typeof state.workspace.aiSessions !== 'object') {
+    state.workspace.aiSessions = {};
+  }
+
+  let session = state.workspace.aiSessions[adapterId];
+  if (!session || typeof session.id !== 'string' || !session.id) {
+    session = {
+      id: createAiSessionId(),
+      model: null,
+      effort: null,
+      status: 'new',
+    };
+    state.workspace.aiSessions[adapterId] = session;
+    writeWorkspace();
+  }
+  return session;
+}
+
+function currentAiSession() {
+  return ensureAiSession(state.activeAdapter);
+}
+
+function replaceAiSession(adapterId = state.activeAdapter) {
+  const previous = ensureAiSession(adapterId);
+  const session = {
+    id: createAiSessionId(),
+    model: previous.model || null,
+    effort: previous.effort || null,
+    status: 'new',
+  };
+  state.workspace.aiSessions[adapterId] = session;
+  writeWorkspace();
+  return session;
+}
+
+function currentChatHistory() {
+  const id = currentAiSession().id;
+  if (!state.chatHistories.has(id)) state.chatHistories.set(id, []);
+  return state.chatHistories.get(id);
+}
+
+function aiRequestPayload(payload = {}) {
+  const session = currentAiSession();
+  const model = els.codexModel?.value || session.model || state.codex?.model || null;
+  const effort = els.codexEffort?.value || session.effort || state.codex?.effort || null;
+  session.model = model;
+  session.effort = effort;
+  writeWorkspace();
+  return {
+    ...payload,
+    aiSessionId: session.id,
+    model,
+    effort,
+  };
+}
+
+function aiSessionStatusText(session) {
+  if (!session) return 'Session: 新規';
+  if (session.status === 'continuing') return 'Session: 継続中';
+  if (session.status === 'recovered') return 'Session: 再接続時に新規contextへ回復';
+  if (session.status === 'reset') return 'Session: リセット済み';
+  return 'Session: 新規';
+}
+
+function applyAiSessionState(aiSession) {
+  if (!aiSession || typeof aiSession.id !== 'string') return;
+  const session = currentAiSession();
+  if (session.id !== aiSession.id) return;
+  if (typeof aiSession.model === 'string' && aiSession.model) session.model = aiSession.model;
+  if (typeof aiSession.effort === 'string' && aiSession.effort) session.effort = aiSession.effort;
+  session.status =
+    aiSession.contextReset && aiSession.contextResetReason === 'stale_thread'
+      ? 'recovered'
+      : aiSession.status || 'new';
+  writeWorkspace();
+  renderAiControls();
+}
+
+function renderAiControls() {
+  const models = Array.isArray(state.codex?.models) ? state.codex.models : [];
+  const enabled = Boolean(state.llmAvailable && models.length);
+  els.codexModel.disabled = !enabled;
+  els.codexEffort.disabled = !enabled;
+  els.aiSessionReset.disabled = !state.llmAvailable;
+
+  if (!state.workspace) return;
+  const session = currentAiSession();
+  els.aiSessionState.textContent = aiSessionStatusText(session);
+
+  els.codexModel.replaceChildren();
+  for (const model of models) {
+    const option = document.createElement('option');
+    option.value = model.model;
+    option.textContent = `${model.displayName}${model.isDefault ? ' (default)' : ''}`;
+    els.codexModel.append(option);
+  }
+
+  if (!models.length) {
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = state.codex?.model || '利用可能なmodelなし';
+    els.codexModel.append(option);
+    els.codexEffort.replaceChildren();
+    const effortOption = document.createElement('option');
+    effortOption.value = '';
+    effortOption.textContent = state.codex?.effort || '—';
+    els.codexEffort.append(effortOption);
+    return;
+  }
+
+  let selectedModel = models.find(model => model.model === session.model);
+  if (!selectedModel) selectedModel = models.find(model => model.model === state.codex?.model);
+  if (!selectedModel) selectedModel = models.find(model => model.isDefault) || models[0];
+  session.model = selectedModel.model;
+  els.codexModel.value = selectedModel.model;
+
+  els.codexEffort.replaceChildren();
+  const efforts = Array.isArray(selectedModel.supportedReasoningEfforts)
+    ? selectedModel.supportedReasoningEfforts
+    : [];
+  for (const effort of efforts) {
+    const option = document.createElement('option');
+    option.value = effort.reasoningEffort;
+    option.textContent = effort.reasoningEffort;
+    option.title = effort.description || '';
+    els.codexEffort.append(option);
+  }
+
+  const supported = new Set(efforts.map(effort => effort.reasoningEffort));
+  let selectedEffort = supported.has(session.effort) ? session.effort : null;
+  if (!selectedEffort && selectedModel.model === state.codex?.model && supported.has(state.codex?.effort)) {
+    selectedEffort = state.codex.effort;
+  }
+  if (!selectedEffort && supported.has(selectedModel.defaultReasoningEffort)) {
+    selectedEffort = selectedModel.defaultReasoningEffort;
+  }
+  if (!selectedEffort) selectedEffort = efforts[0]?.reasoningEffort || null;
+  session.effort = selectedEffort;
+  els.codexEffort.value = selectedEffort || '';
+  writeWorkspace();
+}
+
+async function refreshAiSessionStatus() {
+  if (!state.llmAvailable) return;
+  const result = await api('/api/v1/ai/session/status', aiRequestPayload());
+  applyAiSessionState(result.aiSession);
+}
+
+async function resetAiSession() {
+  if (!state.llmAvailable) return;
+  const session = currentAiSession();
+  const result = await api('/api/v1/ai/session/reset', aiRequestPayload());
+  state.chatHistories.set(session.id, []);
+  applyAiSessionState(result.aiSession);
+  renderChatHistory();
+  setStatus('AI sessionをリセットしました');
 }
 
 function persistDiagramXml(xml) {
@@ -373,6 +544,7 @@ function updateAdapterUi() {
   }
 
   updateActionStates();
+  renderAiControls();
 }
 
 function configureAdapters(demo = {}) {
@@ -583,6 +755,14 @@ async function activateAdapter(adapterId, {
   }
 
   updateAdapterUi();
+  renderChatHistory();
+  if (state.llmAvailable) {
+    try {
+      await refreshAiSessionStatus();
+    } catch (error) {
+      console.warn('AI session状態の取得に失敗しました', error);
+    }
+  }
   if (announce) setStatus(`${currentAdapter().label} adapterに切り替えました`);
   return restored;
 }
@@ -595,7 +775,8 @@ async function generateFromText() {
   try {
     if (isBpmn()) {
       setStatus('CodexでBPMNを生成中…');
-      const result = await api('/api/v1/orchestrate', { userText });
+      const result = await api('/api/v1/orchestrate', aiRequestPayload({ userText }));
+      applyAiSessionState(result.aiSession);
       if (!result.bpmnXml) throw new Error('BPMN XML was not returned');
       await importDiagram(result.bpmnXml);
       state.logicCore = result.logicCore;
@@ -607,7 +788,11 @@ async function generateFromText() {
 
     if (state.activeAdapter === 'mermaid') {
       setStatus('CodexでMermaidを生成中…');
-      const result = await api('/api/v1/artifacts/mermaid/generate', { userText });
+      const result = await api(
+        '/api/v1/artifacts/mermaid/generate',
+        aiRequestPayload({ userText }),
+      );
+      applyAiSessionState(result.aiSession);
       if (!result.source) throw new Error('Mermaid source was not returned');
       els.mermaidSource.value = result.source;
       persistArtifact('mermaid', result.source);
@@ -707,12 +892,28 @@ async function exportCurrent() {
   }
 }
 
-function appendChat(role, text) {
+function appendChat(role, text, { record = true } = {}) {
   const node = document.createElement('div');
   node.className = role === 'user' ? 'user-message' : 'assistant-message';
   node.textContent = text;
   els.chatLog.append(node);
   els.chatLog.scrollTop = els.chatLog.scrollHeight;
+  if (record) currentChatHistory().push({ role, content: text });
+}
+
+function renderChatHistory() {
+  if (!state.workspace) return;
+  const history = currentChatHistory();
+  els.chatLog.replaceChildren();
+  if (!history.length) {
+    appendChat(
+      'assistant',
+      'artifactを作成した後、「現在のartifactをレビュー」で未定義事項や改善点を確認できます。',
+      { record: false },
+    );
+    return;
+  }
+  for (const message of history) appendChat(message.role, message.content, { record: false });
 }
 
 async function currentArtifactContext() {
@@ -735,16 +936,12 @@ async function askAi(question, { showUser = true } = {}) {
 
   if (showUser) appendChat('user', question);
 
-  const recent = state.chatHistory.slice(-6);
   const artifactContext = await currentArtifactContext();
-  const messages = [
-    ...recent,
-    { role: 'user', content: `${question}\n\n${artifactContext}` },
-  ];
+  const messages = [{ role: 'user', content: `${question}\n\n${artifactContext}` }];
 
-  const result = await api('/api/v1/chat', { messages });
+  const result = await api('/api/v1/chat', aiRequestPayload({ messages }));
+  applyAiSessionState(result.aiSession);
   appendChat('assistant', result.reply);
-  state.chatHistory.push({ role: 'user', content: question }, { role: 'assistant', content: result.reply });
   return result;
 }
 
@@ -785,6 +982,10 @@ async function handleFile(file) {
       await activateAdapter(inferred);
     }
 
+    replaceAiSession(state.activeAdapter);
+    renderAiControls();
+    renderChatHistory();
+
     const source = await file.text();
     if (isBpmn()) {
       await importDiagram(source);
@@ -811,6 +1012,7 @@ function applyCodexStatus(codex) {
     els.codexState.textContent = 'Codex app-server: 利用不可';
     els.codexLogin.hidden = true;
     updateActionStates();
+    renderAiControls();
     return;
   }
 
@@ -818,14 +1020,15 @@ function applyCodexStatus(codex) {
     els.codexState.textContent = 'Codex: 未ログイン';
     els.codexLogin.hidden = false;
     updateActionStates();
+    renderAiControls();
     return;
   }
 
   const plan = codex.planType ? ` / ${codex.planType}` : '';
-  const model = codex.model ? ` / ${codex.model}` : '';
-  els.codexState.textContent = `Codex: 接続済み${plan}${model}`;
+  els.codexState.textContent = `Codex: 接続済み${plan}`;
   els.codexLogin.hidden = true;
   updateActionStates();
+  renderAiControls();
 }
 
 async function refreshAppConfig() {
@@ -879,6 +1082,22 @@ modeler.on('selection.changed', event => {
 
 els.adapterSelect.addEventListener('change', () => {
   activateAdapter(els.adapterSelect.value).catch(error => setStatus(`adapter切替エラー: ${error.message}`));
+});
+els.codexModel.addEventListener('change', () => {
+  const session = currentAiSession();
+  session.model = els.codexModel.value || null;
+  session.effort = null;
+  session.status ||= 'new';
+  writeWorkspace();
+  renderAiControls();
+});
+els.codexEffort.addEventListener('change', () => {
+  const session = currentAiSession();
+  session.effort = els.codexEffort.value || null;
+  writeWorkspace();
+});
+els.aiSessionReset.addEventListener('click', () => {
+  resetAiSession().catch(error => setStatus(`AI sessionリセットエラー: ${error.message}`));
 });
 els.generate.addEventListener('click', generateFromText);
 els.validate.addEventListener('click', validateCurrent);
