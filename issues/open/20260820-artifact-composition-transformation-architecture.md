@@ -4,6 +4,20 @@ Status: open
 Date: 2026-08-20
 Target: Artifact Studio
 
+## Current progress
+
+As of 2026-08-21, Phase 2 is complete and Phase 3 is now active:
+
+- Phase 1: the minimal adapter/core contracts, adapter-independent `GraphProjection`, and generic renderer boundary are established.
+- Phase 2: OPA is the first GraphProjection consumer and Dagu is the second; the Dagu proof completed without adapter-specific leakage or a generic-core correction.
+- Phase 3 is now the active phase, but it will be implemented incrementally rather than by completing this parent issue in one change.
+
+Next child issue:
+
+- `issues/open/20260821-artifact-transform-registry-lineage-stale-proof.md` — `ArtifactTransform` contract + registry + one deterministic GraphProjection-to-Mermaid transform + source revision lineage + stale/current proof.
+
+Workspace persistence v2, relationship persistence/navigation, regenerate UI, and Architecture Graph UI remain outside that child.
+
 ## Goal
 
 Artifact Studio の各 adapter は独立性を保ったまま、Artifact 間の連動を第一級の概念として扱えるようにする。
@@ -502,6 +516,8 @@ OPA CLI 等を使う transform/evaluation は各 adapter の security requiremen
 第2利用例が成立した時点で abstraction が妥当か再評価する。
 
 ### Phase 3: transformation
+
+Active child: `issues/open/20260821-artifact-transform-registry-lineage-stale-proof.md`. The first slice stops after registry + deterministic transform + lineage/source revision + stale proof; regenerate UI is deferred.
 
 9. `ArtifactTransform` registry を追加
 10. deterministic な小さな transform で end-to-end 検証

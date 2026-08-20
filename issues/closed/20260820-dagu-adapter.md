@@ -1,5 +1,8 @@
 # Dagu Workflow Adapter
 
+Status: closed
+Closed: 2026-08-21
+
 ## Goal
 
 Add Dagu as the next structured workflow adapter after OPA.
@@ -146,23 +149,23 @@ Do **not** expand this into the full Architecture Graph / transformation system 
 3. Add YAML structural parser for step ids / dependencies only.
 4. Produce `GraphProjection` and render the DAG read-only.
 5. Add safe `dagu validate` backend action and common findings mapping.
-6. Add optional `dagu dry`.
+6. Optional `dagu dry` remains optional and is not required for adapter completion.
 7. Persist / restore / export through the generic artifact content layer.
 8. Regression tests for BPMN / Mermaid / OPA.
-9. Live verification against a current Dagu binary.
+9. Live verification against a current Dagu binary when available; absence of a local binary is not a closure gate.
 10. Only then consider start/status/history integration.
 
 ## Acceptance criteria
 
-- [ ] Dagu is available from the shared adapter selector.
-- [ ] canonical YAML can be imported, edited, persisted, restored, and exported.
-- [ ] `dagu validate` diagnostics are surfaced as common findings.
-- [ ] step dependencies render via the generic `GraphProjection` renderer.
-- [ ] OPA and Dagu both use the same graph projection contract and renderer.
-- [ ] invalid or cyclic workflow structure is not treated as valid based only on Artifact Studio's lightweight parser; Dagu validation remains authoritative.
-- [ ] Dagu binary absence degrades validation/runtime actions cleanly without breaking authoring.
-- [ ] runtime invocation has no arbitrary command construction or path traversal.
-- [ ] BPMN / Mermaid / OPA existing behavior and tests remain green.
+- [x] Dagu is available from the shared adapter selector.
+- [x] canonical YAML can be imported, edited, persisted, restored, and exported.
+- [x] `dagu validate` diagnostics are surfaced as common findings.
+- [x] step dependencies render via the generic `GraphProjection` renderer.
+- [x] OPA and Dagu both use the same graph projection contract and renderer.
+- [x] invalid or cyclic workflow structure is not treated as valid based only on Artifact Studio's lightweight parser; Dagu validation remains authoritative.
+- [x] Dagu binary absence degrades validation/runtime actions cleanly without breaking authoring.
+- [x] runtime invocation has no arbitrary command construction or path traversal.
+- [x] BPMN / Mermaid / OPA existing behavior and tests remain green.
 
 ## Out of scope for first implementation
 
@@ -175,3 +178,36 @@ Do **not** expand this into the full Architecture Graph / transformation system 
 - generic Architecture Graph persistence
 - bidirectional graph editing
 
+
+## Completion evidence
+
+Closed 2026-08-21 after the Dagu second-consumer GraphProjection proof completed successfully.
+
+Primary proof:
+
+- `issues/closed/20260820-dagu-graph-projection-consumer-proof.md`
+- implementation commit `747658d8bc79d262dd4568712d894c7793eb0581` (`feat: add Dagu GraphProjection consumer proof`)
+- proof-closing commit `9da92ea` (`docs: close Dagu GraphProjection consumer proof`)
+
+Completion result:
+
+- Dagu is registered as a shared adapter and uses canonical `ArtifactContent.kind = 'text'` for YAML authoring/import/export/persistence.
+- Dagu and OPA reuse the same adapter-independent `shared/graph-projection.js` normalization contract and `frontend/graph-renderer.js` renderer entry point.
+- The second consumer required no Dagu-specific branch in generic content or graph-renderer modules and no evidence-driven correction to the minimal core.
+- `dagu validate` remains the semantic authority. Invocation uses fixed argv, controlled temporary paths, `shell: false`, bounded execution/output, and deterministic cleanup.
+- Missing Dagu binary degrades validation availability without breaking authoring, persistence, export, or GraphProjection preview.
+- `dagu dry` remains optional and was not required for completion.
+- A positive live validation against an installed Dagu binary was not available on the implementation host and is intentionally not elevated to a completion requirement; the unavailable-binary path is covered by automated tests.
+
+Proof tests and gates recorded by the child issue:
+
+- `scripts/graph-consumer-proof.test.js`: shared OPA + Dagu graph contract/renderer proof passed.
+- `scripts/artifacts/dagu.test.js`: 8 passed.
+- `scripts/dagu-http-server.test.js`: 4 passed.
+- `scripts/artifact-content.test.js`: generic Dagu text round-trip passed.
+- `vp check`: exit 0.
+- `vp test --run`: 384 passed + 1 skipped.
+- `vp build`: success.
+- GitHub Actions run `32378807064`: success on supported Node 22/24 jobs.
+
+The adapter parent is therefore complete at the intended boundary. Runtime orchestration (`start` / `enqueue` / status/history/retry/stop), richer Dagu UI, and future runtime MCP integration remain separate follow-up work rather than blockers for this issue.

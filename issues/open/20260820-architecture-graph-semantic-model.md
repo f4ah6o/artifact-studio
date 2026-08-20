@@ -6,7 +6,7 @@ Target: Artifact Studio → Architecture Studio direction
 Related:
 - `issues/open/20260820-artifact-composition-transformation-architecture.md`
 - `issues/closed/20260820-opa-adapter.md`
-- `issues/open/20260820-dagu-adapter.md`
+- `issues/closed/20260820-dagu-adapter.md`
 - `issues/open/20260820-n8n-adapter.md` (deferred)
 - `docs/ARTIFACT-ADAPTERS.md`
 

@@ -3,7 +3,7 @@
 Status: closed
 Date: 2026-08-20
 Target: Artifact Studio
-Parent: `issues/open/20260820-dagu-adapter.md`
+Parent: `issues/closed/20260820-dagu-adapter.md`
 Depends on: `issues/closed/20260820-minimal-adapter-core-before-dagu.md`
 Related:
 - `issues/open/20260820-artifact-composition-transformation-architecture.md`

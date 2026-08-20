@@ -3,7 +3,7 @@
 Status: closed
 Date: 2026-08-20
 Target: Artifact Studio
-Blocks: `issues/open/20260820-dagu-adapter.md`
+Blocks: `issues/closed/20260820-dagu-adapter.md`
 Related:
 - `issues/open/20260820-artifact-composition-transformation-architecture.md`
 - `issues/open/20260820-architecture-graph-semantic-model.md`
