@@ -27,6 +27,10 @@ export default defineConfig({
         target: `http://127.0.0.1:${process.env.OPA_API_PORT || 3001}`,
         changeOrigin: true,
       },
+      '/api/v1/artifacts/dagu': {
+        target: `http://127.0.0.1:${process.env.DAGU_API_PORT || 3002}`,
+        changeOrigin: true,
+      },
       '/api': {
         target: `http://127.0.0.1:${process.env.API_PORT || 3000}`,
         changeOrigin: true,

@@ -360,8 +360,9 @@ function updateAdapterUi() {
   els.export.textContent = `${adapter.label}を書き出す`;
 
   const bpmn = adapter.id === 'bpmn';
+  const mermaid = adapter.id === 'mermaid';
   els.canvas.classList.toggle('hidden', !bpmn);
-  els.mermaidPane.classList.toggle('hidden', bpmn);
+  els.mermaidPane.classList.toggle('hidden', !mermaid);
   els.empty.classList.toggle('hidden', !bpmn || state.diagramLoaded);
 
   if (bpmn) {

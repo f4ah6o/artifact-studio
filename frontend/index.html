@@ -50,6 +50,24 @@
         </section>
       </div>
 
+      <div id="dagu-pane" class="artifact-view mermaid-pane hidden" aria-label="Dagu YAML editor">
+        <section class="source-pane">
+          <div class="artifact-pane-heading">Dagu YAML</div>
+          <textarea id="dagu-source" class="source-editor" spellcheck="false" placeholder="steps:
+  - id: extract
+    run: ./extract.sh
+  - id: load
+    depends: extract
+    run: ./load.sh"></textarea>
+        </section>
+        <section class="preview-pane">
+          <div class="artifact-pane-heading">Dependency graph</div>
+          <div id="dagu-preview" class="mermaid-preview">
+            <span class="muted">Dagu YAML の step dependency graph を表示します。</span>
+          </div>
+        </section>
+      </div>
+
       <div id="opa-pane" class="artifact-view opa-pane hidden" aria-label="OPA workspace editor">
         <section class="opa-files">
           <div>
@@ -128,5 +146,6 @@
 
   <script type="module" src="/app.js"></script>
   <script type="module" src="/opa-extension.js"></script>
+  <script type="module" src="/dagu-extension.js"></script>
 </body>
 </html>

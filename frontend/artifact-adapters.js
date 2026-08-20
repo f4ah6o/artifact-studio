@@ -76,6 +76,19 @@ export const artifactAdapters = Object.freeze({
       views: ['source', 'dependencies', 'decision', 'tests'],
     }),
   }),
+  dagu: Object.freeze({
+    id: 'dagu',
+    label: 'Dagu',
+    accept: '.yaml,.yml,application/yaml,text/yaml,text/plain',
+    exportFileName: 'workflow.yaml',
+    promptPlaceholder: 'Dagu YAML はソースエディタから編集してください。',
+    contentKind: 'text',
+    capabilities: adapterCapabilities({
+      validate: true,
+      project: true,
+      views: ['source', 'preview'],
+    }),
+  }),
 });
 
 export function getArtifactAdapter(id) {
@@ -87,6 +100,7 @@ export function inferAdapterFromFileName(fileName) {
   if (name.endsWith('.bpmn') || name.endsWith('.bpmn.xml')) return 'bpmn';
   if (name.endsWith('.mmd') || name.endsWith('.mermaid')) return 'mermaid';
   if (name.endsWith('.rego') || name.endsWith('.opa-workspace.json')) return 'opa';
+  if (name.endsWith('.yaml') || name.endsWith('.yml')) return 'dagu';
   return null;
 }
 
