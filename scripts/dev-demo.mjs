@@ -36,6 +36,7 @@ process.on('SIGINT', () => shutdown(0));
 process.on('SIGTERM', () => shutdown(0));
 
 const apiPort = process.env.API_PORT || '3000';
+const opaApiPort = process.env.OPA_API_PORT || '3001';
 start(process.execPath, ['--watch', 'http-server.js'], {
   env: {
     ...process.env,
@@ -44,4 +45,11 @@ start(process.execPath, ['--watch', 'http-server.js'], {
   },
 });
 
-start('vp', ['dev'], { env: process.env });
+start(process.execPath, ['--watch', 'opa-http-server.js'], {
+  env: {
+    ...process.env,
+    OPA_API_PORT: opaApiPort,
+  },
+});
+
+start('vp', ['dev'], { env: { ...process.env, OPA_API_PORT: opaApiPort } });

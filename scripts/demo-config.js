@@ -1,4 +1,4 @@
-const SUPPORTED_ADAPTERS = ['bpmn', 'mermaid'];
+const SUPPORTED_ADAPTERS = ['bpmn', 'mermaid', 'opa'];
 
 export function resolveDemoConfig(env = process.env, cfg = {}) {
   const configured = env.ARTIFACT_STUDIO_ENABLED_ADAPTERS

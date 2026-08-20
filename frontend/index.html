@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Artifact Studio</title>
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/opa.css">
 </head>
 <body>
   <header class="topbar">
@@ -20,7 +21,7 @@
       <span id="codex-state" class="subtle">Codex確認中…</span>
       <button id="codex-login-button" class="button secondary" type="button" hidden>ChatGPTに接続</button>
       <label id="file-open-label" class="button secondary" for="file-input">ファイルを開く</label>
-      <input id="file-input" type="file" hidden>
+      <input id="file-input" type="file" multiple hidden>
       <button id="validate-button" class="button secondary" type="button">検証</button>
       <button id="format-button" class="button secondary" type="button" disabled>整形</button>
       <button id="export-button" class="button secondary" type="button" disabled>書き出す</button>
@@ -45,6 +46,43 @@
           <div class="artifact-pane-heading">Preview</div>
           <div id="mermaid-preview" class="mermaid-preview">
             <span class="muted">Mermaidソースを入力またはAI生成してください。</span>
+          </div>
+        </section>
+      </div>
+
+      <div id="opa-pane" class="artifact-view opa-pane hidden" aria-label="OPA workspace editor">
+        <section class="opa-files">
+          <div>
+            <div class="artifact-pane-heading">Workspace files</div>
+            <div class="opa-file-tools">
+              <input id="opa-new-file-name" type="text" placeholder="policy.rego" aria-label="New workspace file path">
+              <button id="opa-add-file" class="button secondary" type="button">追加</button>
+            </div>
+          </div>
+          <div id="opa-file-list" class="opa-file-list"></div>
+        </section>
+        <section class="opa-source-pane">
+          <div>
+            <div class="artifact-pane-heading">Source</div>
+            <div class="opa-source-tools">
+              <select id="opa-input-file" class="opa-input-file" aria-label="Workspace input file"></select>
+              <button id="opa-delete-file" class="button secondary" type="button">削除</button>
+            </div>
+          </div>
+          <textarea id="opa-source" class="opa-source-editor" spellcheck="false" aria-label="OPA source editor"></textarea>
+        </section>
+        <section class="opa-decision-pane">
+          <div class="artifact-pane-heading">Decision / Tests / Dependencies</div>
+          <div class="opa-decision-content">
+            <div class="opa-query-row">
+              <input id="opa-query" type="text" placeholder="data.example.allow" aria-label="OPA query">
+              <button id="opa-evaluate" class="button secondary" type="button">Evaluate</button>
+              <button id="opa-test" class="button secondary" type="button">Test</button>
+              <button id="opa-dependencies" class="button secondary" type="button">Dependencies</button>
+            </div>
+            <textarea id="opa-input" class="opa-input-editor" spellcheck="false" placeholder='Optional input JSON, e.g. {"user":"alice"}' aria-label="OPA input JSON"></textarea>
+            <div id="opa-result-heading" class="artifact-pane-heading">Result</div>
+            <div id="opa-result" class="opa-result"><div class="muted" style="padding:12px">Evaluate / Test / Dependencies の結果を表示します。</div></div>
           </div>
         </section>
       </div>
@@ -89,5 +127,6 @@
   </main>
 
   <script type="module" src="/app.js"></script>
+  <script type="module" src="/opa-extension.js"></script>
 </body>
 </html>
