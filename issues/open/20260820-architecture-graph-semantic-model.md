@@ -830,7 +830,8 @@ Public repoに入れないもの:
 
 - 2026-08-21: `issues/closed/20260821-artifact-transform-regenerate-ui.md` completed the Studio-facing generic transform/lineage freshness workflow. This satisfies the transform-side prerequisite without starting Architecture Graph UI.
 - 2026-08-21: `issues/closed/20260821-artifact-workspace-v2-persistence.md` completed stable multi-artifact identity, active selection, migration, and reload-safe lineage freshness.
-- Architecture Graph implementation remains blocked intentionally on the remaining prerequisites: relationship persistence/SemanticRef, Business Data Model semantic identities, and ER projection.
+- 2026-08-21: `issues/closed/20260821-artifact-relationship-semantic-ref-core.md` completed open-vocabulary ArtifactRelationship + SemanticRef persistence and referential validation.
+- Architecture Graph implementation remains blocked intentionally on the remaining prerequisites: Business Data Model semantic identities and ER projection.
 
 ## Acceptance criteria for first implementation milestone
 

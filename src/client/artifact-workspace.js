@@ -1,4 +1,8 @@
 import { normalizeArtifactContent, textContent } from '../core/artifact-content.js';
+import {
+  artifactRelationship,
+  normalizeArtifactRelationships,
+} from '../core/artifact-relationship.js';
 
 export const ARTIFACT_WORKSPACE_STORAGE_KEY = 'artifact-studio:workspace:v2';
 export const LEGACY_SHELL_WORKSPACE_STORAGE_KEY = 'artifact-studio:workspace:v1';
@@ -44,7 +48,7 @@ export function normalizeArtifactNode(value, fallbackId = null) {
 }
 
 export function emptyArtifactWorkspace() {
-  return { version: 2, activeArtifactId: null, artifacts: {}, aiSessions: {} };
+  return { version: 2, activeArtifactId: null, artifacts: {}, relationships: {}, aiSessions: {} };
 }
 
 export function normalizeArtifactWorkspace(value) {
@@ -61,6 +65,11 @@ export function normalizeArtifactWorkspace(value) {
     Object.hasOwn(workspace.artifacts, value.activeArtifactId)
   ) {
     workspace.activeArtifactId = value.activeArtifactId;
+  }
+  try {
+    workspace.relationships = normalizeArtifactRelationships(value.relationships || {});
+  } catch {
+    workspace.relationships = {};
   }
   if (
     value.aiSessions &&
@@ -264,6 +273,33 @@ export class ArtifactWorkspaceStore {
     const current = this.activeForAdapter(adapterId);
     if (!current) return this.create(adapterId, content, { activate: true });
     return this.upsert({ ...current, content }, { activate: this.active()?.id === current.id });
+  }
+
+  listRelationships() {
+    return Object.values(this.workspace.relationships || {});
+  }
+
+  getRelationship(relationshipId) {
+    return this.workspace.relationships?.[String(relationshipId || '')] || null;
+  }
+
+  upsertRelationship(value) {
+    const relationship = artifactRelationship(value);
+    this.workspace.relationships ||= {};
+    this.workspace.relationships[relationship.id] = relationship;
+    this.persist();
+    this.notify();
+    return relationship;
+  }
+
+  removeRelationship(relationshipId) {
+    const id = String(relationshipId || '');
+    const existing = this.workspace.relationships?.[id] || null;
+    if (!existing) return null;
+    delete this.workspace.relationships[id];
+    this.persist();
+    this.notify();
+    return existing;
   }
 
   replaceWorkspace(workspace) {

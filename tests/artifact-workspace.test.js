@@ -118,4 +118,26 @@ describe('artifact workspace v2', () => {
       'stale',
     );
   });
+  test('persists open-vocabulary relationships across workspace reload', () => {
+    const storage = memoryStorage();
+    const store = new ArtifactWorkspaceStore(storage);
+    store.create('bpmn', textContent('<definitions />'), { id: 'process' });
+    store.create('mermaid', textContent('flowchart LR\n  a\n'), { id: 'view' });
+    store.upsertRelationship({
+      id: 'rel-custom',
+      type: 'custom:visualizes',
+      from: { artifactId: 'view' },
+      to: { artifactId: 'process', entityId: 'task-1', address: 'Process.Task1' },
+      provenance: 'generated',
+    });
+
+    const reloaded = new ArtifactWorkspaceStore(storage);
+    expect(reloaded.getRelationship('rel-custom')).toEqual({
+      id: 'rel-custom',
+      type: 'custom:visualizes',
+      from: { artifactId: 'view' },
+      to: { artifactId: 'process', entityId: 'task-1', address: 'Process.Task1' },
+      provenance: 'generated',
+    });
+  });
 });
