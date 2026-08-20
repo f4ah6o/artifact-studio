@@ -327,6 +327,30 @@ describe('runPipeline', () => {
 // ═══════════════════════════════════════════════════════════════
 
 describe('Round-trip (JSON → BPMN → JSON)', () => {
+  test('single process without id gets a stable process id and remains schema-valid', async () => {
+    const original = {
+      nodes: [
+        { id: 'start', type: 'startEvent', name: '開始', lane: 'lane_a' },
+        { id: 'task_a', type: 'userTask', name: '確認', lane: 'lane_a' },
+        { id: 'end', type: 'endEvent', name: '完了', lane: 'lane_a' },
+      ],
+      edges: [
+        { id: 'f1', source: 'start', target: 'task_a' },
+        { id: 'f2', source: 'task_a', target: 'end' },
+      ],
+      lanes: [{ id: 'lane_a', name: '担当者' }],
+    };
+
+    const result = await runPipeline(original);
+    expect(result.validation.xmlWarnings).toEqual([]);
+    expect(result.bpmnXml).toContain('id="Process_1"');
+    expect(result.bpmnXml).not.toContain('undefined');
+
+    const reimported = await bpmnToLogicCore(result.bpmnXml);
+    const { validateLogicCoreSchema } = await import('./schema-gate.js');
+    expect(validateLogicCoreSchema(reimported).valid).toBe(true);
+  });
+
   test('simple approval: reimport preserves node count', async () => {
     const original = loadFixture('simple-approval.json');
     const result = await runPipeline(original);
@@ -1477,6 +1501,19 @@ describe('Rule Engine — individual rules', () => {
     expect(result.warnings.some(w => w.includes('Submit'))).toBe(true);
   });
 
+  test('M01: Japanese action phrase without spaces → no warning', () => {
+    const lc = proc([
+      { id: 's', type: 'startEvent' },
+      { id: 't1', type: 'task', name: '申請内容を確認する' },
+      { id: 'e', type: 'endEvent' },
+    ], [
+      { id: 'f1', source: 's', target: 't1' },
+      { id: 'f2', source: 't1', target: 'e' },
+    ]);
+    const result = runRules(lc);
+    expect(result.warnings.some(w => w.includes('Review request'))).toBe(false);
+  });
+
   test('M02: XOR gateway without question mark → WARNING', () => {
     const lc = proc([
       { id: 's', type: 'startEvent' },
@@ -1493,6 +1530,24 @@ describe('Rule Engine — individual rules', () => {
     ]);
     const result = runRules(lc);
     expect(result.warnings.some(w => w.includes('question'))).toBe(true);
+  });
+
+  test('M02: Japanese full-width question mark → no warning', () => {
+    const lc = proc([
+      { id: 's', type: 'startEvent' },
+      { id: 'xor', type: 'exclusiveGateway', name: '申請内容に不備がないか？' },
+      { id: 't1', type: 'task', name: 'Path A' },
+      { id: 't2', type: 'task', name: 'Path B' },
+      { id: 'e', type: 'endEvent' },
+    ], [
+      { id: 'f1', source: 's', target: 'xor' },
+      { id: 'f2', source: 'xor', target: 't1', label: 'はい' },
+      { id: 'f3', source: 'xor', target: 't2', label: 'いいえ' },
+      { id: 'f4', source: 't1', target: 'e' },
+      { id: 'f5', source: 't2', target: 'e' },
+    ]);
+    const result = runRules(lc);
+    expect(result.warnings.some(w => w.includes('should be phrased as a question'))).toBe(false);
   });
 
   test('M03: converging gateway with labeled outgoing edge → WARNING', () => {
@@ -1837,7 +1892,7 @@ describe('http-server production auth gate', () => {
     const warns = [];
     expect(() => startupCheck({ NODE_ENV: 'development', BPMN_API_KEY: undefined }, msg => warns.push(msg)))
       .not.toThrow();
-    expect(warns.join('\n')).toMatch(/no API key/i);
+    expect(warns.join('\n')).toMatch(/no BPMN API key/i);
   });
 });
 
@@ -1980,7 +2035,7 @@ describe('SVG Golden-File Regression', () => {
   for (const name of goldenFixtures) {
     test(`${name}: SVG matches golden file`, async () => {
       const lc = loadFixture(`${name}.json`);
-      const result = await runPipeline(lc);
+      const result = await runPipeline(lc, { visualRefinement: false });
       expect(result.svg).toBeDefined();
 
       let expected;
@@ -1994,7 +2049,7 @@ describe('SVG Golden-File Regression', () => {
 
     test(`${name}: BPMN XML matches golden file`, async () => {
       const lc = loadFixture(`${name}.json`);
-      const result = await runPipeline(lc);
+      const result = await runPipeline(lc, { visualRefinement: false });
       expect(result.bpmnXml).toBeDefined();
 
       let expected;

@@ -20,11 +20,17 @@ Extract a structured Logic-Core JSON from the process description below.
 - snake_case, max 30 chars, descriptive
 - Prefixes: task_, gw_ (gateway), start, end_, evt_ (intermediate event), lane_, do_ (data object)
 
+### Output Language (MANDATORY)
+- Use the same language as the user's process description for every human-visible BPMN label.
+- If the user writes in Japanese, ALL human-visible labels MUST be Japanese. This includes process/pool names, participant names, lane names, task names, event names, gateway names, sequence-flow labels, message-flow labels, and collapsed-pool names.
+- Never copy German or English wording from examples when the user input is Japanese.
+- IDs are machine identifiers and MUST remain ASCII (`[A-Za-z_][A-Za-z0-9_-]*`). Do not use Japanese characters in IDs.
+
 ### Node Naming (BA-Quality Standard)
-- Tasks: MUST follow "Verb + Substantiv" pattern (e.g. "Antrag prüfen", "Zahlung anweisen")
-- XOR Gateways (exclusiveGateway): MUST be a question (e.g. "Antrag gültig?", "Betrag > 1000 EUR?")
-- AND/OR Gateways: Empty name ("") or brief label — these are synchronization points, not decisions
-- Events: Descriptive noun phrase (e.g. "Antrag eingegangen", "Frist abgelaufen")
+- Tasks: use a concise action phrase in the user's language. For Japanese, prefer forms such as "申請内容を確認する" or "申請を承認する".
+- XOR Gateways (exclusiveGateway): MUST be a question. For Japanese, e.g. "申請内容に不備がないか？" or "承認するか？".
+- AND/OR Gateways: Empty name ("") or brief label — these are synchronization points, not decisions.
+- Events: use a concise state/event phrase. For Japanese, e.g. "申請を受け付けた", "期限を超過した".
 
 ### Node Types
 - Human action → userTask
@@ -45,7 +51,7 @@ Extract a structured Logic-Core JSON from the process description below.
 
 ### Edges
 - Mark the primary success flow ("happy path") edges with "isHappyPath": true
-- XOR gateway outgoing edges MUST have labels ("Ja"/"Nein", "genehmigt"/"abgelehnt")
+- XOR gateway outgoing edges MUST have concise labels in the user's language. For Japanese, use "はい"/"いいえ" or concrete conditions such as "承認"/"却下".
 - Default flow (fallback path from gateway): set "isDefault": true
 - Every gateway that splits flow MUST have a matching join gateway of the SAME type
   unless the branches lead to different endEvents
@@ -53,10 +59,10 @@ Extract a structured Logic-Core JSON from the process description below.
 
 ### Lanes
 - Only add lanes if distinct roles/departments are explicitly mentioned
-- Use functional role names, NOT personal names ("Sachbearbeiter" not "Max Müller")
+- Use functional role names, NOT personal names. For Japanese, use names such as "申請担当者" or "承認者", not a person's name.
 
 ### Lane and pool naming
-- **Keep names short (≤ 25 characters)**. Use role or department labels: "Einkauf", "Compliance", "QA Team".
+- **Keep names short (≤ 25 characters)**. Use role or department labels in the user's language. For Japanese, e.g. "購買", "品質保証", "法務".
 - **Avoid** descriptive sentences, module paths, arrow notation, or bracketed meta-info.
   - ❌ `"Pipeline — Layout + Rendering (topology → ELK → coordinates → bpmn-xml → svg)"`
   - ✅ `"Pipeline"` or `"Layout Engine"`
@@ -106,15 +112,15 @@ The JSON MUST use one of these two root shapes. Do NOT wrap in `process`, `data`
   "pools": [
     {
       "id": "Pool_Customer",
-      "name": "Customer",
+      "name": "顧客",
       "nodes": [ ... ],
       "edges": [ ... ],
       "lanes": [ ... ]
     },
-    { "id": "Pool_Service", "name": "Service", "nodes": [...], "edges": [...], "lanes": [...] }
+    { "id": "Pool_Service", "name": "サービス提供者", "nodes": [...], "edges": [...], "lanes": [...] }
   ],
   "messageFlows": [
-    { "id": "mf1", "source": "<sendTask_id_in_poolA>", "target": "<receiveTask_id_in_poolB>", "label": "Request" }
+    { "id": "mf1", "source": "<sendTask_id_in_poolA>", "target": "<receiveTask_id_in_poolB>", "label": "依頼" }
   ]
 }
 ```
@@ -123,23 +129,23 @@ The JSON MUST use one of these two root shapes. Do NOT wrap in `process`, `data`
 ```json
 {
   "nodes": [
-    {"id": "start_in", "type": "startEvent", "name": "Antrag eingegangen", "lane": "lane_sb"},
-    {"id": "task_pruefen", "type": "userTask", "name": "Antrag prüfen", "lane": "lane_sb"},
-    {"id": "gw_ok", "type": "exclusiveGateway", "name": "Antrag gültig?", "lane": "lane_sb"},
-    {"id": "task_freigabe", "type": "userTask", "name": "Freigabe erteilen", "lane": "lane_sb"},
-    {"id": "task_ablehnen", "type": "userTask", "name": "Ablehnung versenden", "lane": "lane_sb"},
-    {"id": "end_ok", "type": "endEvent", "name": "Antrag genehmigt", "lane": "lane_sb"},
-    {"id": "end_nok", "type": "endEvent", "name": "Antrag abgelehnt", "lane": "lane_sb"}
+    {"id": "start_in", "type": "startEvent", "name": "申請を受け付けた", "lane": "lane_staff"},
+    {"id": "task_check", "type": "userTask", "name": "申請内容を確認する", "lane": "lane_staff"},
+    {"id": "gw_ok", "type": "exclusiveGateway", "name": "申請内容に不備がないか？", "lane": "lane_staff"},
+    {"id": "task_approve", "type": "userTask", "name": "申請を承認する", "lane": "lane_staff"},
+    {"id": "task_reject", "type": "userTask", "name": "申請を差し戻す", "lane": "lane_staff"},
+    {"id": "end_ok", "type": "endEvent", "name": "申請を承認した", "lane": "lane_staff"},
+    {"id": "end_nok", "type": "endEvent", "name": "申請を差し戻した", "lane": "lane_staff"}
   ],
   "edges": [
-    {"id": "f1", "source": "start_in", "target": "task_pruefen"},
-    {"id": "f2", "source": "task_pruefen", "target": "gw_ok"},
-    {"id": "f3", "source": "gw_ok", "target": "task_freigabe", "label": "Ja", "isHappyPath": true},
-    {"id": "f4", "source": "gw_ok", "target": "task_ablehnen", "label": "Nein", "isDefault": true},
-    {"id": "f5", "source": "task_freigabe", "target": "end_ok"},
-    {"id": "f6", "source": "task_ablehnen", "target": "end_nok"}
+    {"id": "f1", "source": "start_in", "target": "task_check"},
+    {"id": "f2", "source": "task_check", "target": "gw_ok"},
+    {"id": "f3", "source": "gw_ok", "target": "task_approve", "label": "はい", "isHappyPath": true},
+    {"id": "f4", "source": "gw_ok", "target": "task_reject", "label": "いいえ", "isDefault": true},
+    {"id": "f5", "source": "task_approve", "target": "end_ok"},
+    {"id": "f6", "source": "task_reject", "target": "end_nok"}
   ],
-  "lanes": [ {"id": "lane_sb", "name": "Sachbearbeiter"} ]
+  "lanes": [ {"id": "lane_staff", "name": "申請担当者"} ]
 }
 ```
 
@@ -216,7 +222,7 @@ Before declaring readiness, you should understand:
 
 - Conversational and concise. One or two clarifying questions per turn, not a survey.
 - Confirm what you understood before asking the next question, so the user can correct misunderstandings cheaply.
-- Use the same language the user uses (German if they wrote German, English if English).
+- Use the same language the user uses. If the user writes Japanese, reply in Japanese; if German, German; if English, English.
 - Never invent details that the user did not provide.
 
 ## Output format — STRICT
@@ -233,7 +239,7 @@ The JSON has exactly these three keys:
 When you have enough information to generate the BPMN, set:
 
 {
-  "reply": "Ich habe alles was ich brauche — soll ich das Diagramm jetzt generieren?",
+  "reply": "必要な情報がそろいました。BPMNを生成しますか？",
   "readyToGenerate": true,
   "suggestedSummary": "Single paragraph describing the process in the user's language. This text will be fed verbatim into the BPMN generator's extraction step, so include: trigger, actors, tasks in order, decisions with criteria, outcomes, and any cross-organization message flows. Keep it under 1200 characters."
 }
@@ -242,7 +248,7 @@ When you have enough information to generate the BPMN, set:
 
 - Set readyToGenerate=true ONLY when you genuinely have trigger + actors + tasks + decisions + outcomes covered. Premature readiness wastes the user's tokens.
 - Once readyToGenerate=true, the user may still keep chatting. Each subsequent turn re-evaluates readiness — if the user adds new detail, regenerate suggestedSummary; if they decline to generate, keep gathering info.
-- If the user explicitly says "generate" or "los" or "mach es" at any point, set readyToGenerate=true regardless of completeness — they've taken responsibility for the input quality.
+- If the user explicitly says "生成して", "generate", "los", or "mach es" at any point, set readyToGenerate=true regardless of completeness — they've taken responsibility for the input quality.
 - Never output anything other than the JSON object above. No markdown fences. No explanatory text.
 ```
 

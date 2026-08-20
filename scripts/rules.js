@@ -34,6 +34,10 @@ function countIncoming(nodeId, incomingMap) {
   return (incomingMap[nodeId] || []).length;
 }
 
+function containsJapanese(text) {
+  return /[\u3040-\u30ff\u3400-\u9fff]/u.test(text || '');
+}
+
 function traceReachable(startId, outgoing, nodeMap, maxDepth = 50) {
   const visited = new Set();
   const queue = [startId];
@@ -370,7 +374,7 @@ const SOUNDNESS_RULES = [
 const STYLE_RULES = [
   {
     id: 'M01', layer: 'style', defaultSeverity: 'WARNING',
-    description: 'Activity-Labels: Verb + Substantiv',
+    description: 'Activity labels should use a concise action phrase',
     ref: { silver: 'Ch.3', pmg: 'G5' },
     scope: 'process',
     check: (proc) => {
@@ -378,15 +382,21 @@ const STYLE_RULES = [
                          'businessRuleTask', 'sendTask', 'receiveTask'];
       const msgs = [];
       for (const n of (proc.nodes || [])) {
-        if (taskTypes.includes(n.type) && n.name && !n.name.trim().replace(/\n/g, ' ').includes(' '))
-          msgs.push(`Task "${n.name}" should follow "Verb + Substantiv" convention.`);
+        if (!taskTypes.includes(n.type) || !n.name) continue;
+        const name = n.name.trim().replace(/\n/g, ' ');
+        // The whitespace-based Verb + Noun heuristic is only meaningful for
+        // space-delimited languages. Japanese task labels such as
+        // "申請内容を確認する" are valid action phrases without spaces.
+        if (!containsJapanese(name) && !name.includes(' ')) {
+          msgs.push(`Task "${n.name}" should use a concise action phrase (for example, "Review request").`);
+        }
       }
       return msgs.length === 0 ? { pass: true } : { pass: false, message: msgs.join('; ') };
     }
   },
   {
     id: 'M02', layer: 'style', defaultSeverity: 'WARNING',
-    description: 'XOR-Gateway-Labels: Frageform (endet mit ?)',
+    description: 'XOR gateway labels should be phrased as questions',
     ref: { silver: 'Ch.3' },
     scope: 'process',
     check: (proc) => {
@@ -396,8 +406,8 @@ const STYLE_RULES = [
         if (n.type !== 'exclusiveGateway' || n.has_join) continue;
         const outCount = edges.filter(e => e.source === n.id).length;
         if (outCount <= 1) continue; // converging/merge gateway — no label needed
-        if (!(n.name || '').replace(/\n/g, ' ').includes('?'))
-          msgs.push(`XOR gateway "${n.id}" should be a question (e.g. "Antrag gültig?").`);
+        if (!/[?？]/u.test((n.name || '').replace(/\n/g, ' ')))
+          msgs.push(`XOR gateway "${n.id}" should be phrased as a question (end with "?" or "？").`);
       }
       return msgs.length === 0 ? { pass: true } : { pass: false, message: msgs.join('; ') };
     }
@@ -502,7 +512,7 @@ const STYLE_RULES = [
       for (const n of nodes) {
         if (n.type !== 'exclusiveGateway' || n.has_join) continue;
         const outs = outgoing[n.id] || [];
-        if (outs.length < 3) continue; // 2 mutual-exclusive paths (Ja/Nein) don't need a default
+        if (outs.length < 3) continue; // 2 mutually exclusive paths do not need a default
         const hasDefault = outs.some(e => e.isDefault);
         if (!hasDefault)
           msgs.push(`XOR gateway "${n.id}" (${n.name || ''}) has ${outs.length} outgoing flows but no default flow.`);

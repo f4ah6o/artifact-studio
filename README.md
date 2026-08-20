@@ -1,6 +1,9 @@
-# BPMN Generator
+# Artifact Studio
 
-[![CI](https://github.com/Stieges/bpmn-generator/actions/workflows/ci.yml/badge.svg)](https://github.com/Stieges/bpmn-generator/actions/workflows/ci.yml)
+> **Artifact Studio direction**: this repository is being generalized from a BPMN generator into an AI-assisted artifact studio. BPMN remains the first fully implemented adapter; Mermaid, n8n workflow JSON, and portable page/Bento-style outputs are planned through the adapter contract in [`docs/ARTIFACT-ADAPTERS.md`](docs/ARTIFACT-ADAPTERS.md).
+
+
+[![CI](https://github.com/f4ah6o/artifact-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/f4ah6o/artifact-studio/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 BPMN 2.0 diagram generator — converts natural language process descriptions or structured JSON into OMG-compliant BPMN 2.0.2 XML files and SVG previews (ISO/IEC 19510:2013).

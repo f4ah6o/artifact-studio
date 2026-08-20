@@ -21,7 +21,7 @@ describe('createCodexAppServerProvider', () => {
     expect(runTurn.mock.calls[0][1]).toEqual({
       model: 'test-model',
       effort: 'medium',
-      outputSchema: { type: 'object' },
+      outputSchema: null,
     });
   });
 

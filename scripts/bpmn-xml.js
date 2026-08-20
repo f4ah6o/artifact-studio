@@ -660,15 +660,20 @@ function resolveMessageFlowRef(ref, processes, collapsedPools, participantMap) {
 
 async function generateBpmnXml(lc, coordMap) {
   const isMultiPool = lc.pools && lc.pools.length > 0;
-  const processes = isMultiPool ? lc.pools : [lc];
-  const collapsedPools = lc.collapsedPools || [];
-  const associations = lc.associations || [];
+  // Single-process Logic-Core allows an omitted id. BPMN XML does not: lanes
+  // force a Collaboration/Participant and both processRef + participant IDs must
+  // point at a concrete process. Use a deterministic default without mutating
+  // the caller's Logic-Core.
+  const normalizedLc = isMultiPool || lc.id ? lc : { ...lc, id: 'Process_1' };
+  const processes = isMultiPool ? normalizedLc.pools : [normalizedLc];
+  const collapsedPools = normalizedLc.collapsedPools || [];
+  const associations = normalizedLc.associations || [];
   const hasAnyLanes = processes.some(p => (p.lanes || []).length > 0);
   const needsCollaboration = isMultiPool || hasAnyLanes || collapsedPools.length > 0;
 
   // 1. Top-level definitions
   const { elements: topLevelElements, markerMap: topLevelDefsMap } =
-    buildTopLevelDefinitions(processes, lc.definitions);
+    buildTopLevelDefinitions(processes, normalizedLc.definitions);
 
   // 2. Build processes
   const allFlowNodeMaps = new Map();
@@ -714,9 +719,9 @@ async function generateBpmnXml(lc, coordMap) {
     }
 
     // Message flows
-    if (lc.messageFlows) {
+    if (normalizedLc.messageFlows) {
       const msgFlows = [];
-      for (const mf of lc.messageFlows) {
+      for (const mf of normalizedLc.messageFlows) {
         const srcRef = participantMap.get(mf.source) || allFlowNodeMaps.get(mf.source) || mf.source;
         const tgtRef = participantMap.get(mf.target) || allFlowNodeMaps.get(mf.target) || mf.target;
         const msgFlow = create('bpmn:MessageFlow', {
@@ -761,7 +766,7 @@ async function generateBpmnXml(lc, coordMap) {
   }
 
   // 6. DI
-  const diagram = buildDI(lc, coordMap, processElements, collaboration, allFlowNodeMaps, []);
+  const diagram = buildDI(normalizedLc, coordMap, processElements, collaboration, allFlowNodeMaps, []);
 
   // 7. Assemble definitions
   const definitions = create('bpmn:Definitions', {

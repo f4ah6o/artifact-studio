@@ -88,7 +88,7 @@
     }
   },
   "visualRefinement": {
-    "enabled": false,
+    "enabled": true,
     "dynamicLaneHeader": true,
     "laneHeaderMinWidth": 30,
     "laneHeaderMaxWidth": 120,

@@ -191,6 +191,16 @@ const server = createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/html' });
     return res.end(body);
   }
+  if (method === 'GET' && (url === '/app.js' || url === '/styles.css')) {
+    const file = url.slice(1);
+    const path = join(frontendDir, file);
+    try {
+      const body = readFileSync(path);
+      res.writeHead(200, { 'Content-Type': MIME[extname(file)] || 'application/octet-stream' });
+      return res.end(body);
+    } catch { return res.writeHead(404).end(); }
+  }
+  // Legacy static route kept for compatibility with older bookmarks/builds.
   if (method === 'GET' && url.startsWith('/static/')) {
     const file = url.replace('/static/', '');
     const path = join(frontendDir, file);
@@ -251,7 +261,7 @@ const server = createServer(async (req, res) => {
         auditLog({ event: 'schema_rejected', correlationId, clientId, endpoint: '/generate', errorCount: schemaCheck.errors.length });
         return json(res, 400, { correlationId, status: 'schema_error', errors: schemaCheck.errors });
       }
-      const result = await runPipeline(body.logicCore);
+      const result = await runPipeline(body.logicCore, { visualRefinement: body.visualRefinement });
       const durationMs = Date.now() - t0;
       const hasErrors = result.validation.errors.length > 0;
       auditLog({ event: 'completed', correlationId, durationMs, hasErrors });

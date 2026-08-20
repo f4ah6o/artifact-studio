@@ -1,9 +1,30 @@
-const modeler = new BpmnJS({ container: '#canvas' });
+import BpmnModeler from 'bpmn-js/lib/Modeler';
+import translations from 'bpmn-js-i18n/translations/ja.js';
+import 'bpmn-js/dist/assets/diagram-js.css';
+import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
+
+const ARTIFACT_STORAGE_KEY = 'artifact-studio:last-artifact:v1';
+const LEGACY_BPMN_STORAGE_KEY = 'ai-bpmn-modeler:last-diagram:v1';
+
+function translate(template, replacements = {}) {
+  const translated = translations[template] || template;
+  return translated.replace(/{([^}]+)}/g, (_, key) => replacements[key] || `{${key}}`);
+}
+
+const japaneseTranslateModule = {
+  translate: ['value', translate],
+};
+
+const modeler = new BpmnModeler({
+  container: '#canvas',
+  additionalModules: [japaneseTranslateModule],
+});
 
 const els = {
   prompt: document.querySelector('#process-prompt'),
   generate: document.querySelector('#generate-button'),
   validate: document.querySelector('#validate-button'),
+  format: document.querySelector('#format-button'),
   export: document.querySelector('#export-button'),
   file: document.querySelector('#file-input'),
   empty: document.querySelector('#empty-state'),
@@ -34,6 +55,44 @@ function setStatus(message) {
   els.status.textContent = message;
 }
 
+function persistDiagramXml(xml) {
+  if (!xml) return;
+  try {
+    localStorage.setItem(ARTIFACT_STORAGE_KEY, JSON.stringify({
+      adapter: 'bpmn',
+      version: 1,
+      updatedAt: new Date().toISOString(),
+      source: xml,
+    }));
+  } catch (error) {
+    console.warn('BPMNのブラウザ保存に失敗しました', error);
+  }
+}
+
+function readPersistedDiagram() {
+  try {
+    let raw = localStorage.getItem(ARTIFACT_STORAGE_KEY);
+    if (raw) {
+      const stored = JSON.parse(raw);
+      if (stored?.adapter === 'bpmn' && stored?.version === 1 && typeof stored.source === 'string' && stored.source.trim()) {
+        return { version: 1, savedAt: stored.updatedAt, xml: stored.source };
+      }
+    }
+
+    // One-time migration from the BPMN-only MVP key.
+    raw = localStorage.getItem(LEGACY_BPMN_STORAGE_KEY);
+    if (!raw) return null;
+    const legacy = JSON.parse(raw);
+    if (legacy?.version !== 1 || typeof legacy.xml !== 'string' || !legacy.xml.trim()) return null;
+    persistDiagramXml(legacy.xml);
+    localStorage.removeItem(LEGACY_BPMN_STORAGE_KEY);
+    return legacy;
+  } catch (error) {
+    console.warn('保存済みBPMNの読み込みに失敗しました', error);
+    return null;
+  }
+}
+
 async function api(path, body) {
   const response = await fetch(path, {
     method: 'POST',
@@ -42,7 +101,11 @@ async function api(path, body) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.error || data.status || `${response.status} ${response.statusText}`);
+    const summary = data.error || data.status || `${response.status} ${response.statusText}`;
+    const details = Array.isArray(data.errors)
+      ? data.errors.map(error => `${error.path || '(root)'}: ${error.message}`).join('; ')
+      : '';
+    throw new Error(details ? `${summary}: ${details}` : summary);
   }
   return data;
 }
@@ -95,7 +158,7 @@ function renderOverlays(findings) {
     badge.type = 'button';
     badge.className = `ai-finding-badge ${entry.severity === 'warning' ? 'warning' : ''}`;
     badge.textContent = String(entry.count);
-    badge.title = `${entry.count} finding(s)`;
+    badge.title = `検出事項 ${entry.count}件`;
     badge.addEventListener('click', event => {
       event.stopPropagation();
       focusElement(target);
@@ -127,7 +190,7 @@ function renderFindings() {
 
     const severity = document.createElement('div');
     severity.className = 'severity';
-    severity.textContent = finding.severity;
+    severity.textContent = finding.severity === 'error' ? 'エラー' : '警告';
 
     const message = document.createElement('div');
     message.className = 'message';
@@ -173,13 +236,28 @@ function renderSelected(element) {
   els.selected.append(id, type, name);
 }
 
-async function importDiagram(xml) {
+function nextFrame() {
+  return new Promise(resolve => requestAnimationFrame(resolve));
+}
+
+async function fitDiagramToViewport() {
+  // Wait until the workspace has its final dimensions before fitting.
+  await nextFrame();
+  await nextFrame();
+  const canvas = modeler.get('canvas');
+  canvas.resized();
+  canvas.zoom('fit-viewport');
+}
+
+async function importDiagram(xml, { persist = true } = {}) {
   state.suppressSync = true;
   try {
     await modeler.importXML(xml);
     state.diagramLoaded = true;
+    els.format.disabled = false;
     els.empty.classList.add('hidden');
-    modeler.get('canvas').zoom('fit-viewport');
+    if (persist) persistDiagramXml(xml);
+    await fitDiagramToViewport();
   } finally {
     state.suppressSync = false;
   }
@@ -189,6 +267,8 @@ async function syncLogicCore({ validate = true } = {}) {
   if (!state.diagramLoaded) return null;
   setStatus('BPMN → Logic-Core 同期中…');
   const { xml } = await modeler.saveXML({ format: true });
+  // Persist the editable BPMN even if backend import/validation subsequently fails.
+  persistDiagramXml(xml);
   const imported = await api('/api/v1/import', { bpmnXml: xml });
   state.logicCore = imported.logicCore;
 
@@ -239,10 +319,38 @@ async function validateCurrent() {
   }
 }
 
+async function formatCurrent() {
+  if (!state.diagramLoaded) return;
+
+  clearTimeout(state.syncTimer);
+  els.format.disabled = true;
+  setStatus('BPMNを整形中…');
+
+  try {
+    const logicCore = await syncLogicCore({ validate: false });
+    const result = await api('/api/v1/generate', {
+      logicCore,
+      visualRefinement: true,
+    });
+    if (!result.bpmnXml) throw new Error('整形済みBPMN XMLが返されませんでした');
+
+    await importDiagram(result.bpmnXml);
+    state.logicCore = logicCore;
+    state.validation = result.validation || { errors: [], warnings: [] };
+    renderFindings();
+    setStatus('整形完了');
+  } catch (error) {
+    setStatus(`整形エラー: ${error.message}`);
+  } finally {
+    els.format.disabled = !state.diagramLoaded;
+  }
+}
+
 async function exportCurrent() {
   if (!state.diagramLoaded) return;
   try {
     const { xml } = await modeler.saveXML({ format: true });
+    persistDiagramXml(xml);
     const blob = new Blob([xml], { type: 'application/xml' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -325,6 +433,25 @@ async function handleFile(file) {
   }
 }
 
+async function restorePersistedDiagram() {
+  const stored = readPersistedDiagram();
+  if (!stored) return false;
+
+  try {
+    await importDiagram(stored.xml, { persist: false });
+    try {
+      await syncLogicCore({ validate: true });
+    } catch (error) {
+      // The diagram itself is still useful when the backend is temporarily unavailable.
+      console.warn('復元したBPMNの同期に失敗しました', error);
+    }
+    return true;
+  } catch (error) {
+    console.warn('保存済みBPMNを復元できませんでした', error);
+    return false;
+  }
+}
+
 function applyCodexStatus(codex) {
   state.codex = codex || null;
   state.llmAvailable = Boolean(codex?.available && codex?.authenticated);
@@ -391,6 +518,7 @@ modeler.on('selection.changed', event => renderSelected(event.newSelection?.[0] 
 
 els.generate.addEventListener('click', generateFromText);
 els.validate.addEventListener('click', validateCurrent);
+els.format.addEventListener('click', formatCurrent);
 els.export.addEventListener('click', exportCurrent);
 els.file.addEventListener('change', () => handleFile(els.file.files?.[0]));
 els.review.addEventListener('click', reviewCurrent);
@@ -398,9 +526,13 @@ els.chatForm.addEventListener('submit', handleChatSubmit);
 els.codexLogin.addEventListener('click', loginCodex);
 
 async function bootstrap() {
+  const restored = await restorePersistedDiagram();
+
   try {
     await refreshCodexStatus();
-    if (state.llmAvailable) {
+    if (restored) {
+      setStatus('前回のBPMNを復元しました');
+    } else if (state.llmAvailable) {
       setStatus('準備完了 — Codex app-server');
     } else if (state.codex?.available) {
       setStatus('編集・検証は利用可能 / AI利用にはChatGPTログインが必要');
@@ -410,7 +542,7 @@ async function bootstrap() {
   } catch {
     els.generate.disabled = true;
     els.review.disabled = true;
-    setStatus('Codex設定を取得できませんでした');
+    setStatus(restored ? '前回のBPMNを復元しました / Codex設定を取得できませんでした' : 'Codex設定を取得できませんでした');
   }
 }
 

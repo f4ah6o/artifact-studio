@@ -4,9 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AI BPMN Modeler</title>
-  <link rel="stylesheet" href="https://unpkg.com/bpmn-js@18.22.1/dist/assets/diagram-js.css">
-  <link rel="stylesheet" href="https://unpkg.com/bpmn-js@18.22.1/dist/assets/bpmn-font/css/bpmn.css">
-  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <header class="topbar">
@@ -20,6 +18,7 @@
       <label class="button secondary" for="file-input">BPMNを開く</label>
       <input id="file-input" type="file" accept=".bpmn,.xml,text/xml,application/xml" hidden>
       <button id="validate-button" class="button secondary" type="button">検証</button>
+      <button id="format-button" class="button secondary" type="button" disabled>整形</button>
       <button id="export-button" class="button secondary" type="button">BPMNを書き出す</button>
     </div>
   </header>
@@ -47,7 +46,7 @@
 
       <section class="panel findings-panel">
         <div class="panel-heading row">
-          <span>Findings</span>
+          <span>検出事項</span>
           <span id="finding-count" class="count">0</span>
         </div>
         <div id="findings" class="findings">
@@ -57,7 +56,7 @@
 
       <section class="panel ai-panel">
         <div class="panel-heading row">
-          <span>AI grilling</span>
+          <span>AIレビュー</span>
           <button id="review-button" class="link-button" type="button">現在の図をレビュー</button>
         </div>
         <div id="chat-log" class="chat-log">
@@ -71,7 +70,6 @@
     </aside>
   </main>
 
-  <script src="https://unpkg.com/bpmn-js@18.22.1/dist/bpmn-modeler.production.min.js"></script>
-  <script type="module" src="/static/app.js"></script>
+  <script type="module" src="/app.js"></script>
 </body>
 </html>

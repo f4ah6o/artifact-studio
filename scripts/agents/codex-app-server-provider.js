@@ -361,9 +361,12 @@ export function createCodexAppServerProvider({
 } = {}) {
   return async function callCodex(systemOrMessages, userPromptOrOptions, maybeOptions) {
     const { messages, options } = normalizeMessages(systemOrMessages, userPromptOrOptions, maybeOptions);
-    const outputSchema = options.responseFormat?.type === 'json_object'
-      ? { type: 'object' }
-      : null;
+    // `json_object` means "return JSON", not "apply this Structured Output schema".
+    // Passing a generic { type: 'object' } to Codex app-server is invalid under
+    // strict Structured Outputs (object schemas require additionalProperties: false)
+    // and would not describe the Logic-Core shape anyway. Leave outputSchema unset
+    // and let the prompt + downstream schema gate validate the returned JSON.
+    const outputSchema = null;
 
     const result = await client.runTurn(messagesToText(messages), {
       model,

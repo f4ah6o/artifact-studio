@@ -1,13 +1,13 @@
 {
-  "name": "bpmn-generator",
+  "name": "artifact-studio",
   "version": "3.1.0",
-  "description": "Enterprise BPMN 2.0 Generator — JSON Logic-Core → ElkJS Layout → OMG-compliant XML + SVG",
+  "description": "AI-assisted artifact studio — generate, edit, validate, persist and export structured artifacts; BPMN is the first adapter",
   "type": "module",
   "license": "MIT",
-  "author": "Daniel Stiegler",
+  "author": "f12o <gh@f12o.com>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Stieges/bpmn-generator.git"
+    "url": "git+https://github.com/f4ah6o/artifact-studio.git"
   },
   "keywords": [
     "bpmn",
@@ -31,20 +31,32 @@
   },
   "scripts": {
     "generate": "node pipeline.js",
-    "test": "node --experimental-vm-modules node_modules/.bin/jest --no-cache",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --no-cache",
     "build:skill": "node build-skill.mjs",
-    "demo": "AUDIT_LOG_PATH=./audit/bpmn-generator.jsonl node http-server.js"
+    "demo": "node dev-demo.mjs",
+    "dev": "node dev-demo.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
+    "bpmn-js": "18.24.0",
+    "bpmn-js-i18n": "2.4.0",
     "bpmn-moddle": "^10.0.0",
     "elkjs": "^0.11.1"
   },
   "devDependencies": {
     "@jest/globals": "^30.3.0",
     "bpmn-auto-layout": "^1.3.0",
-    "jest": "^30.4.2"
+    "jest": "^30.4.2",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.22.0",
+      "onFail": "download"
+    }
   }
 }
