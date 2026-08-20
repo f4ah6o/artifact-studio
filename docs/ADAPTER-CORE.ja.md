@@ -12,11 +12,11 @@ Artifact Studio の generic adapter core は意図的に小さく保つ。core �
 2. adapter capability / action metadata
 3. read-only GraphProjection
 
-browser / server の双方から使う実装は `shared/` に置く。
+browser / server の双方から使う実装は `src/core/` に置く。
 
 ## Canonical artifact content
 
-`shared/artifact-content.js` は generic content kind を次の2種類に限定する。
+`src/core/artifact-content.js` は generic content kind を次の2種類に限定する。
 
 ```ts
 type ArtifactContent =
@@ -32,11 +32,11 @@ type ArtifactContent =
 
 core が扱うのは shape の normalize / validation までとする。file extension、parser rule、semantic validation、runtime behavior は各 adapter が所有する。
 
-`frontend/artifact-content.js` は、このpure contractの上にbrowser persistenceとlegacy migrationを追加する。
+`src/client/artifact-content.js` は、このpure contractの上にbrowser persistenceとlegacy migrationを追加する。
 
 ## Capability / Action metadata
 
-`shared/artifact-capabilities.js` は少数の共通 capability と adapter 固有 action を分離する。
+`src/core/artifact-capabilities.js` は少数の共通 capability と adapter 固有 action を分離する。
 
 現在の共通 capability:
 
@@ -50,7 +50,7 @@ consumerは `supportsCapability()`, `supportsAction()`, `supportsView()` でdesc
 
 ## GraphProjection
 
-`shared/graph-projection.js` は adapter 非依存の derived / read-only graph を定義する。
+`src/core/graph-projection.js` は adapter 非依存の derived / read-only graph を定義する。
 
 ```ts
 interface GraphProjection {
@@ -76,7 +76,7 @@ GraphProjectionはcanonical artifactではない。別rendererへ渡せるderive
 
 ## Rendering boundary
 
-`frontend/graph-renderer.js` がgeneric browser rendererであり、現在のbackendとして既存Mermaid adapterを利用する。
+`src/client/graph-renderer.js` がgeneric browser rendererであり、現在のbackendとして既存Mermaid adapterを利用する。
 
 依存方向は次の通り。
 
@@ -90,7 +90,7 @@ generic graph renderer
 Mermaid renderer backend
 ```
 
-OPAはMermaidを直接import / callしない。`scripts/artifacts/opa.js` がnormalized `GraphProjection` を返し、`frontend/opa-extension.js` がgeneric graph rendererへ渡す。
+OPAはMermaidを直接import / callしない。`src/adapters/opa.js` がnormalized `GraphProjection` を返し、`src/client/opa-extension.js` がgeneric graph rendererへ渡す。
 
 したがってMermaid sourceはrendering intermediateであり、canonical graph modelではない。
 

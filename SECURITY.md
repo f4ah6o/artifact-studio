@@ -18,12 +18,12 @@ The BPMN Generator runs in three deployment shapes with different trust boundari
 
 | Threat | Mitigation | Where |
 |---|---|---|
-| SSRF via `callbackUrl` | Protocol allowlist (http/https), denylist for IPv4 private ranges (10.x, 172.16-31.x, 192.168.x, 127.x, 169.254.x), IPv6 (::1, fc00::/7, fe80::/10), DNS-resolve hostname and re-check resolved IPs | `scripts/http-server.js` — `validateCallbackUrl` + `validateCallbackUrlAsync` |
-| Unauthorized access | API key required in production (`BPMN_API_KEY` env), fail-fast startup if missing while `NODE_ENV=production` | `scripts/http-server.js` — `startupCheck` |
-| Resource exhaustion | Body size cap (10 MB), per-IP rate limit (30 req/min) | `scripts/http-server.js` |
-| Malformed input crashing the pipeline | Strict JSON Schema validation at `/api/v1/generate`, `/api/v1/validate`, and `/api/v1/orchestrate` (when `body.logicCore` is provided), against `references/input-schema.json` | `scripts/schema-gate.js` (wired in `http-server.js`) |
-| LLM output injection | LLM output flows through the same schema gate before reaching the pipeline; the LLM never writes to disk directly | `scripts/orchestrator.js` → schema-gate → `runPipeline` |
-| Sensitive data in audit log | Audit log path is configurable via `AUDIT_LOG_PATH` for secure storage (encrypted volumes, append-only filesystems) | `scripts/audit.js` |
+| SSRF via `callbackUrl` | Protocol allowlist (http/https), denylist for IPv4 private ranges (10.x, 172.16-31.x, 192.168.x, 127.x, 169.254.x), IPv6 (::1, fc00::/7, fe80::/10), DNS-resolve hostname and re-check resolved IPs | `src/server/http-server.js` — `validateCallbackUrl` + `validateCallbackUrlAsync` |
+| Unauthorized access | API key required in production (`BPMN_API_KEY` env), fail-fast startup if missing while `NODE_ENV=production` | `src/server/http-server.js` — `startupCheck` |
+| Resource exhaustion | Body size cap (10 MB), per-IP rate limit (30 req/min) | `src/server/http-server.js` |
+| Malformed input crashing the pipeline | Strict JSON Schema validation at `/api/v1/generate`, `/api/v1/validate`, and `/api/v1/orchestrate` (when `body.logicCore` is provided), against `references/input-schema.json` | `src/bpmn/schema-gate.js` (wired in `http-server.js`) |
+| LLM output injection | LLM output flows through the same schema gate before reaching the pipeline; the LLM never writes to disk directly | `src/ai/orchestrator.js` → schema-gate → `runPipeline` |
+| Sensitive data in audit log | Audit log path is configurable via `AUDIT_LOG_PATH` for secure storage (encrypted volumes, append-only filesystems) | `src/server/audit.js` |
 
 ### Out of scope
 
@@ -47,7 +47,7 @@ Place the service behind a reverse proxy (nginx, Caddy, or a load balancer) that
 
 ```bash
 # 1. Production refuses to start without a key
-NODE_ENV=production node scripts/http-server.js
+NODE_ENV=production node src/server/http-server.js
 #  → exits non-zero with "Refusing to start in production without BPMN_API_KEY"
 
 # 2. SSRF is blocked (run server in another shell first)

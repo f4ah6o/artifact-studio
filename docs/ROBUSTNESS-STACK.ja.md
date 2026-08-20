@@ -19,7 +19,7 @@ synthetic generation
   -> Markdown / JSON reports
 ```
 
-発見された正当なpipeline failureは `tests/fixtures/robustness/auto/` に保存され、`scripts/robustness.test.js` がregression testとして自動読込する。
+発見された正当なpipeline failureは `tests/fixtures/robustness/auto/` に保存され、`tests/robustness.test.js` がregression testとして自動読込する。
 
 ## 2. Architecture
 
@@ -33,7 +33,7 @@ synthetic generation
 主なmodule:
 
 ```text
-scripts/robustness/
+tools/robustness/
   seed-catalog.json
   synthetic-generator.js
   stress-tester.js
@@ -130,23 +130,23 @@ run resultはMarkdown + JSON reportへ集約する。
 
 ## 10. Commands
 
-現在の詳細なflagと環境変数は `scripts/robustness/cli.js` と英語版documentをauthorityとする。代表例:
+現在の詳細なflagと環境変数は `tools/robustness/cli.js` と英語版documentをauthorityとする。代表例:
 
 ```bash
 # endpoint connectivity
-node scripts/robustness/cli.js smoke-test
+node tools/robustness/cli.js smoke-test
 
 # Logic-Core target stress run
-node scripts/robustness/cli.js run --n=100 --target=lc-json
+node tools/robustness/cli.js run --n=100 --target=lc-json
 
 # DOT target
-node scripts/robustness/cli.js run --n=100 --target=dot
+node tools/robustness/cli.js run --n=100 --target=dot
 
 # both targets + MaD sanity check
-node scripts/robustness/cli.js run --n=200 --target=both --with-mad
+node tools/robustness/cli.js run --n=200 --target=both --with-mad
 
 # manual triage
-node scripts/robustness/cli.js triage
+node tools/robustness/cli.js triage
 ```
 
 ## 11. Iteration loop
@@ -173,9 +173,9 @@ run robustness stack
 
 この文書より、現在の実装・tests・configを優先する。
 
-- `scripts/robustness/`
-- `scripts/robustness-internal.test.js`
-- `scripts/robustness.test.js`
+- `tools/robustness/`
+- `tests/robustness-internal.test.js`
+- `tests/robustness.test.js`
 - `tests/fixtures/robustness/`
 
 historical design/planは `docs/superpowers/` にsnapshotとして残す。

@@ -116,7 +116,7 @@ Read these when needed:
 | User uploads/provides existing Logic-Core JSON | Skip Phase 1, start at Phase 2 |
 | User wants to add/change something in existing diagram | Amendment flow |
 | User describes multiple organizations interacting | Multi-pool mode |
-| User is in Claude Code with Node.js | Use `scripts/pipeline.js` |
+| User is in Claude Code with Node.js | Use `src/bpmn/pipeline.js` |
 | User is in Claude.ai (no script execution) | Inline mode: generate XML + SVG as artifacts |
 
 ---
@@ -182,17 +182,16 @@ Use the **Reviewer Agent Prompt** from `references/prompt-template.md` for addit
 
 ### Setup (first time only)
 ```bash
-cd scripts/
-npm install   # installs: elkjs (only dependency)
+vp install
 ```
 
 ### Run pipeline
 ```bash
 # From JSON file:
-node pipeline.js my-process.json my-process
+node src/bpmn/pipeline.js my-process.json my-process
 
 # From stdin (inline JSON):
-echo '{ ... }' | node pipeline.js - output
+echo '{ ... }' | node src/bpmn/pipeline.js - output
 
 # Outputs:
 #   output.bpmn  — BPMN 2.0 XML with full DI coordinates
@@ -281,7 +280,7 @@ Use prompts from `references/prompt-template.md` for both roles.
 | `Unknown source/target` | Edge references non-existent node | Fix ID typo |
 | `Deadlock: XOR-split feeds AND-join` | Structural error | Change AND-join to XOR-join or restructure |
 | `ELK layout failed` | Disconnected graph | Fix isolated nodes |
-| `npm install fails` | No network or Node.js missing | Ensure Node.js ≥18 |
+| `vp install` fails | Package installation or Node.js environment issue | Check the Vite+ / Node.js setup |
 
 ---
 
@@ -320,8 +319,7 @@ Import existing BPMN 2.0 XML files to extract a Logic-Core JSON for editing.
 
 ### Claude Code
 ```bash
-cd scripts/
-node import.js existing-diagram.bpmn extracted.json
+node src/bpmn/import.js existing-diagram.bpmn extracted.json
 ```
 
 ### Workflow
@@ -356,7 +354,7 @@ The template runs ElkJS from CDN in the browser — **no manual coordinate estim
 It produces orthogonal layouts with proper BPMN shapes.
 
 **Note:** The inline renderer is simplified (no task type icons, no event markers).
-For full rendering fidelity, use Claude Code with pipeline.js.
+For full rendering fidelity, use Claude Code with `src/bpmn/pipeline.js`.
 
 ---
 

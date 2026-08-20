@@ -39,4 +39,4 @@
 | Result assembly | serviceTask | BPMN XML、SVG、validation/compliance結果、historyをまとめる |
 | Pipeline complete | endEvent | 完了 |
 
-実際の現在実装については `scripts/pipeline.js` とtest suiteをauthorityとし、このgenerated documentationと差異がある場合はコードを優先する。
+実際の現在実装については `src/bpmn/pipeline.js` とtest suiteをauthorityとし、このgenerated documentationと差異がある場合はコードを優先する。

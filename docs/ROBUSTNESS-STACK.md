@@ -20,7 +20,7 @@ The Pipeline Robustness Stack is a **JS-only offline tool** that uses a configur
 
 The existing pipeline has 145 tests built from hand-crafted fixtures. Hand-written tests cover what humans think to test, but they miss the edge cases LLMs naturally generate. Every BPMN diagram in production comes from an LLM (Claude in the SKILL, or any LLM via the orchestrator). So the production input distribution is shaped by LLM outputs — and a fuzzer that uses an LLM to generate inputs matches that distribution far better than any hand-curated suite.
 
-Each failure the stack discovers becomes a permanent fixture under `tests/fixtures/robustness/auto/`. The regression test `scripts/robustness.test.js` loads all auto-fixtures dynamically. After a run, you fix the bugs the stack found, the tests turn green, and the stack has made the pipeline measurably more resilient.
+Each failure the stack discovers becomes a permanent fixture under `tests/fixtures/robustness/auto/`. The regression test `tests/robustness.test.js` loads all auto-fixtures dynamically. After a run, you fix the bugs the stack found, the tests turn green, and the stack has made the pipeline measurably more resilient.
 
 ---
 
@@ -34,7 +34,7 @@ Each failure the stack discovers becomes a permanent fixture under `tests/fixtur
                            │ runPipeline(lc) called as-is
                            │
         ┌──────────────────┴──────────────────────────────────┐
-        │       ROBUSTNESS STACK (NEW, scripts/robustness/)   │
+        │       ROBUSTNESS STACK (NEW, tools/robustness/)   │
         │                                                     │
         │  ┌─────────────────────────────────────────────┐    │
         │  │ 1. SEED CATALOG                             │    │
@@ -74,8 +74,8 @@ Each failure the stack discovers becomes a permanent fixture under `tests/fixtur
 
 ### Coupling constraints (per spec)
 
-- **Zero changes** to `pipeline.js`, `rules.js`, `layout.js`, `coordinates.js`, `bpmn-xml.js`, `svg.js`
-- **Zero changes** to `agents/llm-provider.js` (consumed via existing `createLlmProvider({ baseUrl, apiKey, model, timeout })`)
+- **Zero changes** to the production pipeline modules under `src/bpmn/` during a robustness run
+- **Zero changes** to `src/ai/llm-provider.js` (consumed via existing `createLlmProvider({ baseUrl, apiKey, model, timeout })`)
 - **Consumes only:** `runPipeline()`, `runRules()`, `validateLogicCore()`, `bpmnToLogicCore()`, `dotToLogicCore()`
 - **Produces only:** new test fixtures (auto-discovered via glob) and reports under `tests/`
 
@@ -83,58 +83,37 @@ Each failure the stack discovers becomes a permanent fixture under `tests/fixtur
 
 ## 3 Directory Layout
 
-```
-scripts/
-├── pipeline.js                          (unchanged)
-├── rules.js                             (unchanged)
-├── validate.js                          (unchanged)
-├── import.js                            (unchanged)
-├── dot.js                               (unchanged)
-├── agents/
-│   └── llm-provider.js                  (unchanged — consumed via createLlmProvider)
-│
-├── robustness/                          (NEW — the sidecar)
-│   ├── README.md                        Workflow doc + quick start
-│   ├── config.json                      Model, paths, flags, cost cap
-│   ├── seed-catalog.json                540-cell generation matrix
-│   ├── cli.js                           CLI entry (run | smoke-test | triage | mad-check | report)
-│   ├── synthetic-generator.js           Two-step prompting, sample assembly
-│   ├── stress-tester.js                 preFilter + runPipelineChecks + runRoundtripCheck + runStressTest
-│   ├── failure-classifier.js            classify() + computeFingerprint() (SHA-256)
-│   ├── fixture-persister.js             persistFailure() with bucket routing + dedup + llm-signal gate
-│   ├── report-generator.js              generateReport() + computeDrift()
-│   ├── graph-isomorphism.js             toAdjacencyList() (format-tolerant), canonicalSignature(), isStructurallyEqual()
-│   ├── mad-validator.js                 runMadCheck() — external sanity against MaD subset
-│   └── curate-mad.js                    One-shot script for initial MaD subset curation
-│
-├── robustness.test.js                   (NEW) Dynamic loader: each auto/ fixture = 1 regression test
-├── robustness-internal.test.js          (NEW) ~45 unit + integration tests for the stack itself
-└── pipeline.test.js                     (unchanged, 136 existing tests)
+```text
+src/bpmn/
+├── pipeline.js                          production pipeline
+├── rules.js                             rule engine
+├── validate.js                          validation entry
+├── import.js                            BPMN XML importer
+└── dot.js                               DOT conversion
+
+src/ai/
+└── llm-provider.js                      provider consumed by robustness tooling
+
+tools/robustness/
+├── README.md                            workflow doc + quick start
+├── config.json                          model, paths, flags, cost cap
+├── seed-catalog.json                    generation matrix
+├── cli.js                               CLI entry
+├── synthetic-generator.js               two-step prompting / sample assembly
+├── stress-tester.js                     pipeline and roundtrip checks
+├── failure-classifier.js                classification + fingerprints
+├── fixture-persister.js                 bucket routing + dedup
+├── report-generator.js                  Markdown + JSON reports
+├── graph-isomorphism.js                 structural comparison
+├── mad-validator.js                     external MaD sanity check
+└── curate-mad.js                        one-shot MaD subset curation
 
 tests/
-├── fixtures/                            (existing, unchanged)
-│   ├── robustness/                      (NEW)
-│   │   ├── auto/        → auto-persisted regression fixtures
-│   │   │   └── .gitkeep
-│   │   ├── triage/      → manual-review queue
-│   │   │   └── .gitkeep
-│   │   ├── llm-signal/  → gated bucket (default OFF)
-│   │   │   └── .gitkeep
-│   │   ├── README.md    Explains the buckets
-│   │   └── dismissed.log (created on first dismiss)
-│   ├── mad-subset/      → curated MaD subset (populated by curate-mad.js)
-│   └── mad-subset-test/ → 2 hand-crafted .dot files for hermetic tests
-└── robustness-reports/                  (NEW) Run artifacts (.md + .json)
-    └── .gitkeep
-
-docs/
-├── superpowers/
-│   ├── specs/
-│   │   ├── 2026-05-16-pipeline-robustness-via-synthetic-data-design.md
-│   │   └── 2026-05-16-layout-reviewer-agent-design.md (companion: M1 revival)
-│   └── plans/
-│       └── 2026-05-16-pipeline-robustness-via-synthetic-data.md (3364 lines, 35 tasks)
-└── ROBUSTNESS-STACK.md (this document)
+├── robustness.test.js                   dynamic regression-fixture loader
+├── robustness-internal.test.js          tooling unit/integration tests
+├── fixtures/robustness/                 auto / triage / llm-signal buckets
+├── fixtures/mad-subset/                 curated external subset
+└── robustness-reports/                  run artifacts
 ```
 
 ---
@@ -175,8 +154,8 @@ Two-phase execution per sample.
 
 | Step | API | On failure |
 |---|---|---|
-| Schema validation | `validateLogicCore(lc)` from `scripts/validate.js` | Stop, return `{passed: false, schemaErrors, …}` |
-| Rule engine | `runRules(lc)` from `scripts/rules.js` (default profile) | Only ERROR-level fails; WARNING-level passes through |
+| Schema validation | `validateLogicCore(lc)` from `src/bpmn/validate.js` | Stop, return `{passed: false, schemaErrors, …}` |
+| Rule engine | `runRules(lc)` from `src/bpmn/rules.js` (default profile) | Only ERROR-level fails; WARNING-level passes through |
 
 Schema and rule errors mean the LLM produced garbage. These don't go to the pipeline at all — they're routed to `llm-signal/` (gated).
 
@@ -301,7 +280,7 @@ CLI entry. Resolves env vars + flags, constructs LLM provider, dispatches comman
 
 ## 5 A Concrete Run — Step by Step
 
-Command: `AIHUB_URL=... AIHUB_KEY=... node scripts/robustness/cli.js run --n=100 --target=lc-json`
+Command: `AIHUB_URL=... AIHUB_KEY=... node tools/robustness/cli.js run --n=100 --target=lc-json`
 
 ### Step 1 — Bootstrap (instant)
 - Load `seed-catalog.json` (540 cells) and `config.json`
@@ -354,7 +333,7 @@ Total samples: 89  Pass: 67 (75%)  Fail: 22
 ### Step 6 — Iterate
 - Read fixtures in `tests/fixtures/robustness/auto/`
 - Fix the bug in the pipeline (the bug is real — the LLM produced a legitimate Logic-Core JSON and the pipeline failed)
-- The corresponding test in `scripts/robustness.test.js` turns green
+- The corresponding test in `tests/robustness.test.js` turns green
 - Next run reports the fingerprint as ✅ closed
 
 ---
@@ -502,7 +481,7 @@ export AIHUB_KEY=...                # API key (or 'none' for local Ollama)
 ### Verify connectivity
 
 ```bash
-node scripts/robustness/cli.js smoke-test
+node tools/robustness/cli.js smoke-test
 # → "[smoke-test] reply: pong" (or whatever the LLM says)
 ```
 
@@ -510,19 +489,19 @@ node scripts/robustness/cli.js smoke-test
 
 ```bash
 # Default: 100 samples, lc-json target, sovereign model
-node scripts/robustness/cli.js run --n=100
+node tools/robustness/cli.js run --n=100
 
 # DOT target for paper-parity comparison
-node scripts/robustness/cli.js run --n=50 --target=dot
+node tools/robustness/cli.js run --n=50 --target=dot
 
 # Both targets, 200 samples total, with MaD sanity check appended
-node scripts/robustness/cli.js run --n=200 --target=both --with-mad
+node tools/robustness/cli.js run --n=200 --target=both --with-mad
 
 # Targeted run: only sample cells matching a predicate (programmatic)
-node scripts/robustness/cli.js run --n=20 --strategy=targeted --category=elk-error
+node tools/robustness/cli.js run --n=20 --strategy=targeted --category=elk-error
 
 # Enable LLM-signal persistence for future SLM training data collection
-node scripts/robustness/cli.js run --n=100 --persist-llm-signal
+node tools/robustness/cli.js run --n=100 --persist-llm-signal
 ```
 
 ### Review the report
@@ -534,7 +513,7 @@ cat tests/robustness-reports/$(ls -t tests/robustness-reports/*.md | head -1)
 ### Triage ambiguous failures
 
 ```bash
-node scripts/robustness/cli.js triage
+node tools/robustness/cli.js triage
 # Interactive REPL:
 # > promote 3    → moves to auto/, becomes a failing regression test
 # > dismiss 5    → deletes + appends to dismissed.log
@@ -546,14 +525,14 @@ node scripts/robustness/cli.js triage
 
 ```bash
 # After implementing a fix:
-cd scripts && vp test --run
+vp test --run
 # Robustness Regression test names become green one by one as you fix bugs.
 ```
 
 ### One-time MaD curation (when dataset is acquired)
 
 ```bash
-node scripts/robustness/curate-mad.js --src ~/Downloads/mad-raw.jsonl --n 200
+node tools/robustness/curate-mad.js --src ~/Downloads/mad-raw.jsonl --n 200
 # → writes 200 .dot files + index.json to tests/fixtures/mad-subset/
 # Then commit those fixtures.
 ```
@@ -600,7 +579,7 @@ Implementation deferred. When picked up, expected ~120 new hermetic tests + 1 op
 ## 11 Test Inventory (Final)
 
 ```
-$ cd scripts && vp test --run
+$ vp test --run
 ```
 
 | Suite | Tests | Notes |
@@ -620,11 +599,11 @@ The single skipped test is by design — it skips when the `auto/` directory is 
 Recommended sequence:
 
 1. **Wire AI Hub credentials in `.env` or shell, run `smoke-test`** to verify the endpoint
-2. **First real run: `node scripts/robustness/cli.js run --n=10`** for a quick smoke
+2. **First real run: `node tools/robustness/cli.js run --n=10`** for a quick smoke
 3. **Review the report** under `tests/robustness-reports/`
 4. **Triage the first batch of findings** — most early findings will be real bugs that escaped the hand-written test suite
 5. **Fix the bugs**, watch `vp test --run` go from "1 skipped" to "X passed, 1 skipped" as fixtures resolve
-6. **Larger run: `node scripts/robustness/cli.js run --n=100`** once the obvious bugs are fixed
+6. **Larger run: `node tools/robustness/cli.js run --n=100`** once the obvious bugs are fixed
 7. **Implement the Layout Reviewer Agent** (separate spec, separate branch) once robustness is stable
 8. **Acquire and curate the MaD subset** for external validation against published metrics
 9. **CI integration** (follow-up spec) — nightly run, PR comments, automated triage

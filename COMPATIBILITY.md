@@ -66,6 +66,6 @@ To verify compatibility, open generated `.bpmn` files at:
 
 ```bash
 # Generate test output
-node scripts/pipeline.js tests/fixtures/simple-approval.json /tmp/test
+node src/bpmn/pipeline.js tests/fixtures/simple-approval.json /tmp/test
 # Open /tmp/test.bpmn in bpmn.io
 ```

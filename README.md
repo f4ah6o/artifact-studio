@@ -21,7 +21,6 @@ BPMN remains the most mature adapter, but the browser shell and persistence laye
 Vite+ manages the JavaScript toolchain and package manager for this repository.
 
 ```bash
-cd scripts
 vp install
 vp run demo
 ```
@@ -46,7 +45,7 @@ vp run demo
 
 ## Development gates
 
-Run these from `scripts/`:
+Run these from the repository root:
 
 ```bash
 vp check
@@ -61,19 +60,17 @@ The CI workflow runs the same gates on supported Node.js LTS releases and finish
 The original BPMN pipeline remains available as a direct CLI and programmatic API.
 
 ```bash
-cd scripts
-
 # Logic-Core JSON -> BPMN + SVG
-node pipeline.js ../tests/fixtures/simple-approval.json /tmp/simple-approval
+node src/bpmn/pipeline.js tests/fixtures/simple-approval.json /tmp/simple-approval
 
 # Existing BPMN -> Logic-Core JSON
-node import.js process.bpmn process.json
+node src/bpmn/import.js process.bpmn process.json
 ```
 
 Programmatic entry point:
 
 ```js
-import { runPipeline } from './scripts/pipeline.js';
+import { runPipeline } from './src/bpmn/pipeline.js';
 
 const result = await runPipeline(logicCore);
 ```
@@ -85,18 +82,19 @@ The BPMN path uses deterministic validation and layout. LLM output is not used t
 The current browser application is organized around adapter-owned semantics and generic shell state:
 
 ```text
-frontend/
-  artifact-adapters.js   adapter registry and capabilities
-  artifact-content.js    generic text/workspace persistence contract
-  app.js                 shared shell + BPMN/Mermaid integration
-  opa-extension.js       OPA workspace UI and actions
+index.html               Vite application entry
+vite.config.ts           Vite+ dev/build/test/check configuration
 
-scripts/
-  pipeline.js            BPMN pipeline
-  http-server.js         main HTTP API
-  opa-http-server.js     isolated OPA adapter API
-  artifacts/             adapter-side semantic helpers
-  vite.config.ts         Vite+ dev/build/test/check configuration
+src/
+  client/                browser shell and browser adapter integrations
+  core/                  adapter-independent shared contracts
+  adapters/              server-side adapter semantics
+  bpmn/                  deterministic BPMN pipeline
+  ai/                    AI orchestration and providers
+  server/                HTTP/MCP runtime entry points
+
+tools/                   development, benchmark, and robustness tooling
+tests/                   executable tests, fixtures, and benchmark evidence
 ```
 
 Generic artifact content currently supports:

@@ -2,7 +2,7 @@
 
 Deterministic pipeline benchmark over every Logic-Core fixture in
 `tests/fixtures/*.json`. No LLM, no network. Reproducible via
-`node scripts/bench/run-stieges-bench-v1.mjs`.
+`node tools/bench/run-stieges-bench-v1.mjs`.
 
 - Generated: 2026-05-18T14:09:58.875Z
 - Commit: 377959fea33844eb6c3f58c8b079aca96a8183fc

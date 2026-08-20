@@ -8,7 +8,7 @@ Current implemented adapters:
 - Mermaid
 - OPA / Rego
 
-The adapter registry is `frontend/artifact-adapters.js`. Generic artifact persistence is in `frontend/artifact-content.js`.
+The adapter registry is `src/client/artifact-adapters.js`. Generic artifact persistence is in `src/client/artifact-content.js`.
 
 ## Start here
 
@@ -22,7 +22,6 @@ Before changing code:
 ## Development
 
 ```bash
-cd scripts
 vp install
 vp check
 vp test --run

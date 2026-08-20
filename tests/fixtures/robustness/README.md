@@ -1,9 +1,9 @@
 # Robustness Fixture Buckets
 
-Three buckets plus a log, populated by `scripts/robustness/cli.js`.
+Three buckets plus a log, populated by `tools/robustness/cli.js`.
 
-- `auto/` — auto-persisted regression fixtures. Loaded by `scripts/robustness.test.js`; failing until fixed.
-- `triage/` — items awaiting manual review. Use `node scripts/robustness/cli.js triage` to promote/dismiss/defer.
+- `auto/` — auto-persisted regression fixtures. Loaded by `tests/robustness.test.js`; failing until fixed.
+- `triage/` — items awaiting manual review. Use `node tools/robustness/cli.js triage` to promote/dismiss/defer.
 - `llm-signal/` — LLM-quality signals (schema/rule violations). Gated; only written when `--persist-llm-signal` is on.
 - `dismissed.log` — append-only audit trail of dismissed triage items.
 

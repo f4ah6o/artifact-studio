@@ -29,7 +29,7 @@ Thumbs.db
 audit/
 dead-letter/
 
-# Skill bundle (rebuild on demand via `npm run build:skill`)
+# Skill bundle (rebuild on demand via `vp run build:skill`)
 bpmn-generator-v3.skill
 
 # Robustness run artifacts (the dir is committed via .gitkeep, but reports are local)
@@ -40,5 +40,5 @@ tests/robustness-reports/*.json
 # to be handed to opencode / Cursor / other agents — not project history)
 docs/specs/
 
-# Frontend build output. Frontend source is part of the repository.
-frontend/dist/
+# Vite build output.
+/dist/

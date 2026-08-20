@@ -2,7 +2,7 @@
 
 This file is the repository's home for upstream attribution and third-party license information. README files intentionally do not duplicate dependency-license tables or historical licensing notes.
 
-Versions below reflect the current pnpm lock/install at the time this notice was updated. `scripts/pnpm-lock.yaml` is authoritative for exact resolved dependency versions.
+Versions below reflect the current pnpm lock/install at the time this notice was updated. `pnpm-lock.yaml` is authoritative for exact resolved dependency versions.
 
 ## Original BPMN Generator code
 
@@ -106,7 +106,7 @@ The project uses Vite+ for install, development, checking, testing, and builds.
 - Author: VoidZero Inc.
 - Project: https://github.com/voidzero-dev/vite-plus
 
-Vite+ bundles or resolves additional development tools and transitive dependencies. Their own license terms remain applicable; consult `scripts/pnpm-lock.yaml` and the installed packages for the complete transitive dependency set.
+Vite+ bundles or resolves additional development tools and transitive dependencies. Their own license terms remain applicable; consult `pnpm-lock.yaml` and the installed packages for the complete transitive dependency set.
 
 ## Standards and references
 

@@ -11,7 +11,6 @@ Last regenerated: 2026-05-18.
 ## How to reproduce
 
 ```bash
-cd scripts
 npm install                                  # one-time
 node bench/run-stieges-bench-v1.mjs          # → tests/bench/stieges-bench-v1.{json,md}
 node bench/compare-bpmn-auto-layout.mjs      # → tests/bench/auto-layout-comparison.md + .bpmn pairs
@@ -108,10 +107,10 @@ Stieges column verified against this repo. Competitor columns sourced from their
 | **Lane support** | **Yes, multi-lane per pool** ([sparse-lanes.expected.bpmn](tests/fixtures/sparse-lanes.expected.bpmn) — 4 lanes) | Yes (paper) | Limited | Unclear |
 | Soundness check | Workflow-Net (WF01–WF03), 3 rules | POWL-by-construction (mathematical guarantee) | None documented | None documented |
 | Configurable rule engine | **Yes** (27 rules, 4 layers, JSON profiles) | Limited | None | None |
-| Schema-strict input gate | **Yes** (ajv draft-2020-12, [schema-gate.js](scripts/schema-gate.js)) | N/A | Loose | Loose |
+| Schema-strict input gate | **Yes** (ajv draft-2020-12, [schema-gate.js](src/bpmn/schema-gate.js)) | N/A | Loose | Loose |
 | Stack | Node.js / ES Modules | Python / Streamlit | Python + Vue.js | React + OpenAI |
 | License | MIT | GPL-3.0 | MIT-ish | Unclear |
-| MCP server | **Yes** ([mcp-bpmn-server.js](scripts/mcp-bpmn-server.js)) | No | No | No |
+| MCP server | **Yes** ([mcp-bpmn-server.js](src/server/mcp-bpmn-server.js)) | No | No | No |
 | Live demo | Pending (v3.5) | streamlit.app | onrender.com | None |
 | Paper | None (engineering project) | IJCAI-24, EMMSAD 2024 (Kourani et al.) | arXiv 2509.24592 (2025) | CEUR-WS Vol-3758 |
 | Last commit (2026-05) | This repo | Active | Active | Inactive / unknown |

@@ -12,11 +12,11 @@ The current core has three shared contracts:
 2. adapter capability/action metadata;
 3. read-only graph projection.
 
-The implementation is shared by browser and server code under `shared/`.
+The implementation is shared by browser and server code under `src/core/`.
 
 ## Canonical artifact content
 
-`shared/artifact-content.js` defines the only generic content kinds:
+`src/core/artifact-content.js` defines the only generic content kinds:
 
 ```ts
 type ArtifactContent =
@@ -32,11 +32,11 @@ type ArtifactContent =
 
 The core normalizes and validates the shape only. File extensions, parser rules, semantic validation, and runtime behavior remain adapter-owned.
 
-`frontend/artifact-content.js` adds browser persistence and legacy migration on top of this pure contract.
+`src/client/artifact-content.js` adds browser persistence and legacy migration on top of this pure contract.
 
 ## Capability and action metadata
 
-`shared/artifact-capabilities.js` separates small common capabilities from adapter-specific actions.
+`src/core/artifact-capabilities.js` separates small common capabilities from adapter-specific actions.
 
 Common capabilities are currently:
 
@@ -50,7 +50,7 @@ Consumers query descriptors through `supportsCapability()`, `supportsAction()`, 
 
 ## GraphProjection
 
-`shared/graph-projection.js` defines an adapter-independent, derived, read-only graph:
+`src/core/graph-projection.js` defines an adapter-independent, derived, read-only graph:
 
 ```ts
 interface GraphProjection {
@@ -76,7 +76,7 @@ A graph projection is not a canonical artifact. It is derived data that may be r
 
 ## Rendering boundary
 
-`frontend/graph-renderer.js` is the generic browser renderer. Its current backend is the existing Mermaid adapter.
+`src/client/graph-renderer.js` is the generic browser renderer. Its current backend is the existing Mermaid adapter.
 
 The dependency direction is:
 
@@ -90,7 +90,7 @@ generic graph renderer
 Mermaid renderer backend
 ```
 
-OPA does not import or call Mermaid directly. `scripts/artifacts/opa.js` returns a normalized `GraphProjection`; `frontend/opa-extension.js` passes it to the generic graph renderer.
+OPA does not import or call Mermaid directly. `src/adapters/opa.js` returns a normalized `GraphProjection`; `src/client/opa-extension.js` passes it to the generic graph renderer.
 
 Mermaid source is therefore a rendering intermediate, not the canonical graph model.
 

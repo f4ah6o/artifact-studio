@@ -21,7 +21,6 @@ BPMN が最も成熟した adapter ですが、browser shell と persistence は
 このリポジトリの JavaScript toolchain と package manager は Vite+ で管理します。
 
 ```bash
-cd scripts
 vp install
 vp run demo
 ```
@@ -46,7 +45,7 @@ vp run demo
 
 ## Development gates
 
-`scripts/` で次を実行します。
+リポジトリルートで次を実行します。
 
 ```bash
 vp check
@@ -61,19 +60,17 @@ CI でも supported Node.js LTS 上で同じ gate を実行し、最後に BPMN 
 元の BPMN pipeline は CLI / programmatic API として引き続き利用できます。
 
 ```bash
-cd scripts
-
 # Logic-Core JSON -> BPMN + SVG
-node pipeline.js ../tests/fixtures/simple-approval.json /tmp/simple-approval
+node src/bpmn/pipeline.js tests/fixtures/simple-approval.json /tmp/simple-approval
 
 # Existing BPMN -> Logic-Core JSON
-node import.js process.bpmn process.json
+node src/bpmn/import.js process.bpmn process.json
 ```
 
 Programmatic entry point:
 
 ```js
-import { runPipeline } from './scripts/pipeline.js';
+import { runPipeline } from './src/bpmn/pipeline.js';
 
 const result = await runPipeline(logicCore);
 ```
@@ -85,18 +82,19 @@ BPMN path は deterministic validation / layout を使います。LLM が座標�
 現在の browser application は、adapter が意味論を所有し、shell が generic state を扱う構成です。
 
 ```text
-frontend/
-  artifact-adapters.js   adapter registry / capabilities
-  artifact-content.js    generic text/workspace persistence contract
-  app.js                 shared shell + BPMN/Mermaid integration
-  opa-extension.js       OPA workspace UI / actions
+index.html               Vite application entry
+vite.config.ts           Vite+ dev/build/test/check configuration
 
-scripts/
-  pipeline.js            BPMN pipeline
-  http-server.js         main HTTP API
-  opa-http-server.js     isolated OPA adapter API
-  artifacts/             adapter-side semantic helpers
-  vite.config.ts         Vite+ dev/build/test/check configuration
+src/
+  client/                browser shell / browser adapter integrations
+  core/                  adapter-independent shared contracts
+  adapters/              server-side adapter semantics
+  bpmn/                  deterministic BPMN pipeline
+  ai/                    AI orchestration / providers
+  server/                HTTP/MCP runtime entry points
+
+tools/                   development / benchmark / robustness tooling
+tests/                   executable tests / fixtures / benchmark evidence
 ```
 
 Generic artifact content は現在次の2種類です。
