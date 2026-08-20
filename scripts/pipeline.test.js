@@ -26,6 +26,7 @@ import {
 import { normalizeLaneAssignments } from './topology.js';
 import { wrapText, wrapTextByPx } from './utils.js';
 import { alignLinearFlowCrossAxis, messageFlowPorts } from './coordinates.js';
+import { routeGatewayFlowsToCardinalPorts, routeCrossLaneFlowsByDirection } from './visual-refinement.js';
 
 import { bpmnToLogicCore, bpmnToLogicCoreLegacy } from './import.js';
 import { moddleParse, moddleToLogicCore } from './moddle-import.js';
@@ -131,6 +132,94 @@ describe('cross-axis linear-flow alignment', () => {
 // ═══════════════════════════════════════════════════════════════
 // §2  validateLogicCore
 // ═══════════════════════════════════════════════════════════════
+
+describe('cross-lane directional routing', () => {
+  test('RIGHT keeps lane-crossing sequence flow on right/left centers', () => {
+    const coordMap = {
+      coords: {
+        source: { x: 100, y: 200, w: 100, h: 80 },
+        target: { x: 320, y: 40, w: 100, h: 80 },
+      },
+      edgeCoords: {
+        e1: [
+          { x: 150, y: 200 },
+          { x: 240, y: 200 },
+          { x: 240, y: 80 },
+          { x: 370, y: 80 },
+        ],
+      },
+    };
+    const lc = {
+      nodes: [
+        { id: 'source', lane: 'laneA' },
+        { id: 'target', lane: 'laneB' },
+      ],
+      edges: [{ id: 'e1', source: 'source', target: 'target' }],
+      lanes: [{ id: 'laneA' }, { id: 'laneB' }],
+    };
+
+    routeCrossLaneFlowsByDirection(coordMap, lc, 'RIGHT');
+    const pts = coordMap.edgeCoords.e1;
+    expect(pts[0]).toEqual({ x: 200, y: 240 });
+    expect(pts.at(-1)).toEqual({ x: 320, y: 80 });
+    for (let i = 0; i < pts.length - 1; i++) {
+      expect(pts[i].x === pts[i + 1].x || pts[i].y === pts[i + 1].y).toBe(true);
+    }
+  });
+
+  test('gateway endpoint preserves ELK-selected L/R/T/B side across lanes', () => {
+    const original = [
+      { x: 150, y: 200 },
+      { x: 150, y: 140 },
+      { x: 320, y: 140 },
+      { x: 320, y: 80 },
+    ];
+    const coordMap = {
+      coords: {
+        source: { x: 125, y: 200, w: 50, h: 50 },
+        target: { x: 320, y: 40, w: 100, h: 80 },
+      },
+      edgeCoords: { e1: original.map(p => ({ ...p })) },
+    };
+    const lc = {
+      nodes: [
+        { id: 'source', type: 'exclusiveGateway', lane: 'laneA' },
+        { id: 'target', type: 'userTask', lane: 'laneB' },
+      ],
+      edges: [{ id: 'e1', source: 'source', target: 'target' }],
+      lanes: [{ id: 'laneA' }, { id: 'laneB' }],
+    };
+
+    routeCrossLaneFlowsByDirection(coordMap, lc, 'RIGHT');
+    expect(coordMap.edgeCoords.e1).toEqual(original);
+  });
+
+  test('DOWN keeps lane-crossing sequence flow on bottom/top centers', () => {
+    const coordMap = {
+      coords: {
+        source: { x: 40, y: 100, w: 100, h: 80 },
+        target: { x: 260, y: 340, w: 100, h: 80 },
+      },
+      edgeCoords: { e1: [] },
+    };
+    const lc = {
+      nodes: [
+        { id: 'source', lane: 'laneA' },
+        { id: 'target', lane: 'laneB' },
+      ],
+      edges: [{ id: 'e1', source: 'source', target: 'target' }],
+      lanes: [{ id: 'laneA' }, { id: 'laneB' }],
+    };
+
+    routeCrossLaneFlowsByDirection(coordMap, lc, 'DOWN');
+    const pts = coordMap.edgeCoords.e1;
+    expect(pts[0]).toEqual({ x: 90, y: 180 });
+    expect(pts.at(-1)).toEqual({ x: 310, y: 340 });
+    for (let i = 0; i < pts.length - 1; i++) {
+      expect(pts[i].x === pts[i + 1].x || pts[i].y === pts[i + 1].y).toBe(true);
+    }
+  });
+});
 
 describe('validateLogicCore', () => {
   test('valid single-pool process passes', () => {
@@ -356,12 +445,48 @@ describe('BPMN style port constraints', () => {
     expect(ports.find(p => p.id === 'task1__out').properties['elk.port.side']).toBe('SOUTH');
   });
 
+  test('gateway formatter uses T/R/B tips for upper/straight/lower branches', () => {
+    const coordMap = {
+      coords: {
+        gw: { x: 200, y: 200, w: 50, h: 50 },
+        upper: { x: 360, y: 40, w: 100, h: 80 },
+        straight: { x: 360, y: 185, w: 100, h: 80 },
+        lower: { x: 360, y: 360, w: 100, h: 80 },
+      },
+      edgeCoords: {
+        up: [{ x: 250, y: 225 }, { x: 300, y: 225 }, { x: 300, y: 80 }, { x: 360, y: 80 }],
+        mid: [{ x: 250, y: 225 }, { x: 360, y: 225 }],
+        down: [{ x: 250, y: 225 }, { x: 300, y: 225 }, { x: 300, y: 400 }, { x: 360, y: 400 }],
+      },
+    };
+    const lc = {
+      nodes: [
+        { id: 'gw', type: 'exclusiveGateway' },
+        { id: 'upper', type: 'userTask' },
+        { id: 'straight', type: 'userTask' },
+        { id: 'lower', type: 'userTask' },
+      ],
+      edges: [
+        { id: 'up', source: 'gw', target: 'upper' },
+        { id: 'mid', source: 'gw', target: 'straight' },
+        { id: 'down', source: 'gw', target: 'lower' },
+      ],
+    };
+
+    routeGatewayFlowsToCardinalPorts(coordMap, lc);
+    expect(coordMap.edgeCoords.up[0]).toEqual({ x: 225, y: 200 });
+    expect(coordMap.edgeCoords.mid[0]).toEqual({ x: 250, y: 225 });
+    expect(coordMap.edgeCoords.down[0]).toEqual({ x: 225, y: 250 });
+  });
+
   test('message flows connect at top/bottom centers of both elements', () => {
     const upper = { x: 100, y: 20, w: 100, h: 80 };
     const lower = { x: 300, y: 300, w: 120, h: 90 };
     expect(messageFlowPorts(upper, lower)).toEqual({ sx: 150, sy: 100, ex: 360, ey: 300 });
     expect(messageFlowPorts(lower, upper)).toEqual({ sx: 360, sy: 300, ex: 150, ey: 100 });
   });
+
+
 });
 
 // ═══════════════════════════════════════════════════════════════

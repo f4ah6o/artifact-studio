@@ -35,7 +35,7 @@ import { simplifyAllEdges } from './edge-simplify.js';
 import { generateBpmnXml, validateBpmnXml } from './bpmn-xml.js';
 import { generateSvg } from './svg.js';
 import { logicCoreToDot, dotToLogicCore } from './dot.js';
-import { computeDynamicLaneHeaders, compactLanes, routeSameLaneBackwardFlows, anchorEdgeLabelsToRoutes, repairEdgeLabels } from './visual-refinement.js';
+import { computeDynamicLaneHeaders, compactLanes, routeGatewayFlowsToCardinalPorts, routeCrossLaneFlowsByDirection, routeSameLaneBackwardFlows, anchorEdgeLabelsToRoutes, repairEdgeLabels } from './visual-refinement.js';
 
 // ═══════════════════════════════════════════════════════════════════════
 // PUBLIC API — programmatic usage via import
@@ -81,6 +81,20 @@ async function runPipeline(logicCore, opts = {}) {
 
   // Visual Refinement (post-layout coordinate transforms)
   if (refineOn) {
+    if (CFG.visualRefinement?.gatewayCardinalRouting !== false) {
+      routeGatewayFlowsToCardinalPorts(
+        coordMap,
+        lc,
+        CFG.elk?.layered?.['elk.direction'] ?? 'RIGHT',
+      );
+    }
+    if (CFG.visualRefinement?.crossLaneDirectionalRouting !== false) {
+      routeCrossLaneFlowsByDirection(
+        coordMap,
+        lc,
+        CFG.elk?.layered?.['elk.direction'] ?? 'RIGHT',
+      );
+    }
     routeSameLaneBackwardFlows(
       coordMap,
       lc,

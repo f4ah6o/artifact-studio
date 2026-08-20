@@ -98,11 +98,11 @@
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="f4_di" bpmnElement="f4">
-        <di:waypoint x="445.5" y="120" />
-        <di:waypoint x="590" y="120" />
+        <di:waypoint x="421" y="144.5" />
+        <di:waypoint x="421" y="260" />
         <di:waypoint x="590" y="260" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="507.3" y="107" width="21" height="16" />
+          <dc:Bounds x="495" y="247" width="21" height="16" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="f5_di" bpmnElement="f5">

@@ -11,6 +11,7 @@
  */
 
 import { wrapTextByPx, LANE_HEADER_W } from './utils.js';
+import { isGateway } from './types.js';
 
 // Average character-width factors for Arial at fontSize 1 (in px).
 // Calibrated against bpmn.io renderings; accurate to ~±15% which is
@@ -89,6 +90,247 @@ export function computeDynamicLaneHeaders(coordMap, process, opts = {}) {
   return coordMap;
 }
 
+function cardinalPort(shape, side) {
+  const cx = shape.x + shape.w / 2;
+  const cy = shape.y + shape.h / 2;
+  if (side === 'NORTH') return { x: cx, y: shape.y };
+  if (side === 'SOUTH') return { x: cx, y: shape.y + shape.h };
+  if (side === 'WEST') return { x: shape.x, y: cy };
+  return { x: shape.x + shape.w, y: cy };
+}
+
+function gatewayCardinalSide(shape, other) {
+  const cx = shape.x + shape.w / 2;
+  const cy = shape.y + shape.h / 2;
+  const ox = other.x + other.w / 2;
+  const oy = other.y + other.h / 2;
+  const dx = ox - cx;
+  const dy = oy - cy;
+
+  // Prefer T/B when the branch has a meaningful cross-axis displacement.
+  // The 0.55 ratio keeps the primary straight-through branch on L/R in an
+  // LR layout, while clearly upper/lower branches use the gateway's tips.
+  if (Math.abs(dy) > Math.abs(dx) * 0.45) return dy < 0 ? 'NORTH' : 'SOUTH';
+  return dx < 0 ? 'WEST' : 'EAST';
+}
+
+function dedupeOrthogonalPoints(points) {
+  const out = [];
+  for (const p of points) {
+    const prev = out.at(-1);
+    if (prev && Math.abs(prev.x - p.x) < 0.1 && Math.abs(prev.y - p.y) < 0.1) continue;
+    out.push({ x: p.x, y: p.y });
+  }
+  for (let i = out.length - 2; i > 0; i--) {
+    const a = out[i - 1], b = out[i], c = out[i + 1];
+    if ((Math.abs(a.x - b.x) < 0.1 && Math.abs(b.x - c.x) < 0.1) ||
+        (Math.abs(a.y - b.y) < 0.1 && Math.abs(b.y - c.y) < 0.1)) {
+      out.splice(i, 1);
+    }
+  }
+  return out;
+}
+
+function directionalPortSide(direction, role) {
+  const dir = String(direction).toUpperCase();
+  if (dir === 'DOWN') return role === 'source' ? 'SOUTH' : 'NORTH';
+  if (dir === 'UP') return role === 'source' ? 'NORTH' : 'SOUTH';
+  if (dir === 'LEFT') return role === 'source' ? 'WEST' : 'EAST';
+  return role === 'source' ? 'EAST' : 'WEST';
+}
+
+function routeBetweenCardinalPorts(start, startSide, end, endSide) {
+  const startHorizontal = startSide === 'EAST' || startSide === 'WEST';
+  const endHorizontal = endSide === 'EAST' || endSide === 'WEST';
+
+  if (startHorizontal && endHorizontal) {
+    if (Math.abs(start.y - end.y) < 0.1) return [start, end];
+    const midX = (start.x + end.x) / 2;
+    return dedupeOrthogonalPoints([
+      start,
+      { x: midX, y: start.y },
+      { x: midX, y: end.y },
+      end,
+    ]);
+  }
+  if (!startHorizontal && !endHorizontal) {
+    if (Math.abs(start.x - end.x) < 0.1) return [start, end];
+    const midY = (start.y + end.y) / 2;
+    return dedupeOrthogonalPoints([
+      start,
+      { x: start.x, y: midY },
+      { x: end.x, y: midY },
+      end,
+    ]);
+  }
+  if (!startHorizontal && endHorizontal) {
+    return dedupeOrthogonalPoints([start, { x: start.x, y: end.y }, end]);
+  }
+  return dedupeOrthogonalPoints([start, { x: end.x, y: start.y }, end]);
+}
+
+/**
+ * Let gateways use the four canonical L/R/T/B connection points while keeping
+ * activities/events on their stricter layout-direction ports.
+ *
+ * ELK still performs the stable LR/TB coarse layout. This pass only moves the
+ * gateway endpoint and adds the minimum orthogonal elbow needed to reach the
+ * existing route, so lane ordering and node placement remain deterministic.
+ */
+export function routeGatewayFlowsToCardinalPorts(coordMap, process, direction = 'RIGHT') {
+  const pools = process.pools ?? [process];
+  for (const pool of pools) {
+    const nodeById = new Map((pool.nodes ?? []).map(n => [n.id, n]));
+    for (const edge of (pool.edges ?? [])) {
+      const srcNode = nodeById.get(edge.source);
+      const tgtNode = nodeById.get(edge.target);
+      const srcIsGateway = isGateway(srcNode?.type);
+      const tgtIsGateway = isGateway(tgtNode?.type);
+      if (!srcIsGateway && !tgtIsGateway) continue;
+
+      const src = coordMap.coords?.[edge.source];
+      const tgt = coordMap.coords?.[edge.target];
+      const id = edge.id ?? `flow_${edge.source}_${edge.target}`;
+      let pts = coordMap.edgeCoords?.[id];
+      if (!src || !tgt || !pts || pts.length < 2) continue;
+
+      const startSide = srcIsGateway
+        ? gatewayCardinalSide(src, tgt)
+        : directionalPortSide(direction, 'source');
+      const endSide = tgtIsGateway
+        ? gatewayCardinalSide(tgt, src)
+        : directionalPortSide(direction, 'target');
+      const start = cardinalPort(src, startSide);
+      const end = cardinalPort(tgt, endSide);
+      coordMap.edgeCoords[id] = routeBetweenCardinalPorts(start, startSide, end, endSide);
+    }
+  }
+  return coordMap;
+}
+
+/**
+ * Re-route sequence flows that cross lanes so their endpoint sides always
+ * follow the diagram's primary layout direction.
+ *
+ * RIGHT: source EAST-center  -> target WEST-center
+ * LEFT:  source WEST-center  -> target EAST-center
+ * DOWN:  source SOUTH-center -> target NORTH-center
+ * UP:    source NORTH-center -> target SOUTH-center
+ *
+ * For forward flows we reuse a suitable ELK trunk coordinate when possible,
+ * preserving obstacle avoidance while fixing the endpoints. Backward flows
+ * take an outer dog-leg so the edge can still leave/enter through the required
+ * sides without cutting through either endpoint shape.
+ */
+export function routeCrossLaneFlowsByDirection(coordMap, process, direction = 'RIGHT') {
+  const dir = String(direction).toUpperCase();
+  if (!['RIGHT', 'LEFT', 'DOWN', 'UP'].includes(dir)) return coordMap;
+
+  const pools = process.pools ?? [process];
+  for (const pool of pools) {
+    const laneByNode = new Map((pool.nodes ?? []).map(n => [n.id, n.lane]));
+    const nodeById = new Map((pool.nodes ?? []).map(n => [n.id, n]));
+
+    for (const edge of (pool.edges ?? [])) {
+      const srcLane = laneByNode.get(edge.source);
+      const tgtLane = laneByNode.get(edge.target);
+      if (!srcLane || !tgtLane || srcLane === tgtLane) continue;
+      // Gateways are explicit routing hubs and may use any of their four tips.
+      // Preserve ELK's chosen gateway side; only activities/events are forced to
+      // the diagram's primary LR/TB sides by this cross-lane pass.
+      if (isGateway(nodeById.get(edge.source)?.type) || isGateway(nodeById.get(edge.target)?.type)) continue;
+
+      const src = coordMap.coords?.[edge.source];
+      const tgt = coordMap.coords?.[edge.target];
+      if (!src || !tgt) continue;
+
+      const id = edge.id ?? `flow_${edge.source}_${edge.target}`;
+      const existing = coordMap.edgeCoords?.[id] ?? [];
+      const srcCx = src.x + src.w / 2;
+      const srcCy = src.y + src.h / 2;
+      const tgtCx = tgt.x + tgt.w / 2;
+      const tgtCy = tgt.y + tgt.h / 2;
+
+      if (dir === 'RIGHT' || dir === 'LEFT') {
+        const rightward = dir === 'RIGHT';
+        const start = { x: rightward ? src.x + src.w : src.x, y: srcCy };
+        const end = { x: rightward ? tgt.x : tgt.x + tgt.w, y: tgtCy };
+        const forward = rightward ? start.x < end.x : start.x > end.x;
+
+        if (forward) {
+          const lo = Math.min(start.x, end.x);
+          const hi = Math.max(start.x, end.x);
+          const verticalXs = [];
+          for (let i = 0; i < existing.length - 1; i++) {
+            if (Math.abs(existing[i].x - existing[i + 1].x) < 1) {
+              const x = existing[i].x;
+              if (x > lo + 8 && x < hi - 8) verticalXs.push(x);
+            }
+          }
+          const trunkX = verticalXs[0] ?? (start.x + end.x) / 2;
+          coordMap.edgeCoords[id] = Math.abs(start.y - end.y) < 1
+            ? [start, end]
+            : [start, { x: trunkX, y: start.y }, { x: trunkX, y: end.y }, end];
+        } else {
+          const sourceStubX = start.x + (rightward ? 20 : -20);
+          const targetStubX = end.x + (rightward ? -20 : 20);
+          const routeBelow = tgtCy >= srcCy;
+          const trackY = routeBelow
+            ? Math.max(src.y + src.h, tgt.y + tgt.h) + 30
+            : Math.min(src.y, tgt.y) - 30;
+          coordMap.edgeCoords[id] = [
+            start,
+            { x: sourceStubX, y: start.y },
+            { x: sourceStubX, y: trackY },
+            { x: targetStubX, y: trackY },
+            { x: targetStubX, y: end.y },
+            end,
+          ];
+        }
+        continue;
+      }
+
+      const downward = dir === 'DOWN';
+      const start = { x: srcCx, y: downward ? src.y + src.h : src.y };
+      const end = { x: tgtCx, y: downward ? tgt.y : tgt.y + tgt.h };
+      const forward = downward ? start.y < end.y : start.y > end.y;
+
+      if (forward) {
+        const lo = Math.min(start.y, end.y);
+        const hi = Math.max(start.y, end.y);
+        const horizontalYs = [];
+        for (let i = 0; i < existing.length - 1; i++) {
+          if (Math.abs(existing[i].y - existing[i + 1].y) < 1) {
+            const y = existing[i].y;
+            if (y > lo + 8 && y < hi - 8) horizontalYs.push(y);
+          }
+        }
+        const trunkY = horizontalYs[0] ?? (start.y + end.y) / 2;
+        coordMap.edgeCoords[id] = Math.abs(start.x - end.x) < 1
+          ? [start, end]
+          : [start, { x: start.x, y: trunkY }, { x: end.x, y: trunkY }, end];
+      } else {
+        const sourceStubY = start.y + (downward ? 20 : -20);
+        const targetStubY = end.y + (downward ? -20 : 20);
+        const routeRight = tgtCx >= srcCx;
+        const trackX = routeRight
+          ? Math.max(src.x + src.w, tgt.x + tgt.w) + 30
+          : Math.min(src.x, tgt.x) - 30;
+        coordMap.edgeCoords[id] = [
+          start,
+          { x: start.x, y: sourceStubY },
+          { x: trackX, y: sourceStubY },
+          { x: trackX, y: targetStubY },
+          { x: end.x, y: targetStubY },
+          end,
+        ];
+      }
+    }
+  }
+
+  return coordMap;
+}
+
 const TEXT_BBOX_PADDING = 2;
 
 /**
@@ -104,7 +346,9 @@ export function routeSameLaneBackwardFlows(coordMap, process, direction = 'RIGHT
   const pools = process.pools ?? [process];
   for (const pool of pools) {
     const laneByNode = new Map((pool.nodes ?? []).map(n => [n.id, n.lane]));
+    const nodeById = new Map((pool.nodes ?? []).map(n => [n.id, n]));
     for (const edge of (pool.edges ?? [])) {
+      if (isGateway(nodeById.get(edge.source)?.type) || isGateway(nodeById.get(edge.target)?.type)) continue;
       const src = coordMap.coords?.[edge.source];
       const tgt = coordMap.coords?.[edge.target];
       if (!src || !tgt) continue;

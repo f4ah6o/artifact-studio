@@ -90,6 +90,8 @@
   "visualRefinement": {
     "enabled": true,
     "crossAxisAlignment": true,
+    "gatewayCardinalRouting": true,
+    "crossLaneDirectionalRouting": true,
     "dynamicLaneHeader": true,
     "laneHeaderMinWidth": 30,
     "laneHeaderMaxWidth": 120,
