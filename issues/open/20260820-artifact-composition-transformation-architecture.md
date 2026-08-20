@@ -497,7 +497,7 @@ OPA CLI 等を使う transform/evaluation は各 adapter の security requiremen
 
 6. OPA dependency graph を GraphProjection で実装
 7. Mermaid renderer または既存 Mermaid engine を generic renderer として再利用
-8. BPMN または n8n でも GraphProjection の第2利用例を作る
+8. Dagu で GraphProjection の第2利用例を作る（n8n は将来候補）
 
 第2利用例が成立した時点で abstraction が妥当か再評価する。
 
@@ -521,7 +521,7 @@ OPA CLI 等を使う transform/evaluation は各 adapter の security requiremen
 - [ ] adapter 間の直接 import を増やさずに連動できる
 - [ ] Projection と Transformation と Reference が別概念としてモデル化されている
 - [ ] GraphProjection が adapter 非依存である
-- [ ] 少なくとも OPA + もう1 adapter が GraphProjection を利用する
+- [ ] 少なくとも OPA + Dagu が同じ GraphProjection contract / renderer を利用する
 - [ ] generated artifact が source artifact / revision を lineage として保持できる
 - [ ] source 更新時に derived artifact の stale 判定ができる
 - [ ] derived artifact の手動編集を source へ自動逆同期しない

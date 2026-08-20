@@ -433,3 +433,26 @@ BPMN / Mermaid の既存動作を壊さないことを各段階で確認する�
 目的は **OPA/RegoをArtifact Studioの汎用artifact typeとして第一級に扱えるようにすること** である。
 
 特定業務で OPA を利用する際は、そのドメイン固有 source / compiler / schema を別レイヤーに置き、Artifact Studio は生成済み OPA artifact を扱う。
+
+## Completion evidence — 2026-08-20
+
+Implemented and verified on `main` via PR #3 / `9ab4835` and follow-up Vite+ migration / live compatibility fix `b18b3aa`.
+
+Evidence:
+
+- OPA is selectable as a first-class adapter in the shared header registry.
+- Generic artifact content persistence supports both text and multi-file workspace content.
+- Single Rego files and multi-file OPA workspaces can be imported, edited, persisted, restored, and exported.
+- Server-side OPA execution uses fixed argv and a bounded temporary workspace; unsafe paths are rejected before invocation.
+- Official OPA CLI is the authority for format, check, eval, test, and dependency analysis.
+- OPA diagnostics are mapped into the common findings model.
+- Dependency analysis is projected into generic graph-shaped data and rendered without making Mermaid the canonical artifact.
+- Current OPA v1.19.1 was exercised live for check / eval / test / deps. The live deps schema (`base` / `virtual` term arrays) is supported, with legacy aliases retained for compatibility.
+- BPMN and Mermaid regression suites remained green.
+- Vite+ test suite: 364 passed, 1 skipped; `vp check` exited 0; `vp build` succeeded; demo / proxy smoke checks succeeded.
+
+The remaining ideas in this proposal (richer coverage UI, deeper Decision Explorer, managed OPA binary distribution, browser-only WASM, bundle publishing) are optional future enhancements rather than blockers for the adapter being production-usable. They should be tracked separately if promoted to concrete work.
+
+## Status
+
+Closed: the OPA adapter is implemented and live-verified. Further cross-adapter generalization belongs to the composition / projection architecture issues rather than this adapter issue.

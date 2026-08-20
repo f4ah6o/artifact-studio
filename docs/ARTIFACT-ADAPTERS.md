@@ -60,9 +60,19 @@ Status: implemented.
 - Validation: Mermaid parser/render diagnostics
 - Export: `.mmd` / Markdown fenced block / SVG
 
+### Dagu
+
+Target (next):
+
+- Canonical model: Dagu workflow YAML
+- Renderer/editor: YAML source + generic DAG GraphProjection preview
+- Validation: official `dagu validate`
+- Runtime authority: Dagu CLI / built-in MCP, not Artifact Studio
+- Export: `.yaml` / `.yml`
+
 ### n8n
 
-Target:
+Target (deferred):
 
 - Canonical model: n8n workflow JSON
 - Renderer/editor: initially JSON + generated preview; a richer workflow canvas can be added later
@@ -110,5 +120,7 @@ The previous BPMN-only and single-artifact keys are migrated on first load. For 
 3. Move persistence to a multi-adapter workspace envelope. **Done.**
 4. Add Mermaid generation, source editing, parser validation, preview, format, restore and export. **Done.**
 5. Move more BPMN-specific frontend logic behind a formal adapter contract.
-6. Add n8n workflow JSON as the first non-text/non-BPMN structured artifact.
-7. Add Bento using its native `.bento.html` format.
+6. Formalize the minimal generic capability + GraphProjection core using OPA as the first consumer.
+7. Add Dagu workflow YAML as the second GraphProjection consumer and next adapter.
+8. Add Bento using its native `.bento.html` format.
+9. Revisit n8n only after the Dagu/Bento contracts show a concrete need for an instance-oriented workflow adapter.

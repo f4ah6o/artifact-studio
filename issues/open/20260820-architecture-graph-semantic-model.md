@@ -5,8 +5,9 @@ Date: 2026-08-20
 Target: Artifact Studio → Architecture Studio direction
 Related:
 - `issues/open/20260820-artifact-composition-transformation-architecture.md`
-- `issues/open/20260820-opa-adapter.md`
-- `issues/open/20260820-n8n-adapter.md`
+- `issues/closed/20260820-opa-adapter.md`
+- `issues/open/20260820-dagu-adapter.md`
+- `issues/open/20260820-n8n-adapter.md` (deferred)
 - `docs/ARTIFACT-ADAPTERS.md`
 
 ## Summary
