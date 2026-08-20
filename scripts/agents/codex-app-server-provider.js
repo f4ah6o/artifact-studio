@@ -134,7 +134,7 @@ export class CodexAppServerClient {
     const threadParams = {
       cwd: this.cwd,
       approvalPolicy: 'never',
-      sandbox: 'readOnly',
+      sandbox: 'read-only',
       serviceName: 'bpmn_generator',
     };
     if (model) threadParams.model = model;
