@@ -1,6 +1,6 @@
 # Dagu 前の Minimal Adapter Core 抽出
 
-Status: open
+Status: closed
 Date: 2026-08-20
 Target: Artifact Studio
 Blocks: `issues/open/20260820-dagu-adapter.md`
@@ -144,20 +144,49 @@ interface GraphProjection {
 
 ## Acceptance criteria
 
-- [ ] `ArtifactContent` の `text` / `workspace` contract が単一の generic API で normalize / persist / restore される。
-- [ ] content core に OPA / BPMN / Mermaid / Dagu 固有分岐がない。
-- [ ] adapter capabilities が generic query API で問い合わせ可能である。
-- [ ] adapter 固有 runtime/action が core method として増殖していない。
-- [ ] `GraphProjection` が adapter 非依存 module として存在する。
-- [ ] malformed graph（duplicate node / dangling edge等）が deterministic に拒否される。
-- [ ] OPA dependency graph が generic `GraphProjection` を返す。
-- [ ] OPA dependency view が generic renderer を利用する。
-- [ ] generic renderer は OPA を import / identify しない。
-- [ ] Mermaid は graph の canonical representation になっていない。
-- [ ] BPMN / Mermaid / OPA の既存behaviorが回帰しない。
-- [ ] `vp check`, `vp test --run`, `vp build` が green。
-- [ ] completion evidence を追記して `issues/closed/` に移せる。
+- [x] `ArtifactContent` の `text` / `workspace` contract が単一の generic API で normalize / persist / restore される。
+- [x] content core に OPA / BPMN / Mermaid / Dagu 固有分岐がない。
+- [x] adapter capabilities が generic query API で問い合わせ可能である。
+- [x] adapter 固有 runtime/action が core method として増殖していない。
+- [x] `GraphProjection` が adapter 非依存 module として存在する。
+- [x] malformed graph（duplicate node / dangling edge等）が deterministic に拒否される。
+- [x] OPA dependency graph が generic `GraphProjection` を返す。
+- [x] OPA dependency view が generic renderer を利用する。
+- [x] generic renderer は OPA を import / identify しない。
+- [x] Mermaid は graph の canonical representation になっていない。
+- [x] BPMN / Mermaid / OPA の既存behaviorが回帰しない。
+- [x] `vp check`, `vp test --run`, `vp build` が green。
+- [x] completion evidence を追記して `issues/closed/` に移せる。
 
 ## Completion evidence
 
-未完了。実装完了時に commit / test / CI / concrete OPA migration evidence を記録する。
+Completed 2026-08-20.
+
+Implementation commit:
+
+- `0e0926561db9e0101fdfbe3159de1dbb7d930472` — `refactor: extract minimal adapter core`
+
+Concrete evidence:
+
+- `shared/artifact-content.js` owns generic `text` / `workspace` normalization and validation; browser persistence remains in `frontend/artifact-content.js`.
+- `shared/artifact-capabilities.js` owns the declarative `validate` / `format` / `project` capability surface and generic action/view queries. OPA-specific operations remain action ids.
+- `shared/graph-projection.js` owns deterministic graph normalization and rejects duplicate node ids / dangling edges.
+- `scripts/artifacts/opa.js::dependencyProjection()` now returns `kind: 'graph'` through the shared GraphProjection normalizer.
+- `frontend/opa-extension.js` no longer imports or calls Mermaid. It sends the OPA-derived graph to `frontend/graph-renderer.js`; only the generic renderer uses Mermaid as the current rendering backend.
+- `.gitignore` now treats frontend source as repository source and ignores only `frontend/dist/`, preventing future adapter source files from being silently omitted.
+- `docs/ADAPTER-CORE.md` and `docs/ADAPTER-CORE.ja.md` document the implemented boundary.
+
+Local gates on the implementation revision:
+
+- `vp check`: exit 0, 0 errors, 44 pre-existing warnings.
+- `vp test --run`: 13 test files passed + 1 skipped; 369 tests passed + 1 skipped.
+- `vp build`: success; only the existing chunk-size warning remains.
+- `git diff --check`: success.
+
+Remote evidence:
+
+- GitHub Actions run `32376015196`: success.
+- Node 22 matrix job: success, including Vite+ setup, check, test, build, and BPMN/SVG smoke.
+- Node 24 matrix job: success, including Vite+ setup, check, test, build, and BPMN/SVG smoke.
+
+The full Architecture Graph / transformation / lineage system was intentionally not implemented. Dagu is now the second consumer that should prove or correct this minimal contract.

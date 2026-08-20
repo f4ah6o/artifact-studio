@@ -127,14 +127,17 @@ Dagu's own MCP server is the preferred future integration for agent-driven runti
 
 ## Core prerequisites before implementation
 
-Only the following generic core work should be completed first:
+**Completed.** See `issues/closed/20260820-minimal-adapter-core-before-dagu.md` and implementation commit `0e0926561db9e0101fdfbe3159de1dbb7d930472`.
 
-1. Formalize adapter `contentKind` / canonical content handling (`text` vs `workspace`) without adapter-specific branches.
-2. Introduce a generic optional capability/action surface for adapter operations such as validate / format / project / runtime actions.
-3. Introduce `GraphProjection` as an adapter-independent derived representation with one generic renderer.
-4. Migrate OPA dependency graph to that renderer as the first dogfood case.
+The available minimal core now provides:
 
-Do **not** implement the full Architecture Graph / transformation system before Dagu. Dagu is intended to be the second real consumer that proves or corrects the minimal contract.
+1. generic `text` / `workspace` canonical content handling;
+2. generic capability/action queries for validate / format / project plus adapter-owned actions;
+3. adapter-independent `GraphProjection` normalization and validation;
+4. a generic graph renderer with Mermaid as its current backend;
+5. OPA dependency graph as the first migrated consumer.
+
+Do **not** expand this into the full Architecture Graph / transformation system before Dagu. Dagu is the second real consumer that should prove or correct the minimal contract.
 
 ## Implementation order
 
