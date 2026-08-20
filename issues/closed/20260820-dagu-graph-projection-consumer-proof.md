@@ -1,6 +1,6 @@
 # Dagu GraphProjection Second-Consumer Proof
 
-Status: open
+Status: closed
 Date: 2026-08-20
 Target: Artifact Studio
 Parent: `issues/open/20260820-dagu-adapter.md`
@@ -123,22 +123,22 @@ When invoking Dagu:
 
 ## Acceptance criteria
 
-- [ ] Dagu is registered without adding a Dagu branch to generic content handling.
-- [ ] Dagu YAML imports, edits, persists, restores, and exports via generic `ArtifactContent.kind = 'text'`.
-- [ ] Dagu step dependencies produce a valid generic `GraphProjection`.
-- [ ] Dagu and OPA use the same graph normalization contract.
-- [ ] Dagu and OPA use the same generic graph renderer entry point.
-- [ ] generic graph renderer contains no Dagu or OPA special-case.
-- [ ] malformed projection remains rejected by generic validation.
-- [ ] Dagu-specific operations remain adapter-owned action ids.
-- [ ] `dagu validate` is authoritative for semantic validity.
-- [ ] missing Dagu binary does not prevent editing/persisting/exporting YAML.
-- [ ] Dagu process invocation uses fixed argv and controlled paths only.
-- [ ] no arbitrary shell command construction is introduced.
-- [ ] BPMN / Mermaid / OPA behavior remains green.
-- [ ] `vp check`, `vp test --run`, and `vp build` are green.
-- [ ] remote CI is green on supported Node versions.
-- [ ] completion evidence explicitly states whether the minimal core survived unchanged or what evidence-driven generic corrections were required.
+- [x] Dagu is registered without adding a Dagu branch to generic content handling.
+- [x] Dagu YAML imports, edits, persists, restores, and exports via generic `ArtifactContent.kind = 'text'`.
+- [x] Dagu step dependencies produce a valid generic `GraphProjection`.
+- [x] Dagu and OPA use the same graph normalization contract.
+- [x] Dagu and OPA use the same generic graph renderer entry point.
+- [x] generic graph renderer contains no Dagu or OPA special-case.
+- [x] malformed projection remains rejected by generic validation.
+- [x] Dagu-specific operations remain adapter-owned action ids.
+- [x] `dagu validate` is authoritative for semantic validity.
+- [x] missing Dagu binary does not prevent editing/persisting/exporting YAML.
+- [x] Dagu process invocation uses fixed argv and controlled paths only.
+- [x] no arbitrary shell command construction is introduced.
+- [x] BPMN / Mermaid / OPA behavior remains green.
+- [x] `vp check`, `vp test --run`, and `vp build` are green.
+- [x] remote CI is green on supported Node versions.
+- [x] completion evidence explicitly states whether the minimal core survived unchanged or what evidence-driven generic corrections were required.
 
 ## Success evidence to record
 
@@ -170,4 +170,44 @@ Once this proof is green, close it before expanding the Dagu adapter further.
 
 ## Completion evidence
 
-Not completed yet.
+Completed 2026-08-20.
+
+Implementation commit:
+
+- `747658d8bc79d262dd4568712d894c7793eb0581` — `feat: add Dagu GraphProjection consumer proof`
+
+Second-consumer result:
+
+- The minimal adapter core survived unchanged. No generic core correction was required by Dagu.
+- `shared/artifact-content.js` remains adapter-blind; Dagu persists canonical YAML through `frontend/artifact-content.js` as `ArtifactContent.kind = 'text'`.
+- `shared/artifact-capabilities.js` is reused by the Dagu registry descriptor for generic `validate` / `project` discovery. No Dagu runtime operation was promoted into a core method.
+- `shared/graph-projection.js` is reused directly by both `scripts/artifacts/opa.js::dependencyProjection()` and `scripts/artifacts/dagu.js::daguGraphProjection()`.
+- `frontend/graph-renderer.js` is reused by both `frontend/opa-extension.js` and `frontend/dagu-extension.js`. It contains no OPA or Dagu special-case.
+- Dagu dependency parsing is intentionally structural only: step `id` / `name` plus explicit `depends`. Cycles, chain scheduling, expressions, router semantics, and runtime validity are not reimplemented in JavaScript.
+- Unresolved dependency references are passed into the generic projection contract and rejected by generic dangling-edge validation.
+- Dagu CLI invocation uses fixed argv (`dagu validate <controlled-temp-path>`), `shell: false`, isolated temporary files/config paths, bounded output/timeout, and deterministic cleanup.
+- Missing Dagu binary is exposed as runtime validation unavailable while YAML editing, generic persistence/export, and graph projection remain available.
+
+Cross-consumer proof tests:
+
+- `scripts/graph-consumer-proof.test.js` — `registers Dagu as generic text with validate/project capabilities`: passed.
+- `scripts/graph-consumer-proof.test.js` — `OPA and Dagu normalize to the same graph contract and render through one generic entry point`: passed.
+- `scripts/artifacts/dagu.test.js`: 8 passed, including scalar/array/block dependencies, name/id aliases, anonymous structural nodes, cycle non-judgment, generic dangling-edge rejection, findings mapping, and missing-binary behavior.
+- `scripts/dagu-http-server.test.js`: 4 passed, including projection without a Dagu binary and runtime capability degradation.
+- `scripts/artifact-content.test.js`: Dagu generic text round-trip passed alongside OPA workspace persistence.
+
+Local gates on the implementation revision:
+
+- `vp check`: exit 0, 0 errors, 44 pre-existing warnings.
+- `vp test --run`: 16 test files passed + 1 skipped; 384 tests passed + 1 skipped.
+- `vp build`: success; only the existing chunk-size warning remains.
+- `git diff --check`: success.
+- `dagu` binary: not present on the implementation host, so no live Dagu version/positive CLI validation result was available. The unavailable path was exercised by automated tests instead.
+
+Remote evidence:
+
+- GitHub Actions run `32378807064`: success for implementation commit `747658d8bc79d262dd4568712d894c7793eb0581`.
+- Node 22 matrix job: success, including Vite+ setup, check, test, build, and BPMN/SVG smoke.
+- Node 24 matrix job: success, including Vite+ setup, check, test, build, and BPMN/SVG smoke.
+
+The proof therefore answers the core question positively: OPA dependencies and Dagu workflow dependencies reuse the same canonical content, capability/action, GraphProjection, and generic renderer contracts without adapter-specific branches leaking into the generic core.
