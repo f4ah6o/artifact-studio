@@ -1,5 +1,7 @@
 # AI-assisted BPMN Modeler
 
+[日本語](ai-assisted-modeler.ja.md)
+
 ## Goal
 
 Use BPMN as an interactive business-process model shared by humans, deterministic validation, and Codex-assisted discovery/review.
@@ -175,5 +177,5 @@ The semantic-operation executor is an application service, not a Codex filesyste
 - role/policy references outside BPMN, keyed by BPMN element ID
 - OPA/Policy-as-Code consistency checks
 - Git diff review for BPMN + Logic-Core + policy changes
-- task mapping (`userTask -> kintone`, `serviceTask -> n8n`, `businessRuleTask -> policy engine`)
+- task mapping (`userTask -> kintone`, `serviceTask -> Dagu/external workflow runtime`, `businessRuleTask -> policy engine`)
 - unresolved grilling findings stored alongside the process as review metadata

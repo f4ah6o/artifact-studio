@@ -1,5 +1,7 @@
 # Pipeline Robustness Stack — Implementation Documentation
 
+[日本語](ROBUSTNESS-STACK.ja.md)
+
 > **Branch:** `feature/robustness-stack`
 > **Status:** Implementation complete (37 commits, 208 tests + 1 skipped fixture-loader)
 > **Inspired by:** Soliman et al. (2025) "Size matters less: how fine-tuned small LLMs excel in BPMN generation" (DOI: 10.1186/s43067-025-00288-9) — inverted: where the paper trains an SLM to *produce* BPMN, this stack uses an existing strong LLM to *probe* the pipeline that *consumes* BPMN inputs.

@@ -1,88 +1,89 @@
-# Contributing to BPMN Generator
+# Contributing to Artifact Studio
 
-Thank you for your interest in contributing! This guide will help you get started.
+[日本語](CONTRIBUTING.ja.md)
 
-## Development Setup
-
-```bash
-cd scripts/
-vp install           # installs dependencies with the declared package manager
-vp test --run        # run all tests with Vite+ / Vitest
-```
-
-### Smoke Test
+## Development setup
 
 ```bash
-node pipeline.js tests/fixtures/simple-approval.json /tmp/test
-# outputs: /tmp/test.bpmn + /tmp/test.svg
+cd scripts
+vp install
+vp check
+vp test --run
+vp build
 ```
 
-## Project Structure
+Local demo:
 
-```
-scripts/           Pipeline modules (ES Modules, no CommonJS)
-references/        Schema docs, prompt templates, OMG compliance mapping
-rules/             Rule engine profiles (default, strict)
-tests/fixtures/    Test inputs (JSON Logic-Core) + golden files
-docs/              Generated pipeline self-diagram
+```bash
+vp run demo
 ```
 
-See [README.md](README.md) for the full module architecture and dependency graph.
+## Repository structure
 
-## Code Style
+```text
+frontend/        browser shell, adapters, artifact persistence, UI
+scripts/         BPMN pipeline, HTTP/MCP servers, adapter-side logic, tests
+references/      schemas, API/reference material, BPMN rules and prompts
+rules/           BPMN rule profiles
+docs/            maintained architecture and implementation documentation
+issues/open/     active proposals and scoped work
+issues/closed/   completed work with evidence
+tests/           fixtures, benchmarks, robustness data
+```
 
-- **ES Modules** — `import`/`export`, no `require()`
-- **Pure functions** — no global state except `CFG` (loaded from config.json)
-- **Minimal dependencies** — only `elkjs` and `bpmn-moddle` at runtime
-- **Config over code** — visual constants live in `scripts/config.json`
-- **XML escaping** — always use `esc()` from `utils.js`
-- **IDs** — must match `^[a-zA-Z_][a-zA-Z0-9_-]*$`
+## Making changes
 
-## Making Changes
+1. Read the current implementation before editing it.
+2. Read relevant `docs/` and open/closed issue evidence.
+3. Keep adapter-specific behavior behind the adapter boundary.
+4. Add or update tests with the implementation.
+5. Run `vp check`, `vp test --run`, and `vp build` before submitting.
+6. If a maintained document changes, update its `*.ja.md` companion in the same change.
+7. Keep future design out of README; put it in `docs/` or `issues/open/`.
 
-1. **Fork** the repository and create a feature branch
-2. **Read** the relevant module before modifying it
-3. **Run tests** after every change: `vp test --run`
-4. **Golden files** — if your change affects layout or XML output, regenerate:
-   ```bash
-   node pipeline.js ../tests/fixtures/simple-approval.json ../tests/fixtures/simple-approval.expected
-   node pipeline.js ../tests/fixtures/multi-pool-collaboration.json ../tests/fixtures/multi-pool-collaboration.expected
-   node pipeline.js ../tests/fixtures/expanded-subprocess.json ../tests/fixtures/expanded-subprocess.expected
-   ```
-5. **Submit a PR** with a clear description of what changed and why
+## Adding or changing an adapter
 
-## Adding a New Rule
+Start from `frontend/artifact-adapters.js` and the generic content contract in `frontend/artifact-content.js`.
 
-1. Add a rule object to `scripts/rules.js` → `RULES` array
-2. Fields: `id`, `layer`, `defaultSeverity`, `description`, `ref`, `check(proc)`
-3. `check` returns `{ pass: true }` or `{ pass: false, message: '...' }`
-4. Document in `references/fachliches-regelwerk.md`
-5. Add test in `pipeline.test.js`
+Do not broaden core abstractions for a single adapter unless the abstraction is deliberately being proven by more than one consumer. For shared graph views, follow the `GraphProjection` direction documented in the open architecture issues rather than importing Mermaid or another adapter directly.
 
-## Adding a New BPMN Element
+Adapter runtime semantics should be validated by the authoritative implementation where possible. The OPA adapter, for example, delegates Rego semantics to the official OPA executable.
 
-1. `types.js` — extend `bpmnXmlTag` map, add type predicate if needed
-2. `layout.js` — `buildElkNode` for layout dimensions
-3. `bpmn-xml.js` — XML serialization
-4. `svg.js` — SVG rendering
-5. `icons.js` — if icon/marker needed
-6. `import.js` — BPMN XML → Logic-Core parsing
-7. `references/omg-compliance.md` — update OMG mapping
-8. `references/input-schema.json` — extend schema
+## BPMN changes
+
+BPMN remains the most mature adapter. Changes to BPMN semantics/layout should normally consider:
+
+- `scripts/types.js`
+- `scripts/rules.js` / `scripts/validate.js`
+- `scripts/layout.js`
+- `scripts/coordinates.js`
+- `scripts/bpmn-xml.js`
+- `scripts/svg.js`
+- `scripts/import.js`
+- `references/input-schema.json`
+- relevant BPMN fixtures/tests
+
+If layout or serialization changes, verify round-trip behavior and representative fixtures rather than relying only on a unit test for the modified helper.
 
 ## Testing
 
-- All tests use **Jest** with ES Modules (`--experimental-vm-modules`)
-- **Golden file tests** compare generated SVG/BPMN against `.expected.*` files
-- **Round-trip tests** verify XML → parse → re-serialize produces valid output
-- Test fixtures live in `tests/fixtures/`
+Tests run with Vite+ / Vitest:
 
-## Reporting Issues
+```bash
+cd scripts
+vp test --run
+```
 
-- Use GitHub Issues for bug reports and feature requests
-- Include the Logic-Core JSON input that triggers the bug
-- Include the generated SVG/BPMN if it's a visual issue
+`vp check` runs the configured formatting/lint/type-aware checks. `vp build` verifies the browser build.
+
+The repository also contains dynamic robustness fixtures. Do not weaken robustness acceptance or delete a regression fixture merely to make the suite green; fix the generic bug or document why the fixture is invalid.
+
+## Documentation
+
+See [`docs/DOCUMENTATION.md`](docs/DOCUMENTATION.md) / [日本語](docs/DOCUMENTATION.ja.md).
+
+README is a current-state entry point, not a roadmap. Design proposals and future implementation notes belong in `docs/` or `issues/open/`; completed work belongs in `issues/closed/` with evidence.
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the [MIT License](LICENSE).
+Contributions to this repository are distributed under the repository's [MIT License](LICENSE). Upstream and third-party notices are maintained in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

@@ -1,5 +1,7 @@
 # Collaboration
 
+[日本語](bpmn-generator-pipeline.ja.md)
+
 2 Pools, 7 Message Flows
 
 

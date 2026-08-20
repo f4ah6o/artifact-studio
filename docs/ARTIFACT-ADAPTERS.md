@@ -1,5 +1,7 @@
 # Artifact Studio — Adapter Architecture
 
+[日本語](ARTIFACT-ADAPTERS.ja.md)
+
 Artifact Studio treats BPMN as the first implementation of a generic artifact workflow:
 
 ```text
@@ -60,6 +62,16 @@ Status: implemented.
 - Validation: Mermaid parser/render diagnostics
 - Export: `.mmd` / Markdown fenced block / SVG
 
+### OPA / Rego
+
+Status: implemented.
+
+- Canonical model: generic multi-file workspace (`.rego`, JSON, YAML)
+- Editor: workspace file list + source editor
+- Validation/format/evaluation/test authority: official OPA CLI
+- Derived views: dependency graph, decision/evaluation results, test/coverage results
+- Persistence/export: generic workspace envelope / `.opa-workspace.json`
+
 ### Dagu
 
 Target (next):
@@ -116,11 +128,12 @@ The previous BPMN-only and single-artifact keys are migrated on first load. For 
 ## Migration path
 
 1. Keep the BPMN application working while extracting shell behavior. **Done.**
-2. Introduce an adapter registry and header selector. **Done for BPMN + Mermaid.**
+2. Introduce an adapter registry and header selector. **Done for BPMN + Mermaid + OPA.**
 3. Move persistence to a multi-adapter workspace envelope. **Done.**
 4. Add Mermaid generation, source editing, parser validation, preview, format, restore and export. **Done.**
-5. Move more BPMN-specific frontend logic behind a formal adapter contract.
-6. Formalize the minimal generic capability + GraphProjection core using OPA as the first consumer.
-7. Add Dagu workflow YAML as the second GraphProjection consumer and next adapter.
-8. Add Bento using its native `.bento.html` format.
-9. Revisit n8n only after the Dagu/Bento contracts show a concrete need for an instance-oriented workflow adapter.
+5. Add generic workspace content and the OPA adapter with official-CLI-backed actions. **Done.**
+6. Move more BPMN-specific frontend logic behind a formal adapter contract.
+7. Formalize the minimal generic capability + GraphProjection core using OPA as the first consumer.
+8. Add Dagu workflow YAML as the second GraphProjection consumer and next adapter.
+9. Add Bento using its native `.bento.html` format.
+10. Revisit n8n only after the Dagu/Bento contracts show a concrete need for an instance-oriented workflow adapter.

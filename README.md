@@ -1,422 +1,143 @@
 # Artifact Studio
 
-> **Artifact Studio direction**: this repository is being generalized from a BPMN generator into an AI-assisted artifact studio. BPMN remains the first fully implemented adapter; Mermaid, n8n workflow JSON, and portable page/Bento-style outputs are planned through the adapter contract in [`docs/ARTIFACT-ADAPTERS.md`](docs/ARTIFACT-ADAPTERS.md).
-
+[日本語](README.ja.md)
 
 [![CI](https://github.com/f4ah6o/artifact-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/f4ah6o/artifact-studio/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-BPMN 2.0 diagram generator — converts natural language process descriptions or structured JSON into OMG-compliant BPMN 2.0.2 XML files and SVG previews (ISO/IEC 19510:2013).
+Artifact Studio is a local-first workbench for generating, editing, validating, rendering, persisting, and exporting structured artifacts.
 
-## Why this one
+The current codebase ships three adapters:
 
-Three things you can verify in the repo, not just claim:
-
-1. **Multi-pool collaborations with lanes and message flows render fully.** The closest open-source comparable (`bpmn-auto-layout@1.3.0`, used by [BPMN Assistant](https://github.com/jtlicardo/bpmn-assistant)) silently drops every participant after the first plus all inter-pool message flows ([data](EVALUATION.md#bpmn-auto-layout-comparison)). Our pipeline renders all participants and all message flows.
-2. **Strict JSON Schema gate at every HTTP API entry.** LLM output cannot reach the layout engine with malformed Logic-Core — `ajv` draft-2020-12 rejects it at the boundary ([scripts/schema-gate.js](scripts/schema-gate.js)).
-3. **Native Claude Code MCP server.** Exposed as a [Skill](SKILL.md) and via [`scripts/mcp-bpmn-server.js`](scripts/mcp-bpmn-server.js). The LLM never touches coordinates — it emits Logic-Core JSON, the pipeline handles layout deterministically.
-
-Reproduce the comparison: `cd scripts && node bench/compare-bpmn-auto-layout.mjs` — produces [tests/bench/auto-layout-comparison.md](tests/bench/auto-layout-comparison.md) + side-by-side HTML.
-
-See [EVALUATION.md](EVALUATION.md) for the full benchmark, the competitor matrix, and honest notes about where ProMoAI and BPMN Assistant are stronger.
-
-### Visual examples
-
-<table>
-<tr>
-<td width="50%"><a href="docs/screenshots/01-simple-approval.svg"><img src="docs/screenshots/01-simple-approval.svg" alt="simple approval workflow"></a><br><sub>Single-pool linear flow + exclusive gateway</sub></td>
-<td width="50%"><a href="docs/screenshots/02-multi-pool-collaboration.svg"><img src="docs/screenshots/02-multi-pool-collaboration.svg" alt="multi-pool collaboration"></a><br><sub>Two pools, three lanes, message flows — what bpmn-auto-layout drops</sub></td>
-</tr>
-<tr>
-<td><a href="docs/screenshots/03-multi-lane-pool.svg"><img src="docs/screenshots/03-multi-lane-pool.svg" alt="multi-lane single pool"></a><br><sub>One pool, four lanes (Frontend / Backend / Ops / QA)</sub></td>
-<td><a href="docs/screenshots/04-expanded-subprocess.svg"><img src="docs/screenshots/04-expanded-subprocess.svg" alt="expanded subprocess"></a><br><sub>Expanded subprocess with inner activities</sub></td>
-</tr>
-</table>
-
-Full gallery: [docs/screenshots/](docs/screenshots/). All SVGs regenerated from fixtures by the pipeline — they reflect current output, not stale marketing screenshots.
-
-### How we compare (verified)
-
-| Capability | This generator | ProMoAI | BPMN Assistant | BPMN-Chatbot |
-|---|---|---|---|---|
-| Multi-pool with lanes + message flows | **✅ verified** | ✅ | ❌ (bpmn-auto-layout limitation) | ? |
-| Strict JSON Schema input gate (ajv) | **✅** | n/a | partial | partial |
-| Soundness check | WF-Net (3 rules) | POWL by construction | none | none |
-| Configurable rule engine | **28 rules, 4 layers, JSON profiles** | limited | none | none |
-| MCP server | **✅** | ❌ | ❌ | ❌ |
-| Stack | Node.js / ES Modules | Python / Streamlit | Python + Vue.js | React + OpenAI |
-| License | MIT | GPL-3.0 | MIT-ish | unclear |
-| Paper | none (engineering) | IJCAI-24, EMMSAD 2024 | arXiv 2509.24592 | CEUR-WS Vol-3758 |
-
-Each ✅ on our row links back to a fixture, a benchmark, or a source file. See [EVALUATION.md](EVALUATION.md) for cell-by-cell evidence and honest notes on where competitors are stronger (ProMoAI's mathematical soundness guarantee, BPMN Assistant's web UI).
-
-## What It Does
-
-You describe a business process — either as free text or as a structured JSON (Logic-Core) — and the generator produces:
-
-- A **BPMN 2.0 XML file** (.bpmn) that opens in [bpmn.io](https://bpmn.io), Camunda Modeler, or any standard-compliant tool
-- An **SVG preview** with all BPMN symbols, lanes, pools, and edge routing
-- A **validation report** covering structural correctness, naming conventions, and complexity metrics
-
-The output is structurally valid and OMG-compliant. It handles pools, lanes, gateways, boundary events, sub-processes, message flows, and loop markers correctly — things that LLMs typically get wrong when generating BPMN XML directly.
-
-### Realistic Expectations
-
-This tool produces a **solid first draft**, not a finished diagram. Expect to refine:
-
-- **Layout** — Auto-layout handles most cases well (happy-path alignment, orthogonal routing, lane partitioning), but complex processes with many cross-lane edges or feedback loops may need manual adjustment in a BPMN editor
-- **Labels & naming** — The LLM generates reasonable names, but domain-specific terminology may need correction
-- **Edge cases** — Unusual gateway patterns, deeply nested sub-processes, or very large diagrams (30+ activities) can produce suboptimal visual results
-- **Business logic** — The generator models what you describe; it doesn't validate whether your process makes business sense
-
-Think of it as going from **0% → 80%** in seconds. The remaining 20% is domain expertise that requires human judgment.
-
-## Pipeline
-
-```
-User Text → [Phase 1] Intent Extraction (LLM → JSON Logic-Core)
-          → [Phase 2] Validation (28 rules, 4 layers, deadlock detection)
-          → [Phase 3] Auto-Layout (ElkJS Sugiyama layered algorithm)
-          → [Phase 4] Serialization → BPMN 2.0 XML + SVG
-```
-
-The LLM **never** handles coordinates. Layout is 100% algorithmic.
-
-## Quick Start
-
-```bash
-cd scripts/
-vp install           # installs the Vite+ managed toolchain and dependencies
-
-# Generate from JSON Logic-Core:
-node pipeline.js my-process.json my-process
-
-# From stdin:
-echo '{ ... }' | node pipeline.js - output
-
-# Import existing BPMN:
-node import.js existing.bpmn extracted.json
-
-# DOT export (Graphviz):
-node pipeline.js my-process.json my-process --dot
-
-# DOT import → Logic-Core JSON:
-node pipeline.js graph.dot output --import-dot
-
-# Run tests:
-vp test --run
-```
-
-**Output:** `output.bpmn` (BPMN 2.0 XML) + `output.svg` (vector preview)
-
-## Usage as Claude Code Skill
-
-### In a specific project
-
-Copy `SKILL.md` to `.claude/skills/operative/bpmn-prozess-erstellen.md` and adjust the relative paths for `references/` and `scripts/` to match where you placed those directories.
-
-### As a portable .skill file
-
-The `bpmn-generator-v3.skill` ZIP archive can be shared with other projects. It contains everything needed:
-- `SKILL.md` — Skill definition
-- `references/` — Schema, prompt templates, inline template
-- `scripts/` — Pipeline modules, import.js, package.json
-
-## Module Architecture
-
-```
-scripts/
-├── pipeline.js        Orchestrator + CLI (~180 LOC)
-│   ├── validate.js    Validation wrapper → rules.js
-│   ├── rules.js       Rule engine (28 rules, 4 layers, profile support) — see `references/fachliches-regelwerk.md` for the catalog
-│   ├── topology.js    Gateway directions, topological sort, lane ordering
-│   ├── layout.js      ELK graph construction + layout execution
-│   ├── coordinates.js Coordinate maps, edge clipping, pool equalization
-│   ├── bpmn-xml.js    BPMN 2.0 XML generation (DI, top-level defs)
-│   ├── svg.js         SVG rendering (pools, lanes, activities, events)
-│   ├── icons.js       Event markers, task icons, bottom markers
-│   ├── dot.js         DOT export (Logic-Core → Graphviz) + import
-│   ├── types.js       Type predicates, BPMN XML tag mapping
-│   └── utils.js       Config loader, visual constants, helpers
-├── import.js          BPMN XML → Logic-Core JSON round-trip importer
-├── orchestrator.js    Multi-agent state machine + CLI
-├── agents/
-│   ├── modeler.js     LLM-powered: text→JSON, refine, amend
-│   ├── reviewer.js    Deterministic: validateLogicCore() wrapper
-│   ├── layout.js      runPipeline() + optional vision review
-│   ├── compliance.js  Deterministic: runRules() gate
-│   └── llm-provider.js OpenAI-compatible fetch abstraction (cloud + local)
-├── workflow-net.js    Petri-Net soundness checker (WF01-WF03)
-├── prepare-training-data.js  Training data ETL (BPMN→LC, filter, JSONL)
-├── evaluate-slm.js    SLM evaluation (pipeline-based metrics)
-├── mcp-bpmn-server.js MCP server (4 tools)
-├── http-server.js     HTTP API (5 endpoints)
-├── config.json        Externalized constants (shapes, colors, gaps)
-├── package.json       Dependencies (elkjs, jest)
-├── pipeline.test.js   114 tests (Jest, ES Modules)
-└── orchestrator.test.js 22 tests (agents + state machine)
-```
-
-**Dependency graph** (acyclic):
-```
-types.js ← (no deps)
-utils.js ← (no deps, reads config.json)
-rules.js ← types, workflow-net
-workflow-net.js ← types
-validate.js ← rules
-topology.js ← types
-layout.js ← types, utils, topology, elkjs
-coordinates.js ← types, utils
-icons.js ← utils
-bpmn-xml.js ← types, utils, topology, icons
-svg.js ← types, utils, icons
-dot.js ← types
-pipeline.js ← all of the above
-```
-
-## Repo Structure
-
-```
-bpmn-generator/
-├── README.md                             This file
-├── LICENSE                               MIT License
-├── CHANGELOG.md                          Version history
-├── CONTRIBUTING.md                       Contribution guide
-├── THIRD-PARTY-NOTICES.md                Dependency licenses
-├── SKILL.md                              Claude Code skill definition
-├── CLAUDE.md                             Project instructions for Claude Code
-├── ROADMAP.md                            Development roadmap (K0-K8, M1-M6, L1-L6)
-├── COMPATIBILITY.md                      bpmn.io compatibility report
-├── bpmn-generator-v3.skill               Portable ZIP archive
-├── .github/workflows/ci.yml             GitHub Actions CI
-├── references/
-│   ├── logic-core-schema.md              JSON schema documentation (prose)
-│   ├── input-schema.json                 Formal JSON Schema (draft 2020-12)
-│   ├── prompt-template.md                LLM prompt templates + few-shot patterns
-│   ├── inline-template.md                HTML template for browser-side ElkJS
-│   ├── fachliches-regelwerk.md           Rule documentation (authoritative catalog — per-rule source citations)
-│   ├── omg-compliance.md                 OMG BPMN 2.0.2 compliance mapping
-│   └── review-set/                       Test fixtures for visual review
-├── rules/
-│   ├── default-profile.json              Default rule profile (all layers active)
-│   └── strict-profile.json               Strict profile (warnings → errors)
-├── scripts/                              Pipeline modules (see above)
-└── tests/
-    └── fixtures/                         Test input files (JSON Logic-Core)
-```
-
-## Rule Engine
-
-28 rules across 4 layers with configurable severity via JSON profiles. The authoritative catalog lives in [`references/fachliches-regelwerk.md`](references/fachliches-regelwerk.md); this README does not duplicate per-rule descriptions.
-
-| Layer | Severity | Rules | Examples |
-|-------|----------|-------|----------|
-| Soundness | ERROR | S01-S12 | Start/End events, deadlocks, boundary events |
-| Style | WARNING | M01-M10 (M05/M06 severity=OFF) | Naming conventions, gateway labels |
-| Pragmatics | INFO | P01-P03 | Complexity metrics |
-| Workflow-Net | ERROR/WARNING | WF01-WF03 | Liveness, boundedness, deadlock-freedom (opt-in) |
-
-```bash
-# Default profile (all layers active):
-node pipeline.js input.json output
-
-# Strict profile (style warnings → errors):
-# (programmatic: runPipeline(lc, { ruleProfile: 'rules/strict-profile.json' }))
-```
-
-See `references/fachliches-regelwerk.md` for full rule documentation.
-
-## Programmatic API
-
-```javascript
-import { runPipeline } from './pipeline.js';
-
-const logicCore = { nodes: [...], edges: [...] };
-const result = await runPipeline(logicCore);
-
-// result.bpmnXml   — BPMN 2.0 XML string (or null on validation error)
-// result.svg       — SVG string
-// result.coordMap  — coordinate map
-// result.validation — { errors: [], warnings: [] }
-```
-
-Individual modules can be imported directly:
-
-```javascript
-import { validateLogicCore } from './validate.js';
-import { generateBpmnXml } from './bpmn-xml.js';
-import { generateSvg } from './svg.js';
-import { logicCoreToDot, dotToLogicCore } from './dot.js';
-```
-
-## Features
-
-- **Multi-pool collaborations** with message flows
-- **All BPMN 2.0 task types** (User, Service, Script, Send, Receive, Manual, Business Rule)
-- **Call Activity, Sub-Process, Transaction** with correct rendering
-- **Expanded sub-processes** with inline children
-- **Boundary events** (timer, error, message, signal, escalation — interrupting/non-interrupting)
-- **All gateway types** with correct `gatewayDirection` (Diverging/Converging/Mixed)
-- **Loop/multi-instance markers** (standard loop, parallel MI, sequential MI)
-- **Data objects**, data stores, text annotations, groups, associations
-- **Collapsed pools** (black-box participants)
-- **Round-tripping** (BPMN XML → Logic-Core JSON → BPMN XML)
-- **DOT format** (Graphviz export + import for visualization)
-- **Inline mode** (browser-side ElkJS rendering without Node.js)
-- **Configurable rule engine** (28 rules, 4 layers, JSON profiles)
-- **OMG BPMN 2.0.2 compliant** XML output (ISO/IEC 19510:2013)
-- **BPMN-in-Color** (bioc: namespace — per-node fill/stroke in XML + SVG)
-- **Documentation View** (SVG tooltips + `--doc` Markdown companion)
-- **Happy-Path Y-Leveling** (post-layout alignment, configurable)
-- **Visual Refinement Pass** (opt-in post-layout polish — see below)
-- **MCP Server** (generate, validate, import as MCP tools)
-- **bpmn.io compatible** (verified with bpmn-js viewer)
-
-### Visual Refinement (opt-in)
-
-Post-layout coordinate transforms that polish BPMN diagrams without changing semantics. Default `enabled: false` — existing pipeline output stays byte-identical.
-
-- **Pass 1** — Dynamic per-pool lane-header widths with multi-line wrapping (long lane/pool names no longer clip)
-- **Pass 2** — `compactLanes`: reduces lane padding (~45px per non-empty lane on typical layouts, ~10–20% canvas shrink on multi-lane diagrams)
-- **Pass 3** — Edge label collision repair via bbox-nudge
-- **Pass 5** — ELK MULTI_EDGE wrapping for wide pipelines (>20 nodes)
-
-**Enable via config:**
-
-```json
-{
-  "visualRefinement": {
-    "enabled": true,
-    "minLaneHeight": 80
-  }
-}
-```
-
-**Or per-call:**
-
-```javascript
-const result = await runPipeline(logicCore, { visualRefinement: true });
-```
-
-Design spec: [`docs/superpowers/specs/2026-04-21-bpmn-visual-refinement-pass-design.md`](docs/superpowers/specs/2026-04-21-bpmn-visual-refinement-pass-design.md)
-
-## Multi-Agent Orchestration
-
-The orchestrator chains 4 agents in a feedback loop until the diagram is valid and compliant:
-
-```
-Modeler (LLM) → Reviewer → Layout/Pipeline → Compliance → Done
-   ↑               │              │
-   └───────────────┘              │  (Review loop: max 3)
-   ↑                              │
-   └──────────────────────────────┘  (Layout loop: max 2)
-```
-
-```bash
-# Review-only (no LLM needed):
-node scripts/orchestrator.js --input logic-core.json --output /tmp/result
-
-# Full cycle with LLM (text → BPMN):
-node scripts/orchestrator.js --text "Process description..." \
-  --api-url https://api.example.com/v1 --api-key KEY --model gpt-4.1 \
-  --output /tmp/result
-```
-
-```javascript
-import { orchestrate } from './orchestrator.js';
-
-// Without LLM — review + generate + compliance only:
-const result = await orchestrate(logicCoreJson);
-
-// With LLM — full text-to-BPMN cycle:
-const result = await orchestrate('Process description...', { llmProvider });
-```
-
-## MCP Server
-
-The BPMN Generator can be used as an MCP (Model Context Protocol) server, exposing four tools:
-
-| Tool | Description |
-|------|-------------|
-| `generate_bpmn` | Logic-Core JSON → BPMN 2.0 XML + SVG |
-| `validate_bpmn` | Validate Logic-Core without generating output |
-| `import_bpmn` | BPMN 2.0 XML → Logic-Core JSON |
-| `orchestrate_bpmn` | Multi-agent review + generate + compliance |
-
-### Configuration
-
-Add to your `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "bpmn-generator": {
-      "command": "node",
-      "args": ["/path/to/scripts/mcp-bpmn-server.js"]
-    }
-  }
-}
-```
-
-## HTTP API
-
-The BPMN Generator also provides an HTTP API for multi-user access (CI/CD pipelines, web apps, external systems):
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/api/v1/generate` | Logic-Core JSON → BPMN 2.0 XML + SVG |
-| `POST` | `/api/v1/validate` | Validate Logic-Core without generating output |
-| `POST` | `/api/v1/import` | BPMN 2.0 XML → Logic-Core JSON |
-| `POST` | `/api/v1/orchestrate` | Multi-agent review + generate + compliance |
-| `POST` | `/api/v1/chat` | Discovery conversation (pre-generation) |
-| `POST` | `/api/v1/telemetry` | Frontend event log (best-effort) |
-| `GET` | `/api/v1/config` | Frontend bootstrap (env-key status) |
-| `GET` | `/health` | Health check (uptime, version) |
-
-See [references/api-reference.md](references/api-reference.md) for full request/response schemas and error codes.
-
-### Start
-
-```bash
-PORT=3000 node scripts/http-server.js
-```
-
-### Request
-
-```bash
-curl -X POST http://localhost:3000/api/v1/generate \
-  -H 'Content-Type: application/json' \
-  -d '{"logicCore": {...}, "clientId": "my-app", "callbackUrl": "https://..."}'
-```
-
-Optional fields: `callbackUrl` (async delivery with retry), `clientId` (audit), `correlationId` (tracking).
-
-### Observability
-
-- **Audit log:** `audit/bpmn-generator.jsonl` (append-only JSON Lines, metadata only)
-- **Dead letter:** `dead-letter/` (failed callback deliveries)
-
-## OMG Compliance
-
-See `references/omg-compliance.md` for a detailed mapping of OMG BPMN 2.0.2 specification sections to implementation code.
-
-## Third-Party Libraries
-
-| Library | License | Purpose |
+| Adapter | Canonical content | Current capabilities |
 |---|---|---|
-| [ElkJS](https://github.com/kieler/elkjs) | EPL-2.0 | Sugiyama layered auto-layout |
-| [bpmn-moddle](https://github.com/bpmn-io/bpmn-moddle) | MIT | BPMN 2.0 meta-model (XML serialization) |
-| [MCP SDK](https://github.com/modelcontextprotocol/typescript-sdk) | MIT | MCP server integration |
+| BPMN | Logic-Core JSON / BPMN 2.0 XML | generate, import, validate, deterministic layout, edit, export BPMN + SVG |
+| Mermaid | Mermaid source | edit, validate, normalize, preview, export |
+| OPA / Rego | multi-file workspace | edit, persist, format, check, eval, test, coverage, dependency graph |
 
-See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for full license details.
+BPMN remains the most mature adapter, but the browser shell and persistence layer are no longer BPMN-only.
 
-## References
+## Quick start
 
-- OMG BPMN 2.0.2 (formal/2013-12-09, ISO/IEC 19510:2013)
-- Bruce Silver: "BPMN Method and Style, 2nd Edition"
-- Soliman et al. (2025): "Size matters less: how fine-tuned small LLMs excel in BPMN generation"
-- Domroes et al. (2023): "Model Order in Sugiyama Layouts" (ELK)
+Vite+ manages the JavaScript toolchain and package manager for this repository.
 
-## License
+```bash
+cd scripts
+vp install
+vp run demo
+```
 
-[MIT](LICENSE) — see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for dependency licenses.
+The demo starts:
+
+- the Artifact Studio API on `http://127.0.0.1:3000` by default;
+- the OPA adapter sidecar on `http://127.0.0.1:3001` by default;
+- the Vite+ development server, normally on port `5173`.
+
+OPA is optional. BPMN and Mermaid remain usable without an `opa` executable. To enable OPA actions, install OPA on `PATH` or set `OPA_BINARY` to an absolute executable path.
+
+Useful overrides:
+
+```bash
+API_PORT=3200 \
+OPA_API_PORT=3201 \
+VITE_PORT=5273 \
+VITE_HOST=127.0.0.1 \
+vp run demo
+```
+
+## Development gates
+
+Run these from `scripts/`:
+
+```bash
+vp check
+vp test --run
+vp build
+```
+
+The CI workflow runs the same gates on supported Node.js LTS releases and finishes with a BPMN generation smoke test.
+
+## BPMN pipeline
+
+The original BPMN pipeline remains available as a direct CLI and programmatic API.
+
+```bash
+cd scripts
+
+# Logic-Core JSON -> BPMN + SVG
+node pipeline.js ../tests/fixtures/simple-approval.json /tmp/simple-approval
+
+# Existing BPMN -> Logic-Core JSON
+node import.js process.bpmn process.json
+```
+
+Programmatic entry point:
+
+```js
+import { runPipeline } from './scripts/pipeline.js';
+
+const result = await runPipeline(logicCore);
+```
+
+The BPMN path uses deterministic validation and layout. LLM output is not used to generate coordinates directly.
+
+## Browser architecture
+
+The current browser application is organized around adapter-owned semantics and generic shell state:
+
+```text
+frontend/
+  artifact-adapters.js   adapter registry and capabilities
+  artifact-content.js    generic text/workspace persistence contract
+  app.js                 shared shell + BPMN/Mermaid integration
+  opa-extension.js       OPA workspace UI and actions
+
+scripts/
+  pipeline.js            BPMN pipeline
+  http-server.js         main HTTP API
+  opa-http-server.js     isolated OPA adapter API
+  artifacts/             adapter-side semantic helpers
+  vite.config.ts         Vite+ dev/build/test/check configuration
+```
+
+Generic artifact content currently supports:
+
+- `text` — single-source artifacts such as Mermaid;
+- `workspace` — multi-file artifacts such as OPA.
+
+Adapter-specific runtime semantics stay behind their adapter boundary. For example, Rego evaluation is delegated to the official OPA executable rather than reimplemented in JavaScript.
+
+## HTTP and MCP
+
+The main HTTP server provides BPMN generation/import/validation/orchestration, Mermaid generation, configuration, chat, and telemetry endpoints. The OPA sidecar provides OPA-specific check/format/eval/test/dependency endpoints.
+
+The repository also includes a BPMN MCP server with these tools:
+
+- `generate_bpmn`
+- `validate_bpmn`
+- `import_bpmn`
+- `orchestrate_bpmn`
+
+See [`references/api-reference.md`](references/api-reference.md) for the HTTP API and [`SKILL.md`](SKILL.md) for the agent-facing BPMN skill.
+
+## Documentation
+
+README files describe the **current working codebase** only. Design proposals, migration plans, and future adapter work belong in `docs/` and `issues/`.
+
+Maintained documentation is written in English and Japanese using paired files such as:
+
+```text
+docs/ARTIFACT-ADAPTERS.md
+docs/ARTIFACT-ADAPTERS.ja.md
+```
+
+Start here:
+
+- [Adapter architecture](docs/ARTIFACT-ADAPTERS.md) / [日本語](docs/ARTIFACT-ADAPTERS.ja.md)
+- [OPA adapter](docs/OPA-ADAPTER.md) / [日本語](docs/OPA-ADAPTER.ja.md)
+- [Documentation policy](docs/DOCUMENTATION.md) / [日本語](docs/DOCUMENTATION.ja.md)
+- [`issues/open/`](issues/open/) — active design and implementation work
+- [`issues/closed/`](issues/closed/) — completed work with evidence
+
+## License and third-party notices
+
+Artifact Studio is distributed under the [MIT License](LICENSE). Upstream attribution, dependency licenses, and other third-party notices are kept in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

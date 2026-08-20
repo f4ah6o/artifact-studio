@@ -1,33 +1,67 @@
-# BPMN Generator for Agents & opencode
+# Artifact Studio — Agent Guide
 
-This repository provides tools for autonomous agents to generate, validate, and manipulate BPMN 2.0 XML files.
+Artifact Studio is a multi-adapter workbench. Do not assume the repository is BPMN-only.
 
-## Demo
+Current implemented adapters:
 
-Run the BPMN Copilot demo:
+- BPMN
+- Mermaid
+- OPA / Rego
+
+The adapter registry is `frontend/artifact-adapters.js`. Generic artifact persistence is in `frontend/artifact-content.js`.
+
+## Start here
+
+Before changing code:
+
+1. read `README.md` for current user-visible behavior;
+2. read the relevant `docs/` document;
+3. inspect `issues/open/` for active design constraints;
+4. inspect related `issues/closed/` completion evidence before reimplementing an existing capability.
+
+## Development
 
 ```bash
 cd scripts
-vp install   # one-time dependency install
+vp install
+vp check
+vp test --run
+vp build
+```
+
+Run the local application with:
+
+```bash
 vp run demo
 ```
 
-This starts the HTTP server on `http://localhost:3000` and serves the frontend.
-Open your browser to that URL.
+OPA is optional. OPA-specific actions require an `opa` executable on `PATH` or an absolute `OPA_BINARY`; the rest of Artifact Studio must continue to work when OPA is unavailable.
 
-### API key
+## Architectural rules
 
-For the LLM chat to work, you need an OpenAI-compatible API key. The frontend will
-prompt you for it when you first click "Custom Text". The key is stored in
-`localStorage` (browser only — never sent to disk on the server side).
+- Keep adapter-specific semantics inside adapter boundaries.
+- Do not make one adapter import another adapter to reuse a visualization or transformation.
+- Promote only proven shared concepts into generic core contracts.
+- Preserve deterministic validation/layout where the codebase already provides it.
+- Use official runtimes as semantic authorities when an adapter depends on them; do not casually reimplement their language/runtime semantics.
+- Keep generated or derived views distinct from canonical artifacts.
 
-If you prefer to pre-configure the key, set `OPENAI_API_KEY` in your shell before
-running `vp run demo`. The server then uses it as a fallback for all LLM calls,
-so requests work even without a key entered in the browser. (The backend also
-exposes `GET /api/v1/config`, reporting `envKeyConfigured`, so a frontend can
-detect this and skip the modal — wiring that into the UI is a separate step.)
+For the current cross-adapter direction, read:
 
-### Pre-loaded examples
+- `docs/ARTIFACT-ADAPTERS.md`
+- `issues/open/20260820-artifact-composition-transformation-architecture.md`
+- `issues/open/20260820-architecture-graph-semantic-model.md`
 
-Click any of the four example cards on the start screen — no key needed. The
-BPMN is pre-generated and rendered instantly.
+## Documentation rules
+
+Follow `docs/DOCUMENTATION.md`.
+
+In particular:
+
+- README describes only the current codebase.
+- Future design and implementation plans go in `docs/` or `issues/open/`.
+- Completed issue work moves to `issues/closed/` with completion evidence.
+- Maintained human-facing docs use English + Japanese pairs (`NAME.md` + `NAME.ja.md`).
+- Upstream attribution and dependency-license information belongs in `THIRD-PARTY-NOTICES.md`, not duplicated throughout README/docs.
+
+Historical design snapshots under `docs/superpowers/` are evidence, not the current architecture authority.

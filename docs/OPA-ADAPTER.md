@@ -1,5 +1,7 @@
 # OPA / Rego adapter
 
+[日本語](OPA-ADAPTER.ja.md)
+
 Artifact Studio treats Open Policy Agent policy code as a generic multi-file artifact. The adapter does not contain organization, role, kintone, Kubernetes, Terraform, or other domain-specific policy rules.
 
 ## Runtime requirement
