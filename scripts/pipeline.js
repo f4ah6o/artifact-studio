@@ -35,7 +35,7 @@ import { simplifyAllEdges } from './edge-simplify.js';
 import { generateBpmnXml, validateBpmnXml } from './bpmn-xml.js';
 import { generateSvg } from './svg.js';
 import { logicCoreToDot, dotToLogicCore } from './dot.js';
-import { computeDynamicLaneHeaders, compactLanes, anchorEdgeLabelsToRoutes, repairEdgeLabels } from './visual-refinement.js';
+import { computeDynamicLaneHeaders, compactLanes, routeSameLaneBackwardFlows, anchorEdgeLabelsToRoutes, repairEdgeLabels } from './visual-refinement.js';
 
 // ═══════════════════════════════════════════════════════════════════════
 // PUBLIC API — programmatic usage via import
@@ -63,7 +63,7 @@ async function runPipeline(logicCore, opts = {}) {
   // Visual Refinement (opt-in, computed early for layout options)
   const refineOn = opts.visualRefinement ?? CFG.visualRefinement?.enabled ?? false;
 
-  const elkGraph  = logicCoreToElk(lc, { elkWrapping: refineOn });
+  const elkGraph  = logicCoreToElk(lc, { elkWrapping: refineOn, fixedFlowPorts: refineOn });
   const elkResult = await runElkLayout(elkGraph);
   const coordMap  = buildCoordinateMap(elkResult, lc);
 
@@ -78,6 +78,11 @@ async function runPipeline(logicCore, opts = {}) {
 
   // Visual Refinement (post-layout coordinate transforms)
   if (refineOn) {
+    routeSameLaneBackwardFlows(
+      coordMap,
+      lc,
+      CFG.elk?.layered?.['elk.direction'] ?? 'RIGHT',
+    );
     if (CFG.visualRefinement?.dynamicLaneHeader !== false) {
       computeDynamicLaneHeaders(coordMap, lc, {
         minWidth: CFG.visualRefinement?.laneHeaderMinWidth ?? 30,

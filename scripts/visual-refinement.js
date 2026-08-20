@@ -92,6 +92,56 @@ export function computeDynamicLaneHeaders(coordMap, process, opts = {}) {
 const TEXT_BBOX_PADDING = 2;
 
 /**
+ * Route same-lane backward flows away from the main horizontal axis.
+ * Fixed ELK ports keep outgoing/incoming edges on EAST/WEST (or the mirrored
+ * LEFT layout). For a short same-row return flow, route underneath both shapes
+ * so it does not overlap the normal left-to-right path.
+ */
+export function routeSameLaneBackwardFlows(coordMap, process, direction = 'RIGHT') {
+  const dir = String(direction).toUpperCase();
+  if (dir !== 'RIGHT' && dir !== 'LEFT') return coordMap;
+
+  const pools = process.pools ?? [process];
+  for (const pool of pools) {
+    const laneByNode = new Map((pool.nodes ?? []).map(n => [n.id, n.lane]));
+    for (const edge of (pool.edges ?? [])) {
+      const src = coordMap.coords?.[edge.source];
+      const tgt = coordMap.coords?.[edge.target];
+      if (!src || !tgt) continue;
+      if (!laneByNode.get(edge.source) || laneByNode.get(edge.source) !== laneByNode.get(edge.target)) continue;
+
+      const srcCx = src.x + src.w / 2;
+      const srcCy = src.y + src.h / 2;
+      const tgtCx = tgt.x + tgt.w / 2;
+      const tgtCy = tgt.y + tgt.h / 2;
+      const backwards = dir === 'RIGHT' ? srcCx > tgtCx : srcCx < tgtCx;
+      if (!backwards || Math.abs(srcCy - tgtCy) > 100) continue;
+
+      const lane = coordMap.laneCoords?.[laneByNode.get(edge.source)];
+      const contentBottom = Math.max(src.y + src.h, tgt.y + tgt.h);
+      const desiredY = contentBottom + 30;
+      const loopY = lane ? Math.min(desiredY, lane.y + lane.h - 20) : desiredY;
+      if (loopY <= contentBottom + 8) continue;
+
+      const sourceX = dir === 'RIGHT' ? src.x + src.w : src.x;
+      const targetX = dir === 'RIGHT' ? tgt.x : tgt.x + tgt.w;
+      const sourceStubX = sourceX + (dir === 'RIGHT' ? 20 : -20);
+      const targetStubX = targetX + (dir === 'RIGHT' ? -20 : 20);
+      const id = edge.id ?? `flow_${edge.source}_${edge.target}`;
+      coordMap.edgeCoords[id] = [
+        { x: sourceX, y: srcCy },
+        { x: sourceStubX, y: srcCy },
+        { x: sourceStubX, y: loopY },
+        { x: targetStubX, y: loopY },
+        { x: targetStubX, y: tgtCy },
+        { x: targetX, y: tgtCy },
+      ];
+    }
+  }
+  return coordMap;
+}
+
+/**
  * Rectangular bbox for a short edge-label rendered centered at (x,y).
  * Width is derived from estimateTextWidth; height is fontSize plus small padding.
  * Returns `{ x, y, w, h }` where (x, y) is the top-left corner.

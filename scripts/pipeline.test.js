@@ -25,6 +25,7 @@ import {
 } from './pipeline.js';
 import { normalizeLaneAssignments } from './topology.js';
 import { wrapText, wrapTextByPx } from './utils.js';
+import { messageFlowPorts } from './coordinates.js';
 
 import { bpmnToLogicCore, bpmnToLogicCoreLegacy } from './import.js';
 import { moddleParse, moddleToLogicCore } from './moddle-import.js';
@@ -265,6 +266,31 @@ describe('clipOrthogonal', () => {
     // Should be on right edge (x = 100)
     expect(clipped.x).toBeCloseTo(100, 0);
     expect(clipped.y).toBeCloseTo(40, 0);
+  });
+});
+
+describe('BPMN style port constraints', () => {
+  test('LR resolves sequence-flow ports to left/right sides', () => {
+    const layout = resolveFlowPortLayout('RIGHT');
+    expect(layout).toEqual({ incoming: 'WEST', outgoing: 'EAST' });
+    const ports = buildFlowPorts('task1', layout);
+    expect(ports.find(p => p.id === 'task1__in').properties['elk.port.side']).toBe('WEST');
+    expect(ports.find(p => p.id === 'task1__out').properties['elk.port.side']).toBe('EAST');
+  });
+
+  test('TB resolves sequence-flow ports to top/bottom sides', () => {
+    const layout = resolveFlowPortLayout('DOWN');
+    expect(layout).toEqual({ incoming: 'NORTH', outgoing: 'SOUTH' });
+    const ports = buildFlowPorts('task1', layout);
+    expect(ports.find(p => p.id === 'task1__in').properties['elk.port.side']).toBe('NORTH');
+    expect(ports.find(p => p.id === 'task1__out').properties['elk.port.side']).toBe('SOUTH');
+  });
+
+  test('message flows connect at top/bottom centers of both elements', () => {
+    const upper = { x: 100, y: 20, w: 100, h: 80 };
+    const lower = { x: 300, y: 300, w: 120, h: 90 };
+    expect(messageFlowPorts(upper, lower)).toEqual({ sx: 150, sy: 100, ex: 360, ey: 300 });
+    expect(messageFlowPorts(lower, upper)).toEqual({ sx: 360, sy: 300, ex: 150, ey: 100 });
   });
 });
 
@@ -2289,7 +2315,7 @@ describe('Pass 3 metric assertions', () => {
 // §P4.1  logicCoreToElk — conditional ELK wrapping
 // ═══════════════════════════════════════════════════════════════
 
-import { logicCoreToElk } from './layout.js';
+import { logicCoreToElk, buildFlowPorts, resolveFlowPortLayout } from './layout.js';
 
 describe('logicCoreToElk — conditional ELK wrapping', () => {
   // A linear 30-node pipeline (forces long single row without wrapping)
