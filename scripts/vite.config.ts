@@ -23,6 +23,10 @@ export default defineConfig({
       allow: [resolve(here, "..")],
     },
     proxy: {
+      "/api/v1/artifacts/opa": {
+        target: `http://127.0.0.1:${process.env.OPA_API_PORT || 3001}`,
+        changeOrigin: true,
+      },
       "/api": {
         target: `http://127.0.0.1:${process.env.API_PORT || 3000}`,
         changeOrigin: true,

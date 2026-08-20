@@ -104,6 +104,6 @@
   },
   "demo": {
     "defaultAdapter": "bpmn",
-    "enabledAdapters": ["bpmn", "mermaid"]
+    "enabledAdapters": ["bpmn", "mermaid", "opa"]
   }
 }
