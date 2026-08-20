@@ -46,7 +46,7 @@ function traceReachable(startId, outgoing, nodeMap, maxDepth = 50) {
     const current = queue.shift();
     if (visited.has(current)) continue;
     visited.add(current);
-    for (const edge of (outgoing[current] || [])) {
+    for (const edge of outgoing[current] || []) {
       if (!visited.has(edge.target)) queue.push(edge.target);
     }
     depth++;
@@ -64,7 +64,7 @@ function isReachableWithout(from, to, outgoing, exclude, nodeMap, maxDepth = 50)
     if (current === to) return true;
     if (visited.has(current)) continue;
     visited.add(current);
-    for (const edge of (outgoing[current] || [])) {
+    for (const edge of outgoing[current] || []) {
       if (!visited.has(edge.target)) queue.push(edge.target);
     }
     depth++;
@@ -78,88 +78,96 @@ function isReachableWithout(from, to, outgoing, exclude, nodeMap, maxDepth = 50)
 
 const SOUNDNESS_RULES = [
   {
-    id: 'S01', layer: 'soundness', defaultSeverity: 'ERROR',
+    id: 'S01',
+    layer: 'soundness',
+    defaultSeverity: 'ERROR',
     description: 'Jeder Prozess hat mindestens ein Start-Event',
     ref: { omg: '§10.4.2', pmg: 'G3' },
     scope: 'process',
     check: (proc) => {
-      const starts = (proc.nodes || []).filter(n => n.type === 'startEvent');
-      return starts.length >= 1
-        ? { pass: true }
-        : { pass: false, message: `Missing startEvent.` };
-    }
+      const starts = (proc.nodes || []).filter((n) => n.type === 'startEvent');
+      return starts.length >= 1 ? { pass: true } : { pass: false, message: `Missing startEvent.` };
+    },
   },
   {
-    id: 'S02', layer: 'soundness', defaultSeverity: 'ERROR',
+    id: 'S02',
+    layer: 'soundness',
+    defaultSeverity: 'ERROR',
     description: 'Jeder Prozess hat mindestens ein End-Event',
     ref: { omg: '§10.4.2', pmg: 'G3' },
     scope: 'process',
     check: (proc) => {
-      const ends = (proc.nodes || []).filter(n => n.type === 'endEvent');
-      return ends.length >= 1
-        ? { pass: true }
-        : { pass: false, message: `Missing endEvent.` };
-    }
+      const ends = (proc.nodes || []).filter((n) => n.type === 'endEvent');
+      return ends.length >= 1 ? { pass: true } : { pass: false, message: `Missing endEvent.` };
+    },
   },
   {
-    id: 'S03', layer: 'soundness', defaultSeverity: 'ERROR',
+    id: 'S03',
+    layer: 'soundness',
+    defaultSeverity: 'ERROR',
     description: 'Edge referential integrity — alle Quellen und Ziele existieren',
     ref: { omg: '§7.6.1' },
     scope: 'process',
     check: (proc) => {
-      const nodeIds = new Set((proc.nodes || []).map(n => n.id));
+      const nodeIds = new Set((proc.nodes || []).map((n) => n.id));
       const msgs = [];
-      for (const e of (proc.edges || [])) {
+      for (const e of proc.edges || []) {
         if (!nodeIds.has(e.source)) msgs.push(`Edge "${e.id || ''}" unknown source: "${e.source}"`);
         if (!nodeIds.has(e.target)) msgs.push(`Edge "${e.id || ''}" unknown target: "${e.target}"`);
       }
-      return msgs.length === 0
-        ? { pass: true }
-        : { pass: false, message: msgs.join('; ') };
-    }
+      return msgs.length === 0 ? { pass: true } : { pass: false, message: msgs.join('; ') };
+    },
   },
   {
-    id: 'S04', layer: 'soundness', defaultSeverity: 'WARNING',
+    id: 'S04',
+    layer: 'soundness',
+    defaultSeverity: 'WARNING',
     description: 'Isolierte Nodes erkennen (keine Kanten)',
     ref: { pmg: 'G2' },
     scope: 'process',
     check: (proc) => {
       const edges = proc.edges || [];
-      const connected = new Set([...edges.map(e => e.source), ...edges.map(e => e.target)]);
+      const connected = new Set([...edges.map((e) => e.source), ...edges.map((e) => e.target)]);
       const msgs = [];
-      for (const n of (proc.nodes || [])) {
-        if (!connected.has(n.id) && n.type !== 'startEvent' && !isBoundaryEvent(n) && !isArtifact(n.type))
+      for (const n of proc.nodes || []) {
+        if (
+          !connected.has(n.id) &&
+          n.type !== 'startEvent' &&
+          !isBoundaryEvent(n) &&
+          !isArtifact(n.type)
+        )
           msgs.push(`Node "${n.id}" (${n.name || ''}) appears isolated.`);
       }
-      return msgs.length === 0
-        ? { pass: true }
-        : { pass: false, message: msgs.join('; ') };
-    }
+      return msgs.length === 0 ? { pass: true } : { pass: false, message: msgs.join('; ') };
+    },
   },
   {
-    id: 'S05', layer: 'soundness', defaultSeverity: 'ERROR',
+    id: 'S05',
+    layer: 'soundness',
+    defaultSeverity: 'ERROR',
     description: 'Deadlock: XOR-Split darf nicht in AND-Join münden',
     ref: { omg: '§10.5', pmg: 'G4' },
     scope: 'process',
     check: (proc) => {
-      const nodes = proc.nodes || [], edges = proc.edges || [];
+      const nodes = proc.nodes || [],
+        edges = proc.edges || [];
       const outgoing = buildAdjacency(edges, 'source', 'target');
       const incoming = buildAdjacency(edges, 'target', 'source');
       const msgs = [];
 
       for (const n of nodes) {
         if (n.type === 'exclusiveGateway' && !n.has_join) {
-          const xorBranches = (outgoing[n.id] || []).map(e => e.target);
+          const xorBranches = (outgoing[n.id] || []).map((e) => e.target);
           if (xorBranches.length < 2) continue;
 
-          const branchReachSets = xorBranches.map(branchStart => {
+          const branchReachSets = xorBranches.map((branchStart) => {
             const visited = new Set();
             const queue = [branchStart];
             while (queue.length > 0) {
               const cur = queue.shift();
               if (visited.has(cur) || cur === n.id) continue;
               visited.add(cur);
-              for (const edge of (outgoing[cur] || [])) {
+              for (const edge of outgoing[cur] || []) {
                 if (!visited.has(edge.target)) queue.push(edge.target);
               }
             }
@@ -175,32 +183,43 @@ const SOUNDNESS_RULES = [
             }
             const andIncoming = (incoming[cid] || []).length;
             if (branchesReachingAnd > 1 && andIncoming > 1) {
-              msgs.push(`Deadlock: XOR-split "${n.id}" feeds AND-join "${cid}" via ${branchesReachingAnd} branches — only one XOR branch fires, AND waits forever.`);
+              msgs.push(
+                `Deadlock: XOR-split "${n.id}" feeds AND-join "${cid}" via ${branchesReachingAnd} branches — only one XOR branch fires, AND waits forever.`,
+              );
             }
           }
         }
       }
       return msgs.length === 0 ? { pass: true } : { pass: false, message: msgs.join('; ') };
-    }
+    },
   },
   {
-    id: 'S06', layer: 'soundness', defaultSeverity: 'ERROR',
+    id: 'S06',
+    layer: 'soundness',
+    defaultSeverity: 'ERROR',
     description: 'Deadlock: Inclusive-Split darf nicht in AND-Join münden',
     ref: { omg: '§10.5' },
     scope: 'process',
     check: (proc) => {
-      const nodes = proc.nodes || [], edges = proc.edges || [];
+      const nodes = proc.nodes || [],
+        edges = proc.edges || [];
       const outgoing = buildAdjacency(edges, 'source', 'target');
       const incoming = buildAdjacency(edges, 'target', 'source');
       const msgs = [];
 
       for (const n of nodes) {
         if (n.type === 'inclusiveGateway' && !n.has_join) {
-          const branches = (outgoing[n.id] || []).map(e => e.target);
+          const branches = (outgoing[n.id] || []).map((e) => e.target);
           if (branches.length < 2) continue;
-          const branchSets = branches.map(start => {
-            const vis = new Set(); const q = [start];
-            while (q.length) { const c = q.shift(); if (vis.has(c) || c === n.id) continue; vis.add(c); for (const e of (outgoing[c] || [])) q.push(e.target); }
+          const branchSets = branches.map((start) => {
+            const vis = new Set();
+            const q = [start];
+            while (q.length) {
+              const c = q.shift();
+              if (vis.has(c) || c === n.id) continue;
+              vis.add(c);
+              for (const e of outgoing[c] || []) q.push(e.target);
+            }
             return vis;
           });
           for (const cand of nodes) {
@@ -208,62 +227,82 @@ const SOUNDNESS_RULES = [
             let ct = 0;
             for (const s of branchSets) if (s.has(cand.id)) ct++;
             if (ct > 1 && (incoming[cand.id] || []).length > 1)
-              msgs.push(`Deadlock: Inclusive-split "${n.id}" feeds AND-join "${cand.id}" via ${ct} branches.`);
+              msgs.push(
+                `Deadlock: Inclusive-split "${n.id}" feeds AND-join "${cand.id}" via ${ct} branches.`,
+              );
           }
         }
       }
       return msgs.length === 0 ? { pass: true } : { pass: false, message: msgs.join('; ') };
-    }
+    },
   },
   {
-    id: 'S07', layer: 'soundness', defaultSeverity: 'WARNING',
+    id: 'S07',
+    layer: 'soundness',
+    defaultSeverity: 'WARNING',
     description: 'Pfade terminieren — Nodes ohne ausgehende Kante (außer EndEvents)',
     ref: { omg: '§13.2', pmg: 'G3' },
     scope: 'process',
     check: (proc) => {
-      const nodes = proc.nodes || [], edges = proc.edges || [];
+      const nodes = proc.nodes || [],
+        edges = proc.edges || [];
       const outgoing = buildAdjacency(edges, 'source', 'target');
       const msgs = [];
       for (const n of nodes) {
-        if (n.type !== 'endEvent' && (outgoing[n.id] || []).length === 0 &&
-            !isBoundaryEvent(n) && n.type !== 'dataObjectReference' &&
-            n.type !== 'dataStoreReference' && n.type !== 'textAnnotation') {
+        if (
+          n.type !== 'endEvent' &&
+          (outgoing[n.id] || []).length === 0 &&
+          !isBoundaryEvent(n) &&
+          n.type !== 'dataObjectReference' &&
+          n.type !== 'dataStoreReference' &&
+          n.type !== 'textAnnotation'
+        ) {
           if (n.type !== 'startEvent')
             msgs.push(`Node "${n.id}" has no outgoing flow — path may not terminate.`);
         }
       }
       return msgs.length === 0 ? { pass: true } : { pass: false, message: msgs.join('; ') };
-    }
+    },
   },
   {
-    id: 'S08', layer: 'soundness', defaultSeverity: 'WARNING',
+    id: 'S08',
+    layer: 'soundness',
+    defaultSeverity: 'WARNING',
     description: 'Boundary-Event-Pfade müssen ein EndEvent erreichen',
     ref: { silver: 'M14' },
     scope: 'process',
     check: (proc) => {
-      const nodes = proc.nodes || [], edges = proc.edges || [];
+      const nodes = proc.nodes || [],
+        edges = proc.edges || [];
       const outgoing = buildAdjacency(edges, 'source', 'target');
       const msgs = [];
       for (const n of nodes) {
         if (!isBoundaryEvent(n)) continue;
         const out = outgoing[n.id] || [];
         if (out.length === 0) continue;
-        const vis = new Set(); const q = out.map(e => e.target);
+        const vis = new Set();
+        const q = out.map((e) => e.target);
         let reachesEnd = false;
         while (q.length && !reachesEnd) {
           const c = q.shift();
-          if (vis.has(c)) continue; vis.add(c);
-          const cNode = nodes.find(nn => nn.id === c);
-          if (cNode && cNode.type === 'endEvent') { reachesEnd = true; break; }
-          for (const e of (outgoing[c] || [])) q.push(e.target);
+          if (vis.has(c)) continue;
+          vis.add(c);
+          const cNode = nodes.find((nn) => nn.id === c);
+          if (cNode && cNode.type === 'endEvent') {
+            reachesEnd = true;
+            break;
+          }
+          for (const e of outgoing[c] || []) q.push(e.target);
         }
         if (!reachesEnd) msgs.push(`Boundary event "${n.id}" path does not reach an endEvent.`);
       }
       return msgs.length === 0 ? { pass: true } : { pass: false, message: msgs.join('; ') };
-    }
+    },
   },
   {
-    id: 'S09', layer: 'soundness', defaultSeverity: 'ERROR',
+    id: 'S09',
+    layer: 'soundness',
+    defaultSeverity: 'ERROR',
     description: 'Message Flows nur zwischen Pools (nie innerhalb)',
     ref: { omg: '§7.6.2' },
     scope: 'global',
@@ -271,32 +310,36 @@ const SOUNDNESS_RULES = [
       if (!lc.messageFlows || !lc.pools) return { pass: true };
       const nodePoolMap = {};
       for (const p of lc.pools) {
-        for (const n of (p.nodes || [])) nodePoolMap[n.id] = p.id;
+        for (const n of p.nodes || []) nodePoolMap[n.id] = p.id;
       }
       const msgs = [];
       for (const mf of lc.messageFlows) {
         const srcPool = nodePoolMap[mf.source] || mf.source;
         const tgtPool = nodePoolMap[mf.target] || mf.target;
         if (srcPool === tgtPool)
-          msgs.push(`MessageFlow "${mf.id || ''}" is within pool "${srcPool}" — message flows must cross pool boundaries.`);
+          msgs.push(
+            `MessageFlow "${mf.id || ''}" is within pool "${srcPool}" — message flows must cross pool boundaries.`,
+          );
       }
       return msgs.length === 0 ? { pass: true } : { pass: false, message: msgs.join('; ') };
-    }
+    },
   },
   {
-    id: 'S10', layer: 'soundness', defaultSeverity: 'ERROR',
+    id: 'S10',
+    layer: 'soundness',
+    defaultSeverity: 'ERROR',
     description: 'Message Flow referential integrity',
     ref: { omg: '§7.6.2' },
     scope: 'global',
     check: (proc, lc) => {
       if (!lc.messageFlows) return { pass: true };
       const allNodeIds = new Set();
-      for (const p of (lc.pools || [lc])) {
-        for (const n of (p.nodes || [])) allNodeIds.add(n.id);
+      for (const p of lc.pools || [lc]) {
+        for (const n of p.nodes || []) allNodeIds.add(n.id);
       }
       const allPoolIds = new Set([
-        ...(lc.pools || []).map(p => p.id),
-        ...(lc.collapsedPools || []).map(cp => cp.id),
+        ...(lc.pools || []).map((p) => p.id),
+        ...(lc.collapsedPools || []).map((cp) => cp.id),
       ]);
       const msgs = [];
       for (const mf of lc.messageFlows) {
@@ -306,45 +349,54 @@ const SOUNDNESS_RULES = [
           msgs.push(`MessageFlow "${mf.id || ''}" unknown target: "${mf.target}"`);
       }
       return msgs.length === 0 ? { pass: true } : { pass: false, message: msgs.join('; ') };
-    }
+    },
   },
   {
-    id: 'S11', layer: 'soundness', defaultSeverity: 'ERROR',
+    id: 'S11',
+    layer: 'soundness',
+    defaultSeverity: 'ERROR',
     description: 'Expanded SubProcess muss Start- und End-Event haben',
     ref: { omg: '§10.2' },
     scope: 'process',
     check: (proc) => {
       const msgs = [];
-      for (const node of (proc.nodes || [])) {
+      for (const node of proc.nodes || []) {
         if (node.isExpanded && node.nodes) {
           const subPrefix = `[SubProcess "${node.name || node.id}"] `;
           const subNodes = node.nodes || [];
           const subEdges = node.edges || [];
-          if (!subNodes.some(n => n.type === 'startEvent'))
+          if (!subNodes.some((n) => n.type === 'startEvent'))
             msgs.push(`${subPrefix}Missing startEvent.`);
-          if (!subNodes.some(n => n.type === 'endEvent'))
+          if (!subNodes.some((n) => n.type === 'endEvent'))
             msgs.push(`${subPrefix}Missing endEvent.`);
-          const subIds = new Set(subNodes.map(n => n.id));
+          const subIds = new Set(subNodes.map((n) => n.id));
           for (const e of subEdges) {
-            if (!subIds.has(e.source)) msgs.push(`${subPrefix}Edge "${e.id || ''}" unknown source: "${e.source}"`);
-            if (!subIds.has(e.target)) msgs.push(`${subPrefix}Edge "${e.id || ''}" unknown target: "${e.target}"`);
+            if (!subIds.has(e.source))
+              msgs.push(`${subPrefix}Edge "${e.id || ''}" unknown source: "${e.source}"`);
+            if (!subIds.has(e.target))
+              msgs.push(`${subPrefix}Edge "${e.id || ''}" unknown target: "${e.target}"`);
           }
         }
       }
       return msgs.length === 0 ? { pass: true } : { pass: false, message: msgs.join('; ') };
-    }
+    },
   },
   {
-    id: 'S12', layer: 'soundness', defaultSeverity: 'ERROR',
+    id: 'S12',
+    layer: 'soundness',
+    defaultSeverity: 'ERROR',
     description: 'Message Flow source/target darf kein Gateway sein (OMG §7.6.2 Table 7.4)',
-    ref: { omg: '§7.6.2 Table 7.4', cmof: 'MessageFlow.sourceRef/targetRef type=InteractionNode; Gateway extends FlowNode (not InteractionNode)' },
+    ref: {
+      omg: '§7.6.2 Table 7.4',
+      cmof: 'MessageFlow.sourceRef/targetRef type=InteractionNode; Gateway extends FlowNode (not InteractionNode)',
+    },
     scope: 'global',
     check: (proc, lc) => {
       if (!lc.messageFlows) return { pass: true };
       // Collect all node types across pools (top-level + pool-nested)
       const nodeTypeMap = {};
       const collectFrom = (container) => {
-        for (const n of (container.nodes || [])) {
+        for (const n of container.nodes || []) {
           nodeTypeMap[n.id] = n.type;
           if (n.isExpanded && n.nodes) collectFrom(n);
         }
@@ -358,12 +410,16 @@ const SOUNDNESS_RULES = [
         const tgtType = nodeTypeMap[mf.target];
         // mf.source may be a Pool id (Participant); only flag if it's a known Gateway node
         if (srcType && isGatewayType(srcType))
-          msgs.push(`MessageFlow "${mf.id || ''}" source "${mf.source}" is a ${srcType} — Gateways cannot be MessageFlow sources (use a Task or Event instead).`);
+          msgs.push(
+            `MessageFlow "${mf.id || ''}" source "${mf.source}" is a ${srcType} — Gateways cannot be MessageFlow sources (use a Task or Event instead).`,
+          );
         if (tgtType && isGatewayType(tgtType))
-          msgs.push(`MessageFlow "${mf.id || ''}" target "${mf.target}" is a ${tgtType} — Gateways cannot be MessageFlow targets (use a Task or Event instead).`);
+          msgs.push(
+            `MessageFlow "${mf.id || ''}" target "${mf.target}" is a ${tgtType} — Gateways cannot be MessageFlow targets (use a Task or Event instead).`,
+          );
       }
       return msgs.length === 0 ? { pass: true } : { pass: false, message: msgs.join('; ') };
-    }
+    },
   },
 ];
 
@@ -373,155 +429,207 @@ const SOUNDNESS_RULES = [
 
 const STYLE_RULES = [
   {
-    id: 'M01', layer: 'style', defaultSeverity: 'WARNING',
+    id: 'M01',
+    layer: 'style',
+    defaultSeverity: 'WARNING',
     description: 'Activity labels should use a concise action phrase',
     ref: { silver: 'Ch.3', pmg: 'G5' },
     scope: 'process',
     check: (proc) => {
-      const taskTypes = ['task', 'userTask', 'serviceTask', 'scriptTask', 'manualTask',
-                         'businessRuleTask', 'sendTask', 'receiveTask'];
+      const taskTypes = [
+        'task',
+        'userTask',
+        'serviceTask',
+        'scriptTask',
+        'manualTask',
+        'businessRuleTask',
+        'sendTask',
+        'receiveTask',
+      ];
       const msgs = [];
-      for (const n of (proc.nodes || [])) {
+      for (const n of proc.nodes || []) {
         if (!taskTypes.includes(n.type) || !n.name) continue;
         const name = n.name.trim().replace(/\n/g, ' ');
         // The whitespace-based Verb + Noun heuristic is only meaningful for
         // space-delimited languages. Japanese task labels such as
         // "申請内容を確認する" are valid action phrases without spaces.
         if (!containsJapanese(name) && !name.includes(' ')) {
-          msgs.push(`Task "${n.name}" should use a concise action phrase (for example, "Review request").`);
+          msgs.push(
+            `Task "${n.name}" should use a concise action phrase (for example, "Review request").`,
+          );
         }
       }
       return msgs.length === 0 ? { pass: true } : { pass: false, message: msgs.join('; ') };
-    }
+    },
   },
   {
-    id: 'M02', layer: 'style', defaultSeverity: 'WARNING',
+    id: 'M02',
+    layer: 'style',
+    defaultSeverity: 'WARNING',
     description: 'XOR gateway labels should be phrased as questions',
     ref: { silver: 'Ch.3' },
     scope: 'process',
     check: (proc) => {
       const msgs = [];
       const edges = proc.edges || [];
-      for (const n of (proc.nodes || [])) {
+      for (const n of proc.nodes || []) {
         if (n.type !== 'exclusiveGateway' || n.has_join) continue;
-        const outCount = edges.filter(e => e.source === n.id).length;
+        const outCount = edges.filter((e) => e.source === n.id).length;
         if (outCount <= 1) continue; // converging/merge gateway — no label needed
         if (!/[?？]/u.test((n.name || '').replace(/\n/g, ' ')))
-          msgs.push(`XOR gateway "${n.id}" should be phrased as a question (end with "?" or "？").`);
+          msgs.push(
+            `XOR gateway "${n.id}" should be phrased as a question (end with "?" or "？").`,
+          );
       }
       return msgs.length === 0 ? { pass: true } : { pass: false, message: msgs.join('; ') };
-    }
+    },
   },
   {
-    id: 'M03', layer: 'style', defaultSeverity: 'WARNING',
+    id: 'M03',
+    layer: 'style',
+    defaultSeverity: 'WARNING',
     description: 'Converging Gateway: keine Labels an ausgehenden Kanten',
     ref: { silver: 'Ch.4' },
     scope: 'process',
     check: (proc) => {
-      const nodes = proc.nodes || [], edges = proc.edges || [];
+      const nodes = proc.nodes || [],
+        edges = proc.edges || [];
       const msgs = [];
       for (const n of nodes) {
         if (isGateway(n.type) && n.has_join) {
-          const outEdges = edges.filter(e => e.source === n.id);
+          const outEdges = edges.filter((e) => e.source === n.id);
           for (const e of outEdges) {
-            if (e.label) msgs.push(`Converging gateway "${n.id}" has labeled outgoing edge "${e.label}" — labels belong on diverging gateways.`);
+            if (e.label)
+              msgs.push(
+                `Converging gateway "${n.id}" has labeled outgoing edge "${e.label}" — labels belong on diverging gateways.`,
+              );
           }
         }
       }
       return msgs.length === 0 ? { pass: true } : { pass: false, message: msgs.join('; ') };
-    }
+    },
   },
   {
-    id: 'M04', layer: 'style', defaultSeverity: 'WARNING',
+    id: 'M04',
+    layer: 'style',
+    defaultSeverity: 'WARNING',
     description: 'XOR-Gateway ausgehende Kanten müssen Labels haben',
     ref: { silver: 'Ch.4' },
     scope: 'process',
     check: (proc) => {
-      const nodes = proc.nodes || [], edges = proc.edges || [];
+      const nodes = proc.nodes || [],
+        edges = proc.edges || [];
       const msgs = [];
       for (const n of nodes) {
         if (n.type === 'exclusiveGateway' && !n.has_join) {
-          const outEdges = edges.filter(e => e.source === n.id);
+          const outEdges = edges.filter((e) => e.source === n.id);
           if (outEdges.length > 1) {
             for (const e of outEdges) {
-              if (!e.label) msgs.push(`Edge "${e.id || ''}" from XOR gateway "${n.id}" missing label.`);
+              if (!e.label)
+                msgs.push(`Edge "${e.id || ''}" from XOR gateway "${n.id}" missing label.`);
             }
           }
         }
       }
       return msgs.length === 0 ? { pass: true } : { pass: false, message: msgs.join('; ') };
-    }
+    },
   },
   {
-    id: 'M09', layer: 'style', defaultSeverity: 'WARNING',
+    id: 'M09',
+    layer: 'style',
+    defaultSeverity: 'WARNING',
     description: 'Lane-Node-Zuweisung: Format B (lane.nodeIds) ohne Format A (node.lane)',
     ref: {},
     scope: 'process',
     check: (proc) => {
-      const lanes = proc.lanes || [], nodes = proc.nodes || [];
+      const lanes = proc.lanes || [],
+        nodes = proc.nodes || [];
       if (lanes.length === 0) return { pass: true };
       const msgs = [];
       for (const lane of lanes) {
         if (!lane.nodeIds || lane.nodeIds.length === 0) continue;
-        const missingFormatA = lane.nodeIds.filter(nid => {
-          const node = nodes.find(n => n.id === nid);
+        const missingFormatA = lane.nodeIds.filter((nid) => {
+          const node = nodes.find((n) => n.id === nid);
           return node && node.lane !== lane.id;
         });
         if (missingFormatA.length > 0)
-          msgs.push(`Lane "${lane.id}" uses nodeIds (Format B) but ${missingFormatA.length} node(s) lack node.lane (Format A): ${missingFormatA.slice(0, 3).join(', ')}${missingFormatA.length > 3 ? '...' : ''}`);
+          msgs.push(
+            `Lane "${lane.id}" uses nodeIds (Format B) but ${missingFormatA.length} node(s) lack node.lane (Format A): ${missingFormatA.slice(0, 3).join(', ')}${missingFormatA.length > 3 ? '...' : ''}`,
+          );
       }
       return msgs.length === 0 ? { pass: true } : { pass: false, message: msgs.join('; ') };
-    }
+    },
   },
   // Platzhalter für zukünftige Style-Regeln
   {
-    id: 'M05', layer: 'style', defaultSeverity: 'OFF', // NOT_IMPLEMENTED
+    id: 'M05',
+    layer: 'style',
+    defaultSeverity: 'OFF', // NOT_IMPLEMENTED
     description: 'Message-Flow-Labels: nur Substantive',
     ref: { silver: 'Ch.5' },
     scope: 'global',
     check: () => ({ pass: true }),
   },
   {
-    id: 'M06', layer: 'style', defaultSeverity: 'OFF', // NOT_IMPLEMENTED
+    id: 'M06',
+    layer: 'style',
+    defaultSeverity: 'OFF', // NOT_IMPLEMENTED
     description: 'Event-Labels: Partizip/Zustand oder Substantiv',
     ref: { silver: 'Ch.3' },
     scope: 'process',
     check: () => ({ pass: true }),
   },
   {
-    id: 'M07', layer: 'style', defaultSeverity: 'WARNING',
+    id: 'M07',
+    layer: 'style',
+    defaultSeverity: 'WARNING',
     description: 'Vermeide OR-Gateways (inclusive)',
     ref: { pmg: 'G5' },
     scope: 'process',
     check: (proc) => {
-      const orGateways = (proc.nodes || []).filter(n => n.type === 'inclusiveGateway');
+      const orGateways = (proc.nodes || []).filter((n) => n.type === 'inclusiveGateway');
       return orGateways.length === 0
         ? { pass: true }
-        : { pass: false, message: orGateways.map(n => `Inclusive (OR) gateway "${n.id}" (${n.name || ''}) — OR-Gateways are error-prone, prefer XOR or AND.`).join('; ') };
-    }
+        : {
+            pass: false,
+            message: orGateways
+              .map(
+                (n) =>
+                  `Inclusive (OR) gateway "${n.id}" (${n.name || ''}) — OR-Gateways are error-prone, prefer XOR or AND.`,
+              )
+              .join('; '),
+          };
+    },
   },
   {
-    id: 'M08', layer: 'style', defaultSeverity: 'WARNING',
+    id: 'M08',
+    layer: 'style',
+    defaultSeverity: 'WARNING',
     description: 'Jeder XOR-Split hat einen Default-Flow',
     ref: { silver: 'Ch.4' },
     scope: 'process',
     check: (proc) => {
-      const nodes = proc.nodes || [], edges = proc.edges || [];
+      const nodes = proc.nodes || [],
+        edges = proc.edges || [];
       const outgoing = buildAdjacency(edges, 'source', 'target');
       const msgs = [];
       for (const n of nodes) {
         if (n.type !== 'exclusiveGateway' || n.has_join) continue;
         const outs = outgoing[n.id] || [];
         if (outs.length < 3) continue; // 2 mutually exclusive paths do not need a default
-        const hasDefault = outs.some(e => e.isDefault);
+        const hasDefault = outs.some((e) => e.isDefault);
         if (!hasDefault)
-          msgs.push(`XOR gateway "${n.id}" (${n.name || ''}) has ${outs.length} outgoing flows but no default flow.`);
+          msgs.push(
+            `XOR gateway "${n.id}" (${n.name || ''}) has ${outs.length} outgoing flows but no default flow.`,
+          );
       }
       return msgs.length === 0 ? { pass: true } : { pass: false, message: msgs.join('; ') };
-    }
+    },
   },
   {
-    id: 'M10', layer: 'style', defaultSeverity: 'WARNING',
+    id: 'M10',
+    layer: 'style',
+    defaultSeverity: 'WARNING',
     description: 'Lane and pool names should be ≤ 25 characters for readable swimlane headers',
     ref: { silver: '§4.2' },
     scope: 'global',
@@ -541,8 +649,11 @@ const STYLE_RULES = [
       }
       return offenders.length === 0
         ? { pass: true }
-        : { pass: false, message: `Names exceed ${LIMIT} chars — shorten for readability: ${offenders.join('; ')}` };
-    }
+        : {
+            pass: false,
+            message: `Names exceed ${LIMIT} chars — shorten for readability: ${offenders.join('; ')}`,
+          };
+    },
   },
 ];
 
@@ -552,7 +663,9 @@ const STYLE_RULES = [
 
 const PRAGMATICS_RULES = [
   {
-    id: 'P01', layer: 'pragmatics', defaultSeverity: 'INFO',
+    id: 'P01',
+    layer: 'pragmatics',
+    defaultSeverity: 'INFO',
     description: 'Modellgröße ≤ 50 Elemente pro Prozess',
     ref: { pmg: 'G1' },
     scope: 'process',
@@ -561,45 +674,66 @@ const PRAGMATICS_RULES = [
       const count = (proc.nodes || []).length;
       return count <= threshold
         ? { pass: true }
-        : { pass: false, message: `Process has ${count} elements (threshold: ${threshold}). Consider splitting into sub-processes.` };
-    }
+        : {
+            pass: false,
+            message: `Process has ${count} elements (threshold: ${threshold}). Consider splitting into sub-processes.`,
+          };
+    },
   },
   {
-    id: 'P02', layer: 'pragmatics', defaultSeverity: 'INFO',
+    id: 'P02',
+    layer: 'pragmatics',
+    defaultSeverity: 'INFO',
     description: 'Gateway-Verschachtelungstiefe ≤ 3',
     ref: {},
     scope: 'process',
     check: (proc, lc, config) => {
       const threshold = config?.overrides?.P02?.threshold || 3;
-      const nodes = proc.nodes || [], edges = proc.edges || [];
+      const nodes = proc.nodes || [],
+        edges = proc.edges || [];
       const outgoing = buildAdjacency(edges, 'source', 'target');
-      const gwTypes = new Set(['exclusiveGateway','parallelGateway','inclusiveGateway','eventBasedGateway','complexGateway']);
-      const isGw = id => { const nd = nodes.find(x => x.id === id); return nd && gwTypes.has(nd.type); };
+      const gwTypes = new Set([
+        'exclusiveGateway',
+        'parallelGateway',
+        'inclusiveGateway',
+        'eventBasedGateway',
+        'complexGateway',
+      ]);
+      const isGw = (id) => {
+        const nd = nodes.find((x) => x.id === id);
+        return nd && gwTypes.has(nd.type);
+      };
       let maxDepth = 0;
       function dfs(nodeId, depth, visited) {
         if (visited.has(nodeId)) return;
         visited.add(nodeId);
         const curDepth = isGw(nodeId) ? depth + 1 : depth;
         if (curDepth > maxDepth) maxDepth = curDepth;
-        for (const e of (outgoing[nodeId] || [])) {
+        for (const e of outgoing[nodeId] || []) {
           dfs(e.target, curDepth, visited);
         }
       }
-      const starts = nodes.filter(n => n.type === 'startEvent');
+      const starts = nodes.filter((n) => n.type === 'startEvent');
       for (const s of starts) dfs(s.id, 0, new Set());
       return maxDepth <= threshold
         ? { pass: true }
-        : { pass: false, message: `Gateway nesting depth is ${maxDepth} (threshold: ${threshold}). Consider simplifying with sub-processes.` };
-    }
+        : {
+            pass: false,
+            message: `Gateway nesting depth is ${maxDepth} (threshold: ${threshold}). Consider simplifying with sub-processes.`,
+          };
+    },
   },
   {
-    id: 'P03', layer: 'pragmatics', defaultSeverity: 'INFO',
+    id: 'P03',
+    layer: 'pragmatics',
+    defaultSeverity: 'INFO',
     description: 'Control-Flow Complexity Score (CFC)',
     ref: { pmg: 'Metrik' },
     scope: 'process',
     check: (proc, lc, config) => {
       const threshold = config?.overrides?.P03?.threshold || 30;
-      const nodes = proc.nodes || [], edges = proc.edges || [];
+      const nodes = proc.nodes || [],
+        edges = proc.edges || [];
       const outgoing = buildAdjacency(edges, 'source', 'target');
       let cfc = 0;
       for (const n of nodes) {
@@ -611,8 +745,11 @@ const PRAGMATICS_RULES = [
       }
       return cfc <= threshold
         ? { pass: true }
-        : { pass: false, message: `Control-Flow Complexity (CFC) is ${cfc} (threshold: ${threshold}). Consider splitting into sub-processes.` };
-    }
+        : {
+            pass: false,
+            message: `Control-Flow Complexity (CFC) is ${cfc} (threshold: ${threshold}). Consider splitting into sub-processes.`,
+          };
+    },
   },
 ];
 
@@ -622,21 +759,27 @@ const PRAGMATICS_RULES = [
 
 const WORKFLOW_NET_RULES = [
   {
-    id: 'WF01', layer: 'workflow_net', defaultSeverity: 'WARNING',
+    id: 'WF01',
+    layer: 'workflow_net',
+    defaultSeverity: 'WARNING',
     description: 'Liveness — jede Transition feuert mindestens einmal',
     ref: { vdaalst: 'Soundness Def. 1' },
     scope: 'global',
     check: () => ({ pass: true }), // Handled by runWfNetRules
   },
   {
-    id: 'WF02', layer: 'workflow_net', defaultSeverity: 'WARNING',
+    id: 'WF02',
+    layer: 'workflow_net',
+    defaultSeverity: 'WARNING',
     description: '1-Boundedness — kein Place akkumuliert mehr als 1 Token',
     ref: { vdaalst: 'Soundness Def. 2' },
     scope: 'global',
     check: () => ({ pass: true }), // Handled by runWfNetRules
   },
   {
-    id: 'WF03', layer: 'workflow_net', defaultSeverity: 'ERROR',
+    id: 'WF03',
+    layer: 'workflow_net',
+    defaultSeverity: 'ERROR',
     description: 'Proper Completion — keine Deadlocks, Sink erreichbar',
     ref: { vdaalst: 'Soundness Def. 3' },
     scope: 'global',
@@ -689,7 +832,9 @@ function getEffectiveSeverity(rule, profile) {
  * @returns {{ errors: string[], warnings: string[], infos: string[], metrics: object }}
  */
 function runRules(lc, profile = null) {
-  const errors = [], warnings = [], infos = [];
+  const errors = [],
+    warnings = [],
+    infos = [];
   const metrics = {};
   const processes = lc.pools ? lc.pools : [lc];
 
@@ -722,7 +867,7 @@ function runRules(lc, profile = null) {
     const wfResult = checkWorkflowNetSoundness(lc);
     for (const issue of wfResult.issues) {
       // Map WF rule severity through profile overrides
-      const wfRule = WORKFLOW_NET_RULES.find(r => r.id === issue.rule);
+      const wfRule = WORKFLOW_NET_RULES.find((r) => r.id === issue.rule);
       const severity = wfRule ? getEffectiveSeverity(wfRule, profile) : issue.severity;
       if (severity === 'OFF') continue;
       if (severity === 'ERROR') errors.push(issue.message);
@@ -745,4 +890,16 @@ function classifyResult(message, severity, errors, warnings, infos, prefix) {
   }
 }
 
-export { RULES, SOUNDNESS_RULES, STYLE_RULES, PRAGMATICS_RULES, WORKFLOW_NET_RULES, loadRuleProfile, runRules, buildAdjacency, countIncoming, traceReachable, isReachableWithout };
+export {
+  RULES,
+  SOUNDNESS_RULES,
+  STYLE_RULES,
+  PRAGMATICS_RULES,
+  WORKFLOW_NET_RULES,
+  loadRuleProfile,
+  runRules,
+  buildAdjacency,
+  countIncoming,
+  traceReachable,
+  isReachableWithout,
+};

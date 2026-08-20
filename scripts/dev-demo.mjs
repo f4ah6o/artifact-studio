@@ -13,11 +13,11 @@ function start(command, args, options = {}) {
     ...options,
   });
   children.push(child);
-  child.on('error', error => {
+  child.on('error', (error) => {
     console.error(`${command} failed to start: ${error.message}`);
     shutdown(1);
   });
-  child.on('exit', code => {
+  child.on('exit', (code) => {
     if (!stopping && code !== 0) shutdown(code ?? 1);
   });
   return child;

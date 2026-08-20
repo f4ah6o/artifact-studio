@@ -28,14 +28,28 @@ import { fileURLToPath } from 'url';
 // Module imports
 import { loadConfig, CFG } from './utils.js';
 import { validateLogicCore } from './validate.js';
-import { inferGatewayDirections, sortNodesTopologically, orderLanesByFlow, preprocessLogicCore, identifyHappyPathNodes } from './topology.js';
+import {
+  inferGatewayDirections,
+  sortNodesTopologically,
+  orderLanesByFlow,
+  preprocessLogicCore,
+  identifyHappyPathNodes,
+} from './topology.js';
 import { logicCoreToElk, runElkLayout } from './layout.js';
 import { buildCoordinateMap, enforceOrthogonal, clipOrthogonal } from './coordinates.js';
 import { simplifyAllEdges } from './edge-simplify.js';
 import { generateBpmnXml, validateBpmnXml } from './bpmn-xml.js';
 import { generateSvg } from './svg.js';
 import { logicCoreToDot, dotToLogicCore } from './dot.js';
-import { computeDynamicLaneHeaders, compactLanes, routeGatewayFlowsToCardinalPorts, routeCrossLaneFlowsByDirection, routeSameLaneBackwardFlows, anchorEdgeLabelsToRoutes, repairEdgeLabels } from './visual-refinement.js';
+import {
+  computeDynamicLaneHeaders,
+  compactLanes,
+  routeGatewayFlowsToCardinalPorts,
+  routeCrossLaneFlowsByDirection,
+  routeSameLaneBackwardFlows,
+  anchorEdgeLabelsToRoutes,
+  repairEdgeLabels,
+} from './visual-refinement.js';
 
 // ═══════════════════════════════════════════════════════════════════════
 // PUBLIC API — programmatic usage via import
@@ -63,9 +77,9 @@ async function runPipeline(logicCore, opts = {}) {
   // Visual Refinement (opt-in, computed early for layout options)
   const refineOn = opts.visualRefinement ?? CFG.visualRefinement?.enabled ?? false;
 
-  const elkGraph  = logicCoreToElk(lc, { elkWrapping: refineOn, fixedFlowPorts: refineOn });
+  const elkGraph = logicCoreToElk(lc, { elkWrapping: refineOn, fixedFlowPorts: refineOn });
   const elkResult = await runElkLayout(elkGraph);
-  const coordMap  = buildCoordinateMap(elkResult, lc, {
+  const coordMap = buildCoordinateMap(elkResult, lc, {
     crossAxisAlignment: refineOn && CFG.visualRefinement?.crossAxisAlignment !== false,
     direction: CFG.elk?.layered?.['elk.direction'] ?? 'RIGHT',
   });
@@ -74,7 +88,7 @@ async function runPipeline(logicCore, opts = {}) {
   // where node-bbox collision allows it. Reduces cross-lane zigzag.
   const allEdges = [
     ...(lc.edges || []),
-    ...((lc.pools || []).flatMap(p => p.edges || [])),
+    ...(lc.pools || []).flatMap((p) => p.edges || []),
     ...(lc.messageFlows || []),
   ];
   coordMap.edgeCoords = simplifyAllEdges(coordMap.edgeCoords, coordMap.coords, allEdges);
@@ -89,17 +103,9 @@ async function runPipeline(logicCore, opts = {}) {
       );
     }
     if (CFG.visualRefinement?.crossLaneDirectionalRouting !== false) {
-      routeCrossLaneFlowsByDirection(
-        coordMap,
-        lc,
-        CFG.elk?.layered?.['elk.direction'] ?? 'RIGHT',
-      );
+      routeCrossLaneFlowsByDirection(coordMap, lc, CFG.elk?.layered?.['elk.direction'] ?? 'RIGHT');
     }
-    routeSameLaneBackwardFlows(
-      coordMap,
-      lc,
-      CFG.elk?.layered?.['elk.direction'] ?? 'RIGHT',
-    );
+    routeSameLaneBackwardFlows(coordMap, lc, CFG.elk?.layered?.['elk.direction'] ?? 'RIGHT');
     if (CFG.visualRefinement?.dynamicLaneHeader !== false) {
       computeDynamicLaneHeaders(coordMap, lc, {
         minWidth: CFG.visualRefinement?.laneHeaderMinWidth ?? 30,
@@ -122,13 +128,18 @@ async function runPipeline(logicCore, opts = {}) {
     }
   }
 
-  const bpmnXml   = await generateBpmnXml(lc, coordMap);
-  const svg       = generateSvg(lc, coordMap);
+  const bpmnXml = await generateBpmnXml(lc, coordMap);
+  const svg = generateSvg(lc, coordMap);
 
   // Round-trip XML validation: parse back through moddle to catch structural issues
   const roundTrip = await validateBpmnXml(bpmnXml);
 
-  return { bpmnXml, svg, coordMap, validation: { errors: [], warnings, xmlWarnings: roundTrip.warnings } };
+  return {
+    bpmnXml,
+    svg,
+    coordMap,
+    validation: { errors: [], warnings, xmlWarnings: roundTrip.warnings },
+  };
 }
 
 /**
@@ -137,17 +148,20 @@ async function runPipeline(logicCore, opts = {}) {
 function generateProcessDoc(lc) {
   const lines = [];
   const processes = lc.pools ? lc.pools : [lc];
-  lines.push(`# ${lc.pools ? 'Collaboration' : (lc.name || 'Process')}`);
-  if (lc.pools) lines.push(`\n${processes.length} Pools, ${(lc.messageFlows || []).length} Message Flows\n`);
+  lines.push(`# ${lc.pools ? 'Collaboration' : lc.name || 'Process'}`);
+  if (lc.pools)
+    lines.push(`\n${processes.length} Pools, ${(lc.messageFlows || []).length} Message Flows\n`);
   for (const proc of processes) {
     if (lc.pools) lines.push(`\n## ${proc.name || proc.id}\n`);
     if (proc.documentation) lines.push(`${proc.documentation}\n`);
-    const documented = (proc.nodes || []).filter(n => n.documentation || n.name);
+    const documented = (proc.nodes || []).filter((n) => n.documentation || n.name);
     if (documented.length > 0) {
       lines.push('| Element | Typ | Dokumentation |');
       lines.push('|---------|-----|---------------|');
       for (const n of documented) {
-        lines.push(`| ${n.name || n.id} | ${n.type} | ${(n.documentation || '\u2014').replace(/\n/g, ' ')} |`);
+        lines.push(
+          `| ${n.name || n.id} | ${n.type} | ${(n.documentation || '\u2014').replace(/\n/g, ' ')} |`,
+        );
       }
     }
   }
@@ -182,7 +196,7 @@ function collapseSubProcesses(logicCore) {
   const lc = JSON.parse(JSON.stringify(logicCore));
   const processes = lc.pools ? lc.pools : [lc];
   for (const proc of processes) {
-    proc.nodes = (proc.nodes || []).map(n => {
+    proc.nodes = (proc.nodes || []).map((n) => {
       if (n.type === 'subProcess' && n.isExpanded) {
         const { nodes: _n, edges: _e, ...rest } = n;
         return { ...rest, isExpanded: false };
@@ -199,7 +213,7 @@ function collapseSubProcesses(logicCore) {
 function extractSubProcessAsLogicCore(logicCore, subProcessId) {
   const processes = logicCore.pools ? logicCore.pools : [logicCore];
   for (const proc of processes) {
-    for (const node of (proc.nodes || [])) {
+    for (const node of proc.nodes || []) {
       if (node.id === subProcessId && node.isExpanded && node.nodes?.length) {
         const laneId = `Lane_${subProcessId}`;
         // Set Format A (node.lane) in addition to Format B (lane.nodeIds)
@@ -207,13 +221,21 @@ function extractSubProcessAsLogicCore(logicCore, subProcessId) {
           if (!n.lane) n.lane = laneId;
         }
         return {
-          pools: [{
-            id: `Pool_${subProcessId}`,
-            name: node.name || subProcessId,
-            lanes: [{ id: laneId, name: node.name || subProcessId, nodeIds: node.nodes.map(n => n.id) }],
-            nodes: node.nodes,
-            edges: node.edges || [],
-          }],
+          pools: [
+            {
+              id: `Pool_${subProcessId}`,
+              name: node.name || subProcessId,
+              lanes: [
+                {
+                  id: laneId,
+                  name: node.name || subProcessId,
+                  nodeIds: node.nodes.map((n) => n.id),
+                },
+              ],
+              nodes: node.nodes,
+              edges: node.edges || [],
+            },
+          ],
         };
       }
       // Recurse for nested subprocesses
@@ -239,10 +261,10 @@ function buildNavigation(logicCore) {
     allSubs.push(...findExpandedSubProcesses(proc.nodes || []));
   }
   return {
-    subProcesses: allSubs.map(s => ({
+    subProcesses: allSubs.map((s) => ({
       id: s.node.id,
       name: s.node.name || s.node.id,
-      breadcrumb: s.path.map(p => p.name),
+      breadcrumb: s.path.map((p) => p.name),
       nodeCount: s.node.nodes.length,
       edgeCount: (s.node.edges || []).length,
     })),
@@ -310,17 +332,19 @@ export {
 // ═══════════════════════════════════════════════════════════════════════
 
 async function main() {
-  const args       = process.argv.slice(2);
-  const flags      = args.filter(a => a.startsWith('--'));
-  const positional = args.filter(a => !a.startsWith('--'));
-  const inputArg   = positional[0];
+  const args = process.argv.slice(2);
+  const flags = args.filter((a) => a.startsWith('--'));
+  const positional = args.filter((a) => !a.startsWith('--'));
+  const inputArg = positional[0];
   const outputBase = positional[1] || 'output';
-  const formatDot  = flags.includes('--format=dot') || flags.includes('--dot');
-  const importDot  = flags.includes('--import-dot');
+  const formatDot = flags.includes('--format=dot') || flags.includes('--dot');
+  const importDot = flags.includes('--import-dot');
   const generateDoc = flags.includes('--doc');
-  const drillDown  = flags.includes('--drill-down');
+  const drillDown = flags.includes('--drill-down');
   if (!inputArg) {
-    console.error('Usage: node pipeline.js <input.json | -> [output-basename] [--dot] [--import-dot] [--doc]');
+    console.error(
+      'Usage: node pipeline.js <input.json | -> [output-basename] [--dot] [--import-dot] [--doc]',
+    );
     process.exit(1);
   }
 
@@ -350,7 +374,7 @@ async function main() {
     const diagramSet = await generateDiagramSet(parsedInput);
     if (!diagramSet.parent.bpmnXml) {
       console.error('\n✗ Errors (pipeline blocked):');
-      diagramSet.parent.validation.errors.forEach(e => console.error('  · ' + e));
+      diagramSet.parent.validation.errors.forEach((e) => console.error('  · ' + e));
       process.exit(1);
     }
     writeFileSync(`${outputBase}.bpmn`, diagramSet.parent.bpmnXml, 'utf8');
@@ -372,15 +396,18 @@ async function main() {
         '<h1>Process Overview</h1>',
         `<p><a href="${outputBase}.svg">Parent Diagram</a></p>`,
         '<h2>SubProcesses</h2><ul>',
-        ...nav.subProcesses.map(s =>
-          `<li><a href="${outputBase}_${s.id}.svg">${s.name}</a> (${s.nodeCount} nodes) — ${s.breadcrumb.join(' → ')}</li>`
+        ...nav.subProcesses.map(
+          (s) =>
+            `<li><a href="${outputBase}_${s.id}.svg">${s.name}</a> (${s.nodeCount} nodes) — ${s.breadcrumb.join(' → ')}</li>`,
         ),
         '</ul></body></html>',
       ].join('\n');
       writeFileSync(`${outputBase}_index.html`, indexHtml, 'utf8');
       console.log(`✓ Navigation → ${outputBase}_index.html`);
     }
-    console.log(`\n📊 Drill-Down: 1 parent + ${Object.keys(diagramSet.subProcesses).length} subprocess diagram(s)`);
+    console.log(
+      `\n📊 Drill-Down: 1 parent + ${Object.keys(diagramSet.subProcesses).length} subprocess diagram(s)`,
+    );
     return;
   }
 
@@ -388,11 +415,11 @@ async function main() {
 
   if (result.validation.warnings.length) {
     console.warn('\n⚠ Warnings:');
-    result.validation.warnings.forEach(w => console.warn('  · ' + w));
+    result.validation.warnings.forEach((w) => console.warn('  · ' + w));
   }
   if (!result.bpmnXml) {
     console.error('\n✗ Errors (pipeline blocked):');
-    result.validation.errors.forEach(e => console.error('  · ' + e));
+    result.validation.errors.forEach((e) => console.error('  · ' + e));
     process.exit(1);
   }
   console.log(`✓ Logic-Core validated (structural soundness OK)`);
@@ -434,13 +461,17 @@ async function main() {
   console.log(`  Nodes:         ${totalNodes}`);
   console.log(`  Edges:         ${totalEdges}`);
   console.log(`  Lanes:         ${totalLanes}`);
-  if (totalMsgFlows)    console.log(`  MsgFlows:      ${totalMsgFlows}`);
+  if (totalMsgFlows) console.log(`  MsgFlows:      ${totalMsgFlows}`);
   if (totalAssociations) console.log(`  Associations:  ${totalAssociations}`);
   console.log(`  Files:         ${xmlPath}, ${svgPath}`);
 }
 
 // Only run CLI when executed directly (not imported)
-const isDirectRun = process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
+const isDirectRun =
+  process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
 if (isDirectRun) {
-  main().catch(err => { console.error('Pipeline error:', err); process.exit(1); });
+  main().catch((err) => {
+    console.error('Pipeline error:', err);
+    process.exit(1);
+  });
 }

@@ -75,9 +75,7 @@ function doSegmentsIntersect(p1, p2, p3, p4) {
 function countNodesAndEdges(lc) {
   let nodes = 0;
   let edges = 0;
-  const processes = Array.isArray(lc.pools) && lc.pools.length > 0
-    ? lc.pools
-    : [lc];
+  const processes = Array.isArray(lc.pools) && lc.pools.length > 0 ? lc.pools : [lc];
   for (const p of processes) {
     if (Array.isArray(p.nodes)) nodes += p.nodes.length;
     if (Array.isArray(p.edges)) edges += p.edges.length;
@@ -100,7 +98,9 @@ async function runFixture(filePath) {
   const { nodes: nodeCount, edges: edgeCount } = countNodesAndEdges(lc);
 
   const t0 = performance.now();
-  let result, parses = true, errorMessage = null;
+  let result,
+    parses = true,
+    errorMessage = null;
   try {
     result = await runPipeline(lc);
   } catch (err) {
@@ -175,20 +175,26 @@ function renderMarkdown(payload) {
   lines.push('');
   lines.push('## Per-fixture results');
   lines.push('');
-  lines.push('| Fixture | Parses | Serialized | Schema | Nodes | Edges | Sound-Err | Sound-Warn | Crossings | BPMN (B) | SVG (B) | Time (ms) |');
+  lines.push(
+    '| Fixture | Parses | Serialized | Schema | Nodes | Edges | Sound-Err | Sound-Warn | Crossings | BPMN (B) | SVG (B) | Time (ms) |',
+  );
   lines.push('|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|');
   for (const r of results) {
     lines.push(
       `| ${r.fixture} | ${r.parses ? 'yes' : 'NO'} | ${r.serialized ? 'yes' : 'no'} | ${r.schemaValid ? 'yes' : 'no'} | ${r.nodeCount} | ${r.edgeCount} | ` +
-      `${r.soundnessErrors ?? '-'} | ${r.soundnessWarnings ?? '-'} | ${r.layoutCrossings ?? '-'} | ` +
-      `${r.bpmnXmlBytes} | ${r.svgBytes} | ${r.wallClockMs} |`
+        `${r.soundnessErrors ?? '-'} | ${r.soundnessWarnings ?? '-'} | ${r.layoutCrossings ?? '-'} | ` +
+        `${r.bpmnXmlBytes} | ${r.svgBytes} | ${r.wallClockMs} |`,
     );
   }
   lines.push('');
   lines.push('## Totals');
   lines.push('');
-  lines.push(`- Fixtures that parse (runPipeline didn't throw): **${totals.parsed} / ${fixtureCount}**`);
-  lines.push(`- Fixtures that serialize (non-empty BPMN+SVG): **${totals.serialized} / ${fixtureCount}**`);
+  lines.push(
+    `- Fixtures that parse (runPipeline didn't throw): **${totals.parsed} / ${fixtureCount}**`,
+  );
+  lines.push(
+    `- Fixtures that serialize (non-empty BPMN+SVG): **${totals.serialized} / ${fixtureCount}**`,
+  );
   lines.push(`- Schema-valid inputs: **${totals.schemaValid} / ${fixtureCount}**`);
   lines.push(`- Total nodes: **${totals.nodes}**`);
   lines.push(`- Total edges: **${totals.edges}**`);
@@ -232,9 +238,9 @@ async function main() {
   mkdirSync(outDir, { recursive: true });
 
   const fixturePaths = readdirSync(fixturesDir)
-    .filter(f => f.endsWith('.json'))
-    .map(f => join(fixturesDir, f))
-    .filter(p => statSync(p).isFile())
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => join(fixturesDir, f))
+    .filter((p) => statSync(p).isFile())
     .sort();
 
   const results = [];
@@ -245,26 +251,37 @@ async function main() {
     results.push(r);
   }
 
-  const totals = results.reduce((acc, r) => {
-    acc.parsed += r.parses ? 1 : 0;
-    acc.serialized += r.serialized ? 1 : 0;
-    acc.schemaValid += r.schemaValid ? 1 : 0;
-    acc.nodes += r.nodeCount || 0;
-    acc.edges += r.edgeCount || 0;
-    acc.soundnessErrors += r.soundnessErrors || 0;
-    acc.soundnessWarnings += r.soundnessWarnings || 0;
-    acc.crossings += r.layoutCrossings || 0;
-    acc.bpmnXmlBytes += r.bpmnXmlBytes || 0;
-    acc.svgBytes += r.svgBytes || 0;
-    acc.wallClockMs += r.wallClockMs || 0;
-    return acc;
-  }, {
-    parsed: 0, serialized: 0, schemaValid: 0, nodes: 0, edges: 0,
-    soundnessErrors: 0, soundnessWarnings: 0, crossings: 0,
-    bpmnXmlBytes: 0, svgBytes: 0, wallClockMs: 0,
-  });
+  const totals = results.reduce(
+    (acc, r) => {
+      acc.parsed += r.parses ? 1 : 0;
+      acc.serialized += r.serialized ? 1 : 0;
+      acc.schemaValid += r.schemaValid ? 1 : 0;
+      acc.nodes += r.nodeCount || 0;
+      acc.edges += r.edgeCount || 0;
+      acc.soundnessErrors += r.soundnessErrors || 0;
+      acc.soundnessWarnings += r.soundnessWarnings || 0;
+      acc.crossings += r.layoutCrossings || 0;
+      acc.bpmnXmlBytes += r.bpmnXmlBytes || 0;
+      acc.svgBytes += r.svgBytes || 0;
+      acc.wallClockMs += r.wallClockMs || 0;
+      return acc;
+    },
+    {
+      parsed: 0,
+      serialized: 0,
+      schemaValid: 0,
+      nodes: 0,
+      edges: 0,
+      soundnessErrors: 0,
+      soundnessWarnings: 0,
+      crossings: 0,
+      bpmnXmlBytes: 0,
+      svgBytes: 0,
+      wallClockMs: 0,
+    },
+  );
 
-  const anyParseFailure = results.some(r => !r.parses);
+  const anyParseFailure = results.some((r) => !r.parses);
 
   const payload = {
     benchmark: 'stieges-bench-v1',
@@ -285,7 +302,7 @@ async function main() {
   process.exit(anyParseFailure ? 1 : 0);
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('[bench] fatal:', err && err.stack ? err.stack : err);
   process.exit(2);
 });

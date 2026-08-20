@@ -8,7 +8,7 @@ import { SHAPE, LANE_HEADER_W, LANE_PADDING, EXTERNAL_LABEL_H, CFG } from './uti
 import { identifyHappyPathNodes } from './topology.js';
 
 function buildCoordinateMap(elkResult, lc, opts = {}) {
-  const coords     = {};
+  const coords = {};
   const laneCoords = {};
   const poolCoords = {};
   const edgeCoords = {};
@@ -19,7 +19,7 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
   const allPoolIds = new Set();
   for (const p of allProcesses) {
     allPoolIds.add(p.id);
-    for (const l of (p.lanes || [])) allLaneIds.add(l.id);
+    for (const l of p.lanes || []) allLaneIds.add(l.id);
   }
   for (const cp of allCollapsedPools) allPoolIds.add(cp.id);
 
@@ -29,28 +29,40 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
 
     if (node.id === 'collaboration' || node.id === 'root') {
       for (const c of node.children || []) collectNodes(c, ax, ay);
-      for (const e of node.edges   || []) collectEdge(e, ax, ay);
+      for (const e of node.edges || []) collectEdge(e, ax, ay);
       return;
     }
 
     if (allPoolIds.has(node.id)) {
-      poolCoords[node.id] = { x: ax, y: ay, w: node.width, h: node.height, laneHeaderWidth: LANE_HEADER_W };
+      poolCoords[node.id] = {
+        x: ax,
+        y: ay,
+        w: node.width,
+        h: node.height,
+        laneHeaderWidth: LANE_HEADER_W,
+      };
       for (const c of node.children || []) collectNodes(c, ax, ay);
-      for (const e of node.edges   || []) collectEdge(e, ax, ay);
+      for (const e of node.edges || []) collectEdge(e, ax, ay);
       return;
     }
 
     if (node.id === 'pool') {
-      poolCoords['_singlePool'] = { x: ax, y: ay, w: node.width, h: node.height, laneHeaderWidth: LANE_HEADER_W };
+      poolCoords['_singlePool'] = {
+        x: ax,
+        y: ay,
+        w: node.width,
+        h: node.height,
+        laneHeaderWidth: LANE_HEADER_W,
+      };
       for (const c of node.children || []) collectNodes(c, ax, ay);
-      for (const e of node.edges   || []) collectEdge(e, ax, ay);
+      for (const e of node.edges || []) collectEdge(e, ax, ay);
       return;
     }
 
     if (allLaneIds.has(node.id)) {
       laneCoords[node.id] = { x: ax, y: ay, w: node.width, h: node.height };
       for (const c of node.children || []) collectNodes(c, ax, ay);
-      for (const e of node.edges   || []) collectEdge(e, ax, ay);
+      for (const e of node.edges || []) collectEdge(e, ax, ay);
       return;
     }
 
@@ -75,7 +87,7 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
     }
 
     for (const c of node.children || []) collectNodes(c, ax, ay);
-    for (const e of node.edges   || []) collectEdge(e, ax, ay);
+    for (const e of node.edges || []) collectEdge(e, ax, ay);
   };
 
   const collectEdge = (edge, offX = 0, offY = 0) => {
@@ -111,7 +123,9 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
     // Find the pool bounding box for x/width reference
     const poolC = poolCoords[proc.id] || poolCoords['_singlePool'];
     const poolX = poolC ? poolC.x : 0;
-    const poolW = poolC ? poolC.w : Math.max(...Object.values(coords).map(c => c.x + c.w)) + LANE_PADDING;
+    const poolW = poolC
+      ? poolC.w
+      : Math.max(...Object.values(coords).map((c) => c.x + c.w)) + LANE_PADDING;
 
     // Compute lane bounds from node positions
     for (const lane of lanes) {
@@ -121,8 +135,8 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
         laneCoords[lane.id] = { x: poolX + LANE_HEADER_W, y: 0, w: poolW - LANE_HEADER_W, h: 60 };
         continue;
       }
-      const minY = Math.min(...nodeCoords.map(c => c.y)) - LANE_PADDING;
-      const maxY = Math.max(...nodeCoords.map(c => c.y + c.h)) + LANE_PADDING + EXTERNAL_LABEL_H;
+      const minY = Math.min(...nodeCoords.map((c) => c.y)) - LANE_PADDING;
+      const maxY = Math.max(...nodeCoords.map((c) => c.y + c.h)) + LANE_PADDING + EXTERNAL_LABEL_H;
 
       laneCoords[lane.id] = {
         x: poolX + LANE_HEADER_W,
@@ -134,7 +148,9 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
 
     // Fix lane overlaps: adjacent lanes share their border line (bpmn.io
     // convention), so they touch exactly. Only shift if there's a real overlap.
-    const laneSorted = lanes.map(l => l.id).filter(id => laneCoords[id])
+    const laneSorted = lanes
+      .map((l) => l.id)
+      .filter((id) => laneCoords[id])
       .sort((a, b) => laneCoords[a].y - laneCoords[b].y);
 
     for (let i = 1; i < laneSorted.length; i++) {
@@ -152,7 +168,7 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
           }
         }
         // Shift edge waypoints that are within this lane's Y range
-        for (const e of (proc.edges || [])) {
+        for (const e of proc.edges || []) {
           const pts = edgeCoords[e.id];
           if (!pts) continue;
           for (const p of pts) {
@@ -164,8 +180,9 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
         // Recalculate lane height after shift
         const nodeCoords = laneNodeGroups[laneSorted[i]];
         if (nodeCoords.length > 0) {
-          const minY = Math.min(...nodeCoords.map(c => c.y)) - LANE_PADDING;
-          const maxY = Math.max(...nodeCoords.map(c => c.y + c.h)) + LANE_PADDING + EXTERNAL_LABEL_H;
+          const minY = Math.min(...nodeCoords.map((c) => c.y)) - LANE_PADDING;
+          const maxY =
+            Math.max(...nodeCoords.map((c) => c.y + c.h)) + LANE_PADDING + EXTERNAL_LABEL_H;
           curr.y = minY;
           curr.h = maxY - minY;
         }
@@ -173,10 +190,10 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
     }
 
     // Equalize all lane widths
-    const allLcs = lanes.map(l => laneCoords[l.id]).filter(Boolean);
+    const allLcs = lanes.map((l) => laneCoords[l.id]).filter(Boolean);
     if (allLcs.length > 0) {
-      const maxW = Math.max(...allLcs.map(l => l.w));
-      const minX = Math.min(...allLcs.map(l => l.x));
+      const maxW = Math.max(...allLcs.map((l) => l.w));
+      const minX = Math.min(...allLcs.map((l) => l.x));
       for (const lc_ of allLcs) {
         lc_.x = minX;
         lc_.w = maxW;
@@ -187,9 +204,9 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
       const pc = poolCoords[poolKey] || poolCoords['_singlePool'];
       if (pc) {
         pc.x = minX - LANE_HEADER_W;
-        pc.y = Math.min(...allLcs.map(l => l.y));
+        pc.y = Math.min(...allLcs.map((l) => l.y));
         pc.w = maxW + LANE_HEADER_W;
-        pc.h = Math.max(...allLcs.map(l => l.y + l.h)) - pc.y;
+        pc.h = Math.max(...allLcs.map((l) => l.y + l.h)) - pc.y;
       }
     }
   }
@@ -197,8 +214,8 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
   // §5.0b  Equalize pool widths across entire collaboration (BPMN convention)
   const allPoolCoordValues = Object.values(poolCoords);
   if (allPoolCoordValues.length > 1) {
-    const maxPoolW = Math.max(...allPoolCoordValues.map(p => p.w));
-    const minPoolX = Math.min(...allPoolCoordValues.map(p => p.x));
+    const maxPoolW = Math.max(...allPoolCoordValues.map((p) => p.w));
+    const minPoolX = Math.min(...allPoolCoordValues.map((p) => p.x));
     for (const pc of allPoolCoordValues) {
       pc.x = minPoolX;
       pc.w = maxPoolW;
@@ -214,7 +231,7 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
   //         pools may have grown taller than ELK's original estimate.  Collapsed
   //         pools (black-box participants) must be pushed below.
   if (allCollapsedPools.length > 0) {
-    const expandedBottoms = allProcesses.map(p => {
+    const expandedBottoms = allProcesses.map((p) => {
       const pc = poolCoords[p.id] || poolCoords['_singlePool'];
       return pc ? pc.y + pc.h : 0;
     });
@@ -237,11 +254,11 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
       if (lanes.length > 0) {
         for (const lane of lanes) {
           const laneHappyNodes = (proc.nodes || [])
-            .filter(n => n.lane === lane.id && happyIds.has(n.id))
-            .map(n => n.id)
-            .filter(id => coords[id]);
+            .filter((n) => n.lane === lane.id && happyIds.has(n.id))
+            .map((n) => n.id)
+            .filter((id) => coords[id]);
           if (laneHappyNodes.length < 2) continue;
-          const ys = laneHappyNodes.map(id => coords[id].y + coords[id].h / 2);
+          const ys = laneHappyNodes.map((id) => coords[id].y + coords[id].h / 2);
           ys.sort((a, b) => a - b);
           const medianY = ys[Math.floor(ys.length / 2)];
           for (const id of laneHappyNodes) {
@@ -249,9 +266,9 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
           }
         }
       } else {
-        const happyNodeIds = [...happyIds].filter(id => coords[id]);
+        const happyNodeIds = [...happyIds].filter((id) => coords[id]);
         if (happyNodeIds.length >= 2) {
-          const ys = happyNodeIds.map(id => coords[id].y + coords[id].h / 2);
+          const ys = happyNodeIds.map((id) => coords[id].y + coords[id].h / 2);
           ys.sort((a, b) => a - b);
           const medianY = ys[Math.floor(ys.length / 2)];
           for (const id of happyNodeIds) {
@@ -274,17 +291,17 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
 
     for (const node of nodes) {
       if (node.type !== 'exclusiveGateway') continue;
-      const targets = (outgoing[node.id] || []).filter(id => coords[id]);
+      const targets = (outgoing[node.id] || []).filter((id) => coords[id]);
       if (targets.length < 3) continue;
 
       // Align targets to rightmost x
-      const maxX = Math.max(...targets.map(id => coords[id].x));
+      const maxX = Math.max(...targets.map((id) => coords[id].x));
       for (const id of targets) coords[id].x = maxX;
 
       // Align their successors (end events) to a second column
-      const succs = targets.flatMap(id => (outgoing[id] || []).filter(s => coords[s]));
+      const succs = targets.flatMap((id) => (outgoing[id] || []).filter((s) => coords[s]));
       if (succs.length >= 2) {
-        const maxSX = Math.max(...succs.map(id => coords[id].x));
+        const maxSX = Math.max(...succs.map((id) => coords[id].x));
         for (const id of succs) coords[id].x = maxSX;
       }
     }
@@ -326,8 +343,8 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
       if (!pts || pts.length < 3) continue;
 
       // Check if any waypoint is outside pool bounds + margin
-      const hasDetour = pts.some(p =>
-        p.y < poolMinY || p.y > poolMaxY || p.x < poolMinX || p.x > poolMaxX
+      const hasDetour = pts.some(
+        (p) => p.y < poolMinY || p.y > poolMaxY || p.x < poolMinX || p.x > poolMaxX,
       );
       if (!hasDetour) continue;
 
@@ -345,14 +362,14 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
 
       if (dy > dx) {
         // Primarily vertical connection
-        const srcExit  = { x: srcCx, y: srcCy > tgtCy ? srcC.y : srcC.y + srcC.h };
+        const srcExit = { x: srcCx, y: srcCy > tgtCy ? srcC.y : srcC.y + srcC.h };
         const tgtEntry = { x: tgtCx, y: srcCy > tgtCy ? tgtC.y + tgtC.h : tgtC.y };
         const midY = (srcExit.y + tgtEntry.y) / 2;
         edgeCoords[edge.id] = [srcExit, { x: srcCx, y: midY }, { x: tgtCx, y: midY }, tgtEntry];
       } else {
         // Primarily horizontal connection
         const goRight = tgtCx > srcCx;
-        const srcExit  = { x: goRight ? srcC.x + srcC.w : srcC.x, y: srcCy };
+        const srcExit = { x: goRight ? srcC.x + srcC.w : srcC.x, y: srcCy };
         const tgtEntry = { x: goRight ? tgtC.x : tgtC.x + tgtC.w, y: tgtCy };
         const midX = (srcExit.x + tgtEntry.x) / 2;
         edgeCoords[edge.id] = [srcExit, { x: midX, y: srcCy }, { x: midX, y: tgtCy }, tgtEntry];
@@ -366,10 +383,10 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
     // Build set of lane-id per node for cross-lane detection
     const nodeLane = {};
     for (const proc of allProcesses) {
-      for (const lane of (proc.lanes || [])) {
-        for (const nid of (lane.nodeIds || [])) nodeLane[nid] = lane.id;
+      for (const lane of proc.lanes || []) {
+        for (const nid of lane.nodeIds || []) nodeLane[nid] = lane.id;
         // Format A: node.lane
-        for (const n of (proc.nodes || [])) {
+        for (const n of proc.nodes || []) {
           if (n.lane && !nodeLane[n.id]) nodeLane[n.id] = n.lane;
         }
       }
@@ -378,7 +395,7 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
     // Collect cross-lane edges that have orthogonal routes with horizontal segments
     const crossLaneEdges = [];
     for (const proc of allProcesses) {
-      for (const edge of (proc.edges || [])) {
+      for (const edge of proc.edges || []) {
         const pts = edgeCoords[edge.id];
         if (!pts || pts.length < 3) continue;
         const srcLane = nodeLane[edge.source];
@@ -406,8 +423,7 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
         for (const segA of crossLaneEdges[i].hSegments) {
           for (const segB of crossLaneEdges[j].hSegments) {
             // Overlapping Y within threshold and overlapping X range?
-            if (Math.abs(segA.y - segB.y) < 8 &&
-                segA.minX < segB.maxX && segA.maxX > segB.minX) {
+            if (Math.abs(segA.y - segB.y) < 8 && segA.minX < segB.maxX && segA.maxX > segB.minX) {
               // Nudge the second edge's segment
               if (!nudged.has(segB.edgeId)) {
                 const pts = edgeCoords[segB.edgeId];
@@ -429,8 +445,8 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
   // Strategy: detect whether the first/last segment is horizontal or vertical,
   // then project the endpoint onto the shape boundary along that axis only.
   //
-  const allProcessNodes = allProcesses.flatMap(p => p.nodes || []);
-  const allProcessEdges = allProcesses.flatMap(p => p.edges || []);
+  const allProcessNodes = allProcesses.flatMap((p) => p.nodes || []);
+  const allProcessEdges = allProcesses.flatMap((p) => p.edges || []);
   for (const edge of allProcessEdges) {
     const eid = edge.id;
     const pts = edgeCoords[eid];
@@ -438,8 +454,8 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
 
     const srcCoord = coords[edge.source];
     const tgtCoord = coords[edge.target];
-    const srcNode  = allProcessNodes.find(n => n.id === edge.source);
-    const tgtNode  = allProcessNodes.find(n => n.id === edge.target);
+    const srcNode = allProcessNodes.find((n) => n.id === edge.source);
+    const tgtNode = allProcessNodes.find((n) => n.id === edge.target);
 
     if (srcCoord && srcNode) {
       pts[0] = clipOrthogonal(srcCoord, srcNode.type, pts[0], pts[1], 'source');
@@ -455,7 +471,7 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
   for (const edge of allProcessEdges) {
     const eid = edge.id;
     const pts = edgeCoords[eid];
-    if (pts && pts.length >= 2) continue;  // already routed
+    if (pts && pts.length >= 2) continue; // already routed
 
     const srcC = coords[edge.source];
     const tgtC = coords[edge.target];
@@ -474,23 +490,13 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
       const srcExit = { x: srcCx, y: srcCy > tgtCy ? srcC.y : srcC.y + srcC.h };
       const tgtEntry = { x: tgtCx, y: srcCy > tgtCy ? tgtC.y + tgtC.h : tgtC.y };
       const midY = (srcExit.y + tgtEntry.y) / 2;
-      edgeCoords[eid] = [
-        srcExit,
-        { x: srcCx, y: midY },
-        { x: tgtCx, y: midY },
-        tgtEntry,
-      ];
+      edgeCoords[eid] = [srcExit, { x: srcCx, y: midY }, { x: tgtCx, y: midY }, tgtEntry];
     } else {
       // Primarily horizontal: right side → horizontal → up/down → horizontal → left side
       const srcExit = { x: srcC.x + srcC.w, y: srcCy };
       const tgtEntry = { x: tgtC.x, y: tgtCy };
       const midX = (srcExit.x + tgtEntry.x) / 2;
-      edgeCoords[eid] = [
-        srcExit,
-        { x: midX, y: srcCy },
-        { x: midX, y: tgtCy },
-        tgtEntry,
-      ];
+      edgeCoords[eid] = [srcExit, { x: midX, y: srcCy }, { x: midX, y: tgtCy }, tgtEntry];
     }
   }
 
@@ -508,7 +514,7 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
   //        (common for cross-lane edges).
   //        Skip happy-path edges — ELK's layout for these is usually correct.
   for (const proc of allProcesses) {
-    for (const edge of (proc.edges || [])) {
+    for (const edge of proc.edges || []) {
       if (edge.isHappyPath) continue;
 
       const pts = edgeCoords[edge.id];
@@ -531,13 +537,12 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
       const directDist = Math.abs(tgtCx - srcCx) + Math.abs(tgtCy - srcCy);
 
       // Criterion 2: Y-range exceedance
-      const routeYs = pts.map(p => p.y);
+      const routeYs = pts.map((p) => p.y);
       const routeYRange = Math.max(...routeYs) - Math.min(...routeYs);
       const nodeYRange = Math.abs(tgtCy - srcCy);
 
       const isZigzag =
-        (directDist > 20 && routeLength > 3 * directDist) ||
-        (routeYRange > nodeYRange + 200);
+        (directDist > 20 && routeLength > 3 * directDist) || routeYRange > nodeYRange + 200;
 
       if (!isZigzag) continue;
 
@@ -546,13 +551,13 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
       const dy = Math.abs(tgtCy - srcCy);
 
       if (dy > dx) {
-        const srcExit  = { x: srcCx, y: srcCy > tgtCy ? srcC.y : srcC.y + srcC.h };
+        const srcExit = { x: srcCx, y: srcCy > tgtCy ? srcC.y : srcC.y + srcC.h };
         const tgtEntry = { x: tgtCx, y: srcCy > tgtCy ? tgtC.y + tgtC.h : tgtC.y };
         const midY = (srcExit.y + tgtEntry.y) / 2;
         edgeCoords[edge.id] = [srcExit, { x: srcCx, y: midY }, { x: tgtCx, y: midY }, tgtEntry];
       } else {
         const goRight = tgtCx > srcCx;
-        const srcExit  = { x: goRight ? srcC.x + srcC.w : srcC.x, y: srcCy };
+        const srcExit = { x: goRight ? srcC.x + srcC.w : srcC.x, y: srcCy };
         const tgtEntry = { x: goRight ? tgtC.x : tgtC.x + tgtC.w, y: tgtCy };
         const midX = (srcExit.x + tgtEntry.x) / 2;
         edgeCoords[edge.id] = [srcExit, { x: midX, y: srcCy }, { x: midX, y: tgtCy }, tgtEntry];
@@ -568,13 +573,14 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
 
   // Sequence-flow labels
   for (const proc of allProcesses) {
-    for (const e of (proc.edges || [])) {
+    for (const e of proc.edges || []) {
       if (!e.label) continue;
       const eid = e.id;
       const pts = edgeCoords[eid];
       if (!pts || pts.length < 2) {
         // Fallback: midpoint between source and target node centers
-        const s = coords[e.source], t = coords[e.target];
+        const s = coords[e.source],
+          t = coords[e.target];
         if (!s || !t) continue;
         edgeLabels[eid] = {
           text: e.label,
@@ -584,7 +590,8 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
         continue;
       }
       // Find first horizontal segment (dy < 1) — mirrors svg.js renderSequenceFlow
-      let labelX = null, labelY = null;
+      let labelX = null,
+        labelY = null;
       let placed = false;
       for (let i = 0; i < pts.length - 1; i++) {
         const dy = Math.abs(pts[i + 1].y - pts[i].y);
@@ -597,7 +604,8 @@ function buildCoordinateMap(elkResult, lc, opts = {}) {
       }
       if (!placed) {
         // No horizontal segment: 30% from source — mirrors svg.js fallback
-        const p0 = pts[0], p1 = pts[pts.length - 1];
+        const p0 = pts[0],
+          p1 = pts[pts.length - 1];
         labelX = p0.x + (p1.x - p0.x) * 0.3;
         labelY = p0.y + (p1.y - p0.y) * 0.3;
       }
@@ -634,9 +642,9 @@ function enforceOrthogonal(pts) {
 
   for (let i = 1; i < pts.length; i++) {
     const prev = result[result.length - 1];
-    const cur  = pts[i];
-    const dx   = Math.abs(cur.x - prev.x);
-    const dy   = Math.abs(cur.y - prev.y);
+    const cur = pts[i];
+    const dx = Math.abs(cur.x - prev.x);
+    const dy = Math.abs(cur.y - prev.y);
 
     // Already orthogonal (within tolerance)
     if (dx < 1 || dy < 1) {
@@ -666,11 +674,11 @@ function enforceOrthogonal(pts) {
 
 function findNodeInAllProcesses(nodeId, processes) {
   for (const p of processes) {
-    for (const n of (p.nodes || [])) {
+    for (const n of p.nodes || []) {
       if (n.id === nodeId) return n;
       // Search inside expanded subprocesses (1 level)
       if (n.isExpanded && n.nodes) {
-        const child = n.nodes.find(c => c.id === nodeId);
+        const child = n.nodes.find((c) => c.id === nodeId);
         if (child) return child;
       }
     }
@@ -746,7 +754,8 @@ function clipCircleOrthogonal(cx, cy, r, nextPt, isHorizontal) {
 function clipDiamondOrthogonal(shape, nextPt, isHorizontal) {
   const cx = shape.x + shape.w / 2;
   const cy = shape.y + shape.h / 2;
-  const hw = shape.w / 2, hh = shape.h / 2;
+  const hw = shape.w / 2,
+    hh = shape.h / 2;
 
   if (isHorizontal) {
     const y = nextPt.y;
@@ -810,12 +819,11 @@ export function messageFlowPorts(srcCoord, tgtCoord) {
   const downward = sCenterY < tCenterY;
   return {
     sx: sxCenter,
-    sy: downward ? (srcCoord.y || 0) + (srcCoord.h || 0) : (srcCoord.y || 0),
+    sy: downward ? (srcCoord.y || 0) + (srcCoord.h || 0) : srcCoord.y || 0,
     ex: exCenter,
-    ey: downward ? (tgtCoord.y || 0) : (tgtCoord.y || 0) + (tgtCoord.h || 0),
+    ey: downward ? tgtCoord.y || 0 : (tgtCoord.y || 0) + (tgtCoord.h || 0),
   };
 }
-
 
 /**
  * Align the cross-axis centers of unambiguous same-lane forward-flow chains.
@@ -835,14 +843,14 @@ function alignLinearFlowCrossAxis(coords, processes, direction = 'RIGHT', edgeCo
   const dir = String(direction).toUpperCase();
   const horizontal = dir === 'RIGHT' || dir === 'LEFT';
   const forwardSign = dir === 'LEFT' || dir === 'UP' ? -1 : 1;
-  const primaryCenter = c => horizontal ? c.x + c.w / 2 : c.y + c.h / 2;
-  const crossCenter = c => horizontal ? c.y + c.h / 2 : c.x + c.w / 2;
+  const primaryCenter = (c) => (horizontal ? c.x + c.w / 2 : c.y + c.h / 2);
+  const crossCenter = (c) => (horizontal ? c.y + c.h / 2 : c.x + c.w / 2);
   const EPS = 1;
 
   for (const proc of processes || []) {
     const nodes = proc.nodes || [];
     const edges = proc.edges || [];
-    const nodeById = new Map(nodes.map(n => [n.id, n]));
+    const nodeById = new Map(nodes.map((n) => [n.id, n]));
 
     // Support both node.lane and lane.nodeIds representations.
     const laneByNode = new Map();
@@ -882,7 +890,7 @@ function alignLinearFlowCrossAxis(coords, processes, direction = 'RIGHT', edgeCo
       forwardIn.set(edge.target, (forwardIn.get(edge.target) || 0) + 1);
     }
 
-    const qualifying = forwardEdges.filter(edge => {
+    const qualifying = forwardEdges.filter((edge) => {
       if (edge.isHappyPath) return true;
       if (forwardOut.get(edge.source) === 1 && forwardIn.get(edge.target) === 1) return true;
 
@@ -928,18 +936,25 @@ function alignLinearFlowCrossAxis(coords, processes, direction = 'RIGHT', edgeCo
       }
       if (component.length < 2) continue;
 
-      const medianCenter = ids => {
-        const centers = ids.map(id => crossCenter(coords[id])).sort((a, b) => a - b);
+      const medianCenter = (ids) => {
+        const centers = ids.map((id) => crossCenter(coords[id])).sort((a, b) => a - b);
         const mid = Math.floor(centers.length / 2);
-        return centers.length % 2
-          ? centers[mid]
-          : (centers[mid - 1] + centers[mid]) / 2;
+        return centers.length % 2 ? centers[mid] : (centers[mid - 1] + centers[mid]) / 2;
       };
 
       let targetCenter;
-      const happyNodeIds = [...new Set(qualifying
-        .filter(edge => edge.isHappyPath && component.includes(edge.source) && component.includes(edge.target))
-        .flatMap(edge => [edge.source, edge.target]))];
+      const happyNodeIds = [
+        ...new Set(
+          qualifying
+            .filter(
+              (edge) =>
+                edge.isHappyPath &&
+                component.includes(edge.source) &&
+                component.includes(edge.target),
+            )
+            .flatMap((edge) => [edge.source, edge.target]),
+        ),
+      ];
 
       // If the model explicitly marks a happy path, preserve the row/column ELK
       // already chose for those nodes and pull the rest of the linear chain onto it.
@@ -949,18 +964,22 @@ function alignLinearFlowCrossAxis(coords, processes, direction = 'RIGHT', edgeCo
         // Without an explicit happy path, a split/join gateway is the most stable
         // visual anchor: ELK has already chosen which branch stays straight through
         // that gateway. Align the adjacent linear chain to the gateway, not vice versa.
-        const gatewayAnchors = component.filter(id => {
+        const gatewayAnchors = component.filter((id) => {
           const node = nodeById.get(id);
-          return node && isGateway(node.type) &&
-            ((forwardOut.get(id) || 0) > 1 || (forwardIn.get(id) || 0) > 1);
+          return (
+            node &&
+            isGateway(node.type) &&
+            ((forwardOut.get(id) || 0) > 1 || (forwardIn.get(id) || 0) > 1)
+          );
         });
         if (gatewayAnchors.length === 1) {
           targetCenter = crossCenter(coords[gatewayAnchors[0]]);
         } else {
-          const roots = component.filter(id => (qualifyingIn.get(id) || 0) === 0);
-          targetCenter = roots.length === 1 && coords[roots[0]]
-            ? crossCenter(coords[roots[0]])
-            : medianCenter(component);
+          const roots = component.filter((id) => (qualifyingIn.get(id) || 0) === 0);
+          targetCenter =
+            roots.length === 1 && coords[roots[0]]
+              ? crossCenter(coords[roots[0]])
+              : medianCenter(component);
         }
       }
       targetCenter = Math.round(targetCenter * 2) / 2;
@@ -1020,4 +1039,10 @@ function alignLinearFlowCrossAxis(coords, processes, direction = 'RIGHT', edgeCo
   return coords;
 }
 
-export { buildCoordinateMap, alignLinearFlowCrossAxis, enforceOrthogonal, findNodeInAllProcesses, clipOrthogonal };
+export {
+  buildCoordinateMap,
+  alignLinearFlowCrossAxis,
+  enforceOrthogonal,
+  findNodeInAllProcesses,
+  clipOrthogonal,
+};

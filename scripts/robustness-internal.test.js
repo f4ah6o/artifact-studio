@@ -1,4 +1,4 @@
-import { describe, test, expect } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, test } from 'vite-plus/test';
 import { parseArgs, loadConfig, resolveEndpoint } from './robustness/cli.js';
 import { createLlmProvider } from './agents/llm-provider.js';
 import { readFileSync as _readFile } from 'fs';
@@ -34,7 +34,10 @@ describe('robustness/cli — loadConfig', () => {
 });
 
 describe('robustness/cli — resolveEndpoint precedence', () => {
-  const cfg = { model: 'cfg-model', endpoint: { url_env: 'AIHUB_URL', key_env: 'AIHUB_KEY', url: null, key: null } };
+  const cfg = {
+    model: 'cfg-model',
+    endpoint: { url_env: 'AIHUB_URL', key_env: 'AIHUB_KEY', url: null, key: null },
+  };
 
   test('CLI flag wins over env', () => {
     const env = { AIHUB_URL: 'http://env.example' };
@@ -67,7 +70,10 @@ describe('robustness/cli — resolveEndpoint precedence', () => {
 
 describe('robustness/cli — LLM provider construction', () => {
   test('constructs a callable from resolved endpoint', () => {
-    const cfg = { model: 'qwen-3.5-122b', endpoint: { url_env: 'AIHUB_URL', key_env: 'AIHUB_KEY', url: null, key: null } };
+    const cfg = {
+      model: 'qwen-3.5-122b',
+      endpoint: { url_env: 'AIHUB_URL', key_env: 'AIHUB_KEY', url: null, key: null },
+    };
     const env = { AIHUB_URL: 'http://test.example/v1', AIHUB_KEY: 'secret' };
     const { baseUrl, apiKey, model } = resolveEndpoint(cfg, {}, env);
     const llm = createLlmProvider({ baseUrl, apiKey, model, timeout: 5_000 });
@@ -82,26 +88,31 @@ describe('robustness/synthetic-generator — enumerateCells', () => {
     domains: ['a', 'b'],
     complexity: { simple: {}, medium: {} },
     patterns: ['p1'],
-    stress_modes: ['s1', 's2']
+    stress_modes: ['s1', 's2'],
   };
 
   test('produces full Cartesian product', () => {
     const cells = enumerateCells(catalog);
     expect(cells).toHaveLength(2 * 2 * 1 * 2); // 8
     expect(cells[0]).toMatchObject({
-      domain: 'a', complexity: 'simple', pattern: 'p1', stress_mode: 's1'
+      domain: 'a',
+      complexity: 'simple',
+      pattern: 'p1',
+      stress_mode: 's1',
     });
   });
 
   test('each cell has the four dimension keys', () => {
     const cells = enumerateCells(catalog);
     for (const cell of cells) {
-      expect(cell).toEqual(expect.objectContaining({
-        domain: expect.any(String),
-        complexity: expect.any(String),
-        pattern: expect.any(String),
-        stress_mode: expect.any(String),
-      }));
+      expect(cell).toEqual(
+        expect.objectContaining({
+          domain: expect.any(String),
+          complexity: expect.any(String),
+          pattern: expect.any(String),
+          stress_mode: expect.any(String),
+        }),
+      );
     }
   });
 });
@@ -130,10 +141,12 @@ describe('robustness/synthetic-generator — sampleCells', () => {
 
   test('targeted strategy filters by predicate', () => {
     const picked = sampleCells(cells, {
-      n: 10, strategy: 'targeted', seed: 1,
-      filter: c => c.complexity === 'simple'
+      n: 10,
+      strategy: 'targeted',
+      seed: 1,
+      filter: (c) => c.complexity === 'simple',
     });
-    expect(picked.every(p => p.complexity === 'simple')).toBe(true);
+    expect(picked.every((p) => p.complexity === 'simple')).toBe(true);
   });
 
   test('if n > available cells, returns all cells', () => {
@@ -142,10 +155,19 @@ describe('robustness/synthetic-generator — sampleCells', () => {
   });
 });
 
-import { buildDescriptionPrompt, buildLcJsonPrompt, extractJson } from './robustness/synthetic-generator.js';
+import {
+  buildDescriptionPrompt,
+  buildLcJsonPrompt,
+  extractJson,
+} from './robustness/synthetic-generator.js';
 
 describe('robustness/synthetic-generator — buildDescriptionPrompt', () => {
-  const cell = { domain: 'procurement', complexity: 'medium', pattern: 'four-eyes', stress_mode: 'wide-parallelism' };
+  const cell = {
+    domain: 'procurement',
+    complexity: 'medium',
+    pattern: 'four-eyes',
+    stress_mode: 'wide-parallelism',
+  };
   const complexitySpec = { minNodes: 10, maxNodes: 25, gateways: 2 };
 
   test('produces system + user prompt strings', () => {
@@ -207,10 +229,15 @@ import { generateSamples, formatSampleId, buildSample } from './robustness/synth
 
 describe('robustness/synthetic-generator — formatSampleId', () => {
   test('uses __ separator and includes all 5 fields', () => {
-    const id = formatSampleId({
-      domain: 'hr-onboarding', complexity: 'medium',
-      pattern: 'four-eyes', stress_mode: 'wide-parallelism'
-    }, 42);
+    const id = formatSampleId(
+      {
+        domain: 'hr-onboarding',
+        complexity: 'medium',
+        pattern: 'four-eyes',
+        stress_mode: 'wide-parallelism',
+      },
+      42,
+    );
     expect(id).toBe('hr-onboarding__medium__four-eyes__wide-parallelism__042');
   });
 
@@ -247,7 +274,7 @@ describe('robustness/synthetic-generator — generateSamples (integration with m
     domains: ['a'],
     complexity: { simple: { minNodes: 5, maxNodes: 10, gateways: 0 } },
     patterns: ['p1'],
-    stress_modes: ['normal']
+    stress_modes: ['normal'],
   };
 
   const mockLlm = async (system, user) => {
@@ -259,7 +286,12 @@ describe('robustness/synthetic-generator — generateSamples (integration with m
 
   test('produces N Sample records with correct meta', async () => {
     const samples = await generateSamples({
-      catalog, n: 1, llm: mockLlm, target: 'lc-json', model: 'mock-model', seed: 42,
+      catalog,
+      n: 1,
+      llm: mockLlm,
+      target: 'lc-json',
+      model: 'mock-model',
+      seed: 42,
     });
     expect(samples).toHaveLength(1);
     expect(samples[0].description).toBe('Eine kurze Prozessbeschreibung auf Deutsch.');
@@ -274,32 +306,45 @@ describe('robustness/synthetic-generator — generateSamples (integration with m
       return 'desc';
     };
     const samples = await generateSamples({
-      catalog, n: 1, llm: flakyLlm, target: 'lc-json', model: 'flaky', seed: 1,
+      catalog,
+      n: 1,
+      llm: flakyLlm,
+      target: 'lc-json',
+      model: 'flaky',
+      seed: 1,
     });
     expect(samples).toHaveLength(0);
   });
 });
 
-import { toAdjacencyList, canonicalSignature, isStructurallyEqual } from './robustness/graph-isomorphism.js';
+import {
+  toAdjacencyList,
+  canonicalSignature,
+  isStructurallyEqual,
+} from './robustness/graph-isomorphism.js';
 
 describe('robustness/graph-isomorphism — toAdjacencyList', () => {
   test('converts single-pool LC to typed adjacency list', () => {
     const lc = {
-      pools: [{
-        id: 'P1',
-        lanes: [{
-          id: 'L1',
-          nodes: [
-            { id: 'start', type: 'startEvent' },
-            { id: 'task1', type: 'task' },
-            { id: 'end', type: 'endEvent' },
-          ]
-        }]
-      }],
+      pools: [
+        {
+          id: 'P1',
+          lanes: [
+            {
+              id: 'L1',
+              nodes: [
+                { id: 'start', type: 'startEvent' },
+                { id: 'task1', type: 'task' },
+                { id: 'end', type: 'endEvent' },
+              ],
+            },
+          ],
+        },
+      ],
       flows: [
         { source: 'start', target: 'task1' },
         { source: 'task1', target: 'end' },
-      ]
+      ],
     };
     const adj = toAdjacencyList(lc);
     expect(adj.nodes).toHaveLength(3);
@@ -314,7 +359,7 @@ describe('robustness/graph-isomorphism — toAdjacencyList', () => {
         { id: 'P1', lanes: [{ id: 'L1', nodes: [{ id: 'a', type: 'task' }] }] },
         { id: 'P2', lanes: [{ id: 'L2', nodes: [{ id: 'b', type: 'task' }] }] },
       ],
-      flows: []
+      flows: [],
     };
     const adj = toAdjacencyList(lc);
     expect(adj.pools).toHaveLength(2);
@@ -326,48 +371,105 @@ describe('robustness/graph-isomorphism — toAdjacencyList', () => {
 describe('robustness/graph-isomorphism — canonicalSignature', () => {
   test('produces deterministic string for same structure regardless of node order', () => {
     const lcA = {
-      pools: [{ id: 'P', lanes: [{ id: 'L', nodes: [
-        { id: 'a', type: 'task' }, { id: 'b', type: 'gateway' }
-      ]}]}],
-      flows: []
+      pools: [
+        {
+          id: 'P',
+          lanes: [
+            {
+              id: 'L',
+              nodes: [
+                { id: 'a', type: 'task' },
+                { id: 'b', type: 'gateway' },
+              ],
+            },
+          ],
+        },
+      ],
+      flows: [],
     };
     const lcB = {
-      pools: [{ id: 'P', lanes: [{ id: 'L', nodes: [
-        { id: 'b', type: 'gateway' }, { id: 'a', type: 'task' }
-      ]}]}],
-      flows: []
+      pools: [
+        {
+          id: 'P',
+          lanes: [
+            {
+              id: 'L',
+              nodes: [
+                { id: 'b', type: 'gateway' },
+                { id: 'a', type: 'task' },
+              ],
+            },
+          ],
+        },
+      ],
+      flows: [],
     };
     expect(canonicalSignature(lcA)).toBe(canonicalSignature(lcB));
   });
 
   test('differs when types differ', () => {
-    const lcA = { pools: [{ id: 'P', lanes: [{ id: 'L', nodes: [{ id: 'x', type: 'task' }] }] }], flows: [] };
-    const lcB = { pools: [{ id: 'P', lanes: [{ id: 'L', nodes: [{ id: 'x', type: 'startEvent' }] }] }], flows: [] };
+    const lcA = {
+      pools: [{ id: 'P', lanes: [{ id: 'L', nodes: [{ id: 'x', type: 'task' }] }] }],
+      flows: [],
+    };
+    const lcB = {
+      pools: [{ id: 'P', lanes: [{ id: 'L', nodes: [{ id: 'x', type: 'startEvent' }] }] }],
+      flows: [],
+    };
     expect(canonicalSignature(lcA)).not.toBe(canonicalSignature(lcB));
   });
 });
 
 describe('robustness/graph-isomorphism — isStructurallyEqual', () => {
   test('returns equal:true for identical', () => {
-    const lc = { pools: [{ id: 'P', lanes: [{ id: 'L', nodes: [{ id: 'a', type: 'task' }] }] }], flows: [] };
+    const lc = {
+      pools: [{ id: 'P', lanes: [{ id: 'L', nodes: [{ id: 'a', type: 'task' }] }] }],
+      flows: [],
+    };
     const result = isStructurallyEqual(lc, lc);
     expect(result.equal).toBe(true);
   });
 
   test('returns delta with mismatched node counts', () => {
-    const lcA = { pools: [{ id: 'P', lanes: [{ id: 'L', nodes: [
-      { id: 'a', type: 'task' }, { id: 'b', type: 'task' }
-    ]}]}], flows: [] };
-    const lcB = { pools: [{ id: 'P', lanes: [{ id: 'L', nodes: [
-      { id: 'a', type: 'task' }
-    ]}]}], flows: [] };
+    const lcA = {
+      pools: [
+        {
+          id: 'P',
+          lanes: [
+            {
+              id: 'L',
+              nodes: [
+                { id: 'a', type: 'task' },
+                { id: 'b', type: 'task' },
+              ],
+            },
+          ],
+        },
+      ],
+      flows: [],
+    };
+    const lcB = {
+      pools: [{ id: 'P', lanes: [{ id: 'L', nodes: [{ id: 'a', type: 'task' }] }] }],
+      flows: [],
+    };
     const result = isStructurallyEqual(lcA, lcB);
     expect(result.equal).toBe(false);
     expect(result.delta.nodeCount).toEqual({ a: 2, b: 1 });
   });
 
   test('returns delta when lane count differs', () => {
-    const lcA = { pools: [{ id: 'P', lanes: [{ id: 'L1', nodes: [] }, { id: 'L2', nodes: [] }] }], flows: [] };
+    const lcA = {
+      pools: [
+        {
+          id: 'P',
+          lanes: [
+            { id: 'L1', nodes: [] },
+            { id: 'L2', nodes: [] },
+          ],
+        },
+      ],
+      flows: [],
+    };
     const lcB = { pools: [{ id: 'P', lanes: [{ id: 'L1', nodes: [] }] }], flows: [] };
     const result = isStructurallyEqual(lcA, lcB);
     expect(result.equal).toBe(false);
@@ -379,9 +481,12 @@ describe('robustness/graph-isomorphism — toAdjacencyList format tolerance', ()
   test('handles legacy flat format', () => {
     const legacy = {
       id: 'proc',
-      nodes: [{ id: 'a', type: 'task' }, { id: 'b', type: 'task' }],
+      nodes: [
+        { id: 'a', type: 'task' },
+        { id: 'b', type: 'task' },
+      ],
       edges: [{ source: 'a', target: 'b' }],
-      lanes: [{ id: 'L1' }]
+      lanes: [{ id: 'L1' }],
     };
     const adj = toAdjacencyList(legacy);
     expect(adj.nodes).toHaveLength(2);
@@ -394,11 +499,16 @@ describe('robustness/graph-isomorphism — toAdjacencyList format tolerance', ()
     const legacy = { nodes: [{ id: 'a', type: 'task' }], edges: [] };
     const adj = toAdjacencyList(legacy);
     expect(adj.nodes).toHaveLength(1);
-    expect(adj.lanes).toHaveLength(1);  // synthetic default lane
+    expect(adj.lanes).toHaveLength(1); // synthetic default lane
   });
 });
 
-import { preFilter, runPipelineChecks, runRoundtripCheck, runStressTest } from './robustness/stress-tester.js';
+import {
+  preFilter,
+  runPipelineChecks,
+  runRoundtripCheck,
+  runStressTest,
+} from './robustness/stress-tester.js';
 
 describe('robustness/stress-tester — runPipelineChecks', () => {
   test('passes on simple valid LC', async () => {
@@ -460,7 +570,15 @@ describe('robustness/stress-tester — runStressTest', () => {
       id: 'test__simple__none__normal__001',
       description: 'test',
       lcJson: loadFixture('simple-approval.json'),
-      meta: { domain: 'test', complexity: 'simple', pattern: 'none', stress_mode: 'normal', target: 'lc-json', model: 'test', generated_at: '2026-05-16T00:00:00Z' },
+      meta: {
+        domain: 'test',
+        complexity: 'simple',
+        pattern: 'none',
+        stress_mode: 'normal',
+        target: 'lc-json',
+        model: 'test',
+        generated_at: '2026-05-16T00:00:00Z',
+      },
     };
     const results = await runStressTest([sample], { timeoutMs: 15_000 });
     expect(results).toHaveLength(1);
@@ -475,7 +593,9 @@ import { classify, computeFingerprint } from './robustness/failure-classifier.js
 describe('robustness/failure-classifier — computeFingerprint', () => {
   test('same category + same error + same structure → same hash', () => {
     const r = {
-      sample: { lcJson: { pools: [{ id: 'P', lanes: [], nodes: [{ id: 'a', type: 'task' }] }], flows: [] } },
+      sample: {
+        lcJson: { pools: [{ id: 'P', lanes: [], nodes: [{ id: 'a', type: 'task' }] }], flows: [] },
+      },
       failure: { stage: 'pipeline', failedStep: 'pipeline-throw', error: 'ElkError: cyclic' },
     };
     const fp1 = computeFingerprint('elk-error', r);
@@ -580,8 +700,12 @@ import { join as _join_4_1 } from 'path';
 
 describe('robustness/fixture-persister — persistFailure', () => {
   let tmpRoot;
-  beforeEach(() => { tmpRoot = mkdtempSync(`${tmpdir()}/robustness-`); });
-  afterEach(() => { rmSync(tmpRoot, { recursive: true, force: true }); });
+  beforeEach(() => {
+    tmpRoot = mkdtempSync(`${tmpdir()}/robustness-`);
+  });
+  afterEach(() => {
+    rmSync(tmpRoot, { recursive: true, force: true });
+  });
 
   const baseRecord = {
     category: 'elk-error',
@@ -601,7 +725,9 @@ describe('robustness/fixture-persister — persistFailure', () => {
     expect(r.wrote).toBe('new');
     expect(existsSync(_join_4_1(tmpRoot, 'auto/elk-error-abc123.json'))).toBe(true);
     expect(existsSync(_join_4_1(tmpRoot, 'auto/elk-error-abc123.meta.json'))).toBe(true);
-    const meta = JSON.parse(readFileSync(_join_4_1(tmpRoot, 'auto/elk-error-abc123.meta.json'), 'utf8'));
+    const meta = JSON.parse(
+      readFileSync(_join_4_1(tmpRoot, 'auto/elk-error-abc123.meta.json'), 'utf8'),
+    );
     expect(meta.seen).toBe(1);
   });
 
@@ -609,15 +735,21 @@ describe('robustness/fixture-persister — persistFailure', () => {
     await persistFailure(baseRecord, baseSample, { fixtureRoot: tmpRoot });
     const r2 = await persistFailure(baseRecord, baseSample, { fixtureRoot: tmpRoot });
     expect(r2.wrote).toBe('dedup');
-    const meta = JSON.parse(readFileSync(_join_4_1(tmpRoot, 'auto/elk-error-abc123.meta.json'), 'utf8'));
+    const meta = JSON.parse(
+      readFileSync(_join_4_1(tmpRoot, 'auto/elk-error-abc123.meta.json'), 'utf8'),
+    );
     expect(meta.seen).toBe(2);
   });
 });
 
 describe('robustness/fixture-persister — llm-signal gate', () => {
   let tmpRoot;
-  beforeEach(() => { tmpRoot = mkdtempSync(`${tmpdir()}/robustness-signal-`); });
-  afterEach(() => { rmSync(tmpRoot, { recursive: true, force: true }); });
+  beforeEach(() => {
+    tmpRoot = mkdtempSync(`${tmpdir()}/robustness-signal-`);
+  });
+  afterEach(() => {
+    rmSync(tmpRoot, { recursive: true, force: true });
+  });
 
   const record = {
     category: 'schema-violation',
@@ -640,7 +772,10 @@ describe('robustness/fixture-persister — llm-signal gate', () => {
   });
 
   test('flag ON → written', async () => {
-    const r = await persistFailure(record, sample, { fixtureRoot: tmpRoot, persistLlmSignal: true });
+    const r = await persistFailure(record, sample, {
+      fixtureRoot: tmpRoot,
+      persistLlmSignal: true,
+    });
     expect(r.wrote).toBe('new');
     const llmSignalFile = `${tmpRoot}/llm-signal/schema-violation-sig123.json`;
     expect(existsSync(llmSignalFile)).toBe(true);
@@ -659,7 +794,8 @@ describe('robustness/report-generator — generateReport', () => {
 
   test('renders Markdown with totals + per-category', () => {
     const records = [
-      { category: 'pass' }, { category: 'pass' },
+      { category: 'pass' },
+      { category: 'pass' },
       { category: 'elk-error', bucket: 'auto', fingerprint: 'a1' },
       { category: 'roundtrip-break', bucket: 'auto', fingerprint: 'a2' },
     ];
@@ -676,7 +812,12 @@ describe('robustness/report-generator — generateReport', () => {
   test('Markdown includes per-target breakdown when both targets present', () => {
     const records = [
       { category: 'pass', sample: { meta: { target: 'lc-json' } } },
-      { category: 'elk-error', sample: { meta: { target: 'dot' } }, bucket: 'auto', fingerprint: 'x' },
+      {
+        category: 'elk-error',
+        sample: { meta: { target: 'dot' } },
+        bucket: 'auto',
+        fingerprint: 'x',
+      },
     ];
     const { markdown } = generateReport(runMeta, records);
     expect(markdown.toLowerCase()).toContain('target');
@@ -707,8 +848,12 @@ describe('robustness/report-generator — computeDrift', () => {
 
 describe('robustness — end-to-end with mocked LLM and tmpfs', () => {
   let tmpRoot;
-  beforeEach(() => { tmpRoot = mkdtempSync(`${tmpdir()}/robustness-e2e-`); });
-  afterEach(() => { rmSync(tmpRoot, { recursive: true, force: true }); });
+  beforeEach(() => {
+    tmpRoot = mkdtempSync(`${tmpdir()}/robustness-e2e-`);
+  });
+  afterEach(() => {
+    rmSync(tmpRoot, { recursive: true, force: true });
+  });
 
   test('valid LC sample passes through full pipeline', async () => {
     const { generateSamples } = await import('./robustness/synthetic-generator.js');
@@ -726,17 +871,26 @@ describe('robustness — end-to-end with mocked LLM and tmpfs', () => {
       domains: ['test'],
       complexity: { simple: { minNodes: 5, maxNodes: 10, gateways: 0 } },
       patterns: ['none'],
-      stress_modes: ['normal']
+      stress_modes: ['normal'],
     };
-    const samples = await generateSamples({ catalog, n: 1, llm: mockLlm, target: 'lc-json', model: 'mock', seed: 1 });
+    const samples = await generateSamples({
+      catalog,
+      n: 1,
+      llm: mockLlm,
+      target: 'lc-json',
+      model: 'mock',
+      seed: 1,
+    });
     expect(samples).toHaveLength(1);
 
     const results = await runStressTest(samples, { timeoutMs: 15_000 });
-    const classified = results.map(r => ({ ...r, ...classify(r) }));
+    const classified = results.map((r) => ({ ...r, ...classify(r) }));
     expect(classified[0].category).toBe('pass');
 
     // No persistence expected for pass
-    const persistResult = await persistFailure(classified[0], classified[0].sample, { fixtureRoot: tmpRoot });
+    const persistResult = await persistFailure(classified[0], classified[0].sample, {
+      fixtureRoot: tmpRoot,
+    });
     expect(persistResult.wrote).toBe('skipped-no-bucket');
   }, 20_000);
 });
@@ -775,16 +929,24 @@ describe('robustness/synthetic-generator — DOT target end-to-end', () => {
     domains: ['x'],
     complexity: { simple: { minNodes: 5, maxNodes: 10, gateways: 0 } },
     patterns: ['p'],
-    stress_modes: ['n']
+    stress_modes: ['n'],
   };
 
   test('parses good DOT into lcJson', async () => {
-    const goodDot = 'digraph p { a [shape=circle]; b [shape=box]; c [shape=doublecircle]; a -> b -> c; }';
+    const goodDot =
+      'digraph p { a [shape=circle]; b [shape=box]; c [shape=doublecircle]; a -> b -> c; }';
     const mockLlm = async (system) => {
       if (system.toLowerCase().includes('dot')) return goodDot;
       return 'desc';
     };
-    const samples = await generateSamples({ catalog, n: 1, llm: mockLlm, target: 'dot', model: 'm', seed: 1 });
+    const samples = await generateSamples({
+      catalog,
+      n: 1,
+      llm: mockLlm,
+      target: 'dot',
+      model: 'm',
+      seed: 1,
+    });
     expect(samples).toHaveLength(1);
     expect(samples[0].rawDot).toContain('digraph');
     expect(samples[0].lcJson).toBeDefined();
@@ -795,7 +957,14 @@ describe('robustness/synthetic-generator — DOT target end-to-end', () => {
       if (system.toLowerCase().includes('dot')) return 'completely invalid DOT };';
       return 'desc';
     };
-    const samples = await generateSamples({ catalog, n: 1, llm: mockLlm, target: 'dot', model: 'm', seed: 1 });
+    const samples = await generateSamples({
+      catalog,
+      n: 1,
+      llm: mockLlm,
+      target: 'dot',
+      model: 'm',
+      seed: 1,
+    });
     expect(samples.length).toBeLessThanOrEqual(1);
   });
 });
@@ -810,6 +979,6 @@ describe('robustness/mad-validator — runMadCheck', () => {
     expect(result).toHaveProperty('passed');
     expect(result).toHaveProperty('failed');
     expect(result).toHaveProperty('byCategory');
-    expect(result.total).toBe(2);  // 2 .dot files in the test subset
+    expect(result.total).toBe(2); // 2 .dot files in the test subset
   }, 30_000);
 });

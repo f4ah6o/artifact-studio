@@ -38,9 +38,7 @@ function buildPrompt(state) {
   }
 
   if (mode === 'refine') {
-    const issueText = state.reviewIssues
-      .map(i => `[${i.severity}] ${i.problem}`)
-      .join('\n');
+    const issueText = state.reviewIssues.map((i) => `[${i.severity}] ${i.problem}`).join('\n');
     const systemPrompt = sections.refinement
       .replace('{{ISSUES}}', issueText)
       .replace('{{CURRENT_JSON}}', JSON.stringify(state.logicCore, null, 2));
@@ -48,9 +46,7 @@ function buildPrompt(state) {
   }
 
   // amend
-  const feedbackText = state.layoutFeedback
-    .map(f => `- ${f.issue}: ${f.suggestion}`)
-    .join('\n');
+  const feedbackText = state.layoutFeedback.map((f) => `- ${f.issue}: ${f.suggestion}`).join('\n');
   const systemPrompt = sections.amendment
     .replace('{{CURRENT_JSON}}', JSON.stringify(state.logicCore, null, 2))
     .replace('{{CHANGE_DESCRIPTION}}', feedbackText);
@@ -73,7 +69,10 @@ function extractJson(text) {
 // A Logic-Core root has nodes+edges OR pools. If not, peek one level deeper.
 function unwrapLogicCore(obj) {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return obj;
-  const isRoot = (o) => o && typeof o === 'object' && (Array.isArray(o.pools) || (Array.isArray(o.nodes) && Array.isArray(o.edges)));
+  const isRoot = (o) =>
+    o &&
+    typeof o === 'object' &&
+    (Array.isArray(o.pools) || (Array.isArray(o.nodes) && Array.isArray(o.edges)));
   if (isRoot(obj)) return obj;
   for (const key of ['process', 'processes', 'data', 'result', 'bpmn', 'logicCore', 'logic_core']) {
     const inner = obj[key];

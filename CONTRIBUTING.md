@@ -6,8 +6,8 @@ Thank you for your interest in contributing! This guide will help you get starte
 
 ```bash
 cd scripts/
-npm install          # installs elkjs, bpmn-moddle, jest
-npm test             # run all tests (136 tests, Jest + ES Modules)
+vp install           # installs dependencies with the declared package manager
+vp test --run        # run all tests with Vite+ / Vitest
 ```
 
 ### Smoke Test
@@ -42,7 +42,7 @@ See [README.md](README.md) for the full module architecture and dependency graph
 
 1. **Fork** the repository and create a feature branch
 2. **Read** the relevant module before modifying it
-3. **Run tests** after every change: `npm test`
+3. **Run tests** after every change: `vp test --run`
 4. **Golden files** — if your change affects layout or XML output, regenerate:
    ```bash
    node pipeline.js ../tests/fixtures/simple-approval.json ../tests/fixtures/simple-approval.expected

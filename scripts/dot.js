@@ -47,32 +47,34 @@ function logicCoreToDot(lc) {
         lines.push(`${indent}  style=dashed;`);
         lines.push(`${indent}  color="#999999";`);
 
-        const laneNodes = (proc.nodes || []).filter(n => n.lane === lane.id);
+        const laneNodes = (proc.nodes || []).filter((n) => n.lane === lane.id);
         for (const node of laneNodes) {
           lines.push(`${indent}  ${dotNode(node)}`);
         }
         lines.push(`${indent}}`);
       }
       // Nodes without lane assignment
-      const unassigned = (proc.nodes || []).filter(n => !n.lane);
+      const unassigned = (proc.nodes || []).filter((n) => !n.lane);
       for (const node of unassigned) {
         lines.push(`${indent}${dotNode(node)}`);
       }
     } else {
-      for (const node of (proc.nodes || [])) {
+      for (const node of proc.nodes || []) {
         lines.push(`${indent}${dotNode(node)}`);
       }
     }
 
     lines.push('');
 
-    for (const edge of (proc.edges || [])) {
+    for (const edge of proc.edges || []) {
       const attrs = [];
       if (edge.label) attrs.push(`label="${escapeDot(edge.label)}"`);
       if (edge.isDefault) attrs.push('style=bold');
       if (edge.isHappyPath) attrs.push('color="#2D7BB6"');
       const attrStr = attrs.length > 0 ? ` [${attrs.join(', ')}]` : '';
-      lines.push(`${indent}${sanitizeDotId(edge.source)} -> ${sanitizeDotId(edge.target)}${attrStr};`);
+      lines.push(
+        `${indent}${sanitizeDotId(edge.source)} -> ${sanitizeDotId(edge.target)}${attrStr};`,
+      );
     }
 
     if (useSubgraph) {
@@ -82,15 +84,19 @@ function logicCoreToDot(lc) {
   }
 
   // Collapsed pools
-  for (const cp of (lc.collapsedPools || [])) {
-    lines.push(`  ${sanitizeDotId(cp.id)} [label="${escapeDot(cp.name || cp.id)}", shape=box, style="filled,bold", fillcolor="#E8E8E8"];`);
+  for (const cp of lc.collapsedPools || []) {
+    lines.push(
+      `  ${sanitizeDotId(cp.id)} [label="${escapeDot(cp.name || cp.id)}", shape=box, style="filled,bold", fillcolor="#E8E8E8"];`,
+    );
   }
 
   // Message flows
-  for (const mf of (lc.messageFlows || [])) {
+  for (const mf of lc.messageFlows || []) {
     const attrs = ['style=dashed', 'color="#666666"'];
     if (mf.name) attrs.push(`label="${escapeDot(mf.name)}"`);
-    lines.push(`  ${sanitizeDotId(mf.source)} -> ${sanitizeDotId(mf.target)} [${attrs.join(', ')}];`);
+    lines.push(
+      `  ${sanitizeDotId(mf.source)} -> ${sanitizeDotId(mf.target)} [${attrs.join(', ')}];`,
+    );
   }
 
   lines.push('}');
@@ -111,7 +117,8 @@ function dotNode(node) {
   }
   if (isArtifact(type)) {
     if (type === 'textAnnotation') return `${id} [label="${label}", shape=note];`;
-    if (type === 'dataObjectReference') return `${id} [label="${label}", shape=note, style=filled, fillcolor="#FFFFCC"];`;
+    if (type === 'dataObjectReference')
+      return `${id} [label="${label}", shape=note, style=filled, fillcolor="#FFFFCC"];`;
     if (type === 'dataStoreReference') return `${id} [label="${label}", shape=cylinder];`;
     return `${id} [label="${label}", shape=box, style=dashed];`;
   }
@@ -141,7 +148,10 @@ function escapeDot(s) {
  * @returns {object} Logic-Core JSON
  */
 function dotToLogicCore(dotString) {
-  const lines = dotString.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('//'));
+  const lines = dotString
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith('//'));
 
   const nodes = [];
   const edges = [];
@@ -186,7 +196,7 @@ function dotToLogicCore(dotString) {
     if (labelMatch) {
       if (currentLane) {
         currentLane.name = labelMatch[1];
-        if (currentCluster && !currentCluster.lanes.find(l => l.id === currentLane.id)) {
+        if (currentCluster && !currentCluster.lanes.find((l) => l.id === currentLane.id)) {
           currentCluster.lanes.push(currentLane);
         }
       } else if (currentCluster) {
@@ -249,8 +259,8 @@ function dotToLogicCore(dotString) {
   }
 
   // Collect closed pools
-  for (const cluster of clusterStack.filter(c => c.type === 'pool')) {
-    if (!pools.find(p => p.id === cluster.id)) {
+  for (const cluster of clusterStack.filter((c) => c.type === 'pool')) {
+    if (!pools.find((p) => p.id === cluster.id)) {
       pools.push(cluster);
     }
   }

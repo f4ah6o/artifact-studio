@@ -25,7 +25,7 @@ import { orchestrate } from './orchestrator.js';
 
 const server = new Server(
   { name: 'bpmn-generator', version: '2.0.0' },
-  { capabilities: { tools: {} } }
+  { capabilities: { tools: {} } },
 );
 
 const TOOLS = [
@@ -37,9 +37,12 @@ const TOOLS = [
       required: ['logicCore'],
       properties: {
         logicCore: { type: 'object', description: 'Logic-Core JSON (nodes, edges, pools etc.)' },
-        drillDown: { type: 'boolean', description: 'Generate per-subprocess diagrams (optional, default false)' }
-      }
-    }
+        drillDown: {
+          type: 'boolean',
+          description: 'Generate per-subprocess diagrams (optional, default false)',
+        },
+      },
+    },
   },
   {
     name: 'validate_bpmn',
@@ -48,9 +51,9 @@ const TOOLS = [
       type: 'object',
       required: ['logicCore'],
       properties: {
-        logicCore: { type: 'object', description: 'Logic-Core JSON to validate' }
-      }
-    }
+        logicCore: { type: 'object', description: 'Logic-Core JSON to validate' },
+      },
+    },
   },
   {
     name: 'import_bpmn',
@@ -59,22 +62,23 @@ const TOOLS = [
       type: 'object',
       required: ['bpmnXml'],
       properties: {
-        bpmnXml: { type: 'string', description: 'BPMN 2.0 XML string' }
-      }
-    }
+        bpmnXml: { type: 'string', description: 'BPMN 2.0 XML string' },
+      },
+    },
   },
   {
     name: 'orchestrate_bpmn',
-    description: 'Run multi-agent orchestration: review + generate + compliance check for Logic-Core JSON',
+    description:
+      'Run multi-agent orchestration: review + generate + compliance check for Logic-Core JSON',
     inputSchema: {
       type: 'object',
       required: ['logicCore'],
       properties: {
         logicCore: { type: 'object', description: 'Logic-Core JSON to orchestrate' },
-        ruleProfile: { type: 'string', description: 'Path to rule profile JSON (optional)' }
-      }
-    }
-  }
+        ruleProfile: { type: 'string', description: 'Path to rule profile JSON (optional)' },
+      },
+    },
+  },
 ];
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
@@ -85,20 +89,49 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   if (name === 'generate_bpmn') {
     if (args.drillDown) {
       const set = await generateDiagramSet(args.logicCore);
-      return { content: [{ type: 'text', text: JSON.stringify({
-        parent: { bpmnXml: set.parent.bpmnXml, svg: set.parent.svg, validation: set.parent.validation },
-        subProcesses: Object.fromEntries(
-          Object.entries(set.subProcesses).map(([id, r]) => [id, { bpmnXml: r.bpmnXml, svg: r.svg }])
-        ),
-        navigation: set.navigation,
-      }, null, 2) }] };
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                parent: {
+                  bpmnXml: set.parent.bpmnXml,
+                  svg: set.parent.svg,
+                  validation: set.parent.validation,
+                },
+                subProcesses: Object.fromEntries(
+                  Object.entries(set.subProcesses).map(([id, r]) => [
+                    id,
+                    { bpmnXml: r.bpmnXml, svg: r.svg },
+                  ]),
+                ),
+                navigation: set.navigation,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
     }
     const result = await runPipeline(args.logicCore);
-    return { content: [{ type: 'text', text: JSON.stringify({
-      bpmnXml: result.bpmnXml,
-      svg: result.svg,
-      validation: result.validation
-    }, null, 2) }] };
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              bpmnXml: result.bpmnXml,
+              svg: result.svg,
+              validation: result.validation,
+            },
+            null,
+            2,
+          ),
+        },
+      ],
+    };
   }
 
   if (name === 'validate_bpmn') {
@@ -115,14 +148,25 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const result = await orchestrate(args.logicCore, {
       ruleProfile: args.ruleProfile || null,
     });
-    return { content: [{ type: 'text', text: JSON.stringify({
-      bpmnXml: result.bpmnXml,
-      svg: result.svg,
-      validation: result.validation,
-      compliance: result.compliance,
-      history: result.history,
-      iterations: result.iterations,
-    }, null, 2) }] };
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              bpmnXml: result.bpmnXml,
+              svg: result.svg,
+              validation: result.validation,
+              compliance: result.compliance,
+              history: result.history,
+              iterations: result.iterations,
+            },
+            null,
+            2,
+          ),
+        },
+      ],
+    };
   }
 
   throw new Error(`Unknown tool: ${name}`);

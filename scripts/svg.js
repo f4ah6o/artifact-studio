@@ -4,12 +4,32 @@
  */
 
 import { isEvent, isGateway, isDataArtifact } from './types.js';
-import { CLR, SW, SHAPE, LANE_HEADER_W, LANE_PADDING, LABEL_DISTANCE, TASK_RX, INNER_OUTER_GAP, EXTERNAL_LABEL_H, esc, rn, wrapText } from './utils.js';
+import {
+  CLR,
+  SW,
+  SHAPE,
+  LANE_HEADER_W,
+  LANE_PADDING,
+  LABEL_DISTANCE,
+  TASK_RX,
+  INNER_OUTER_GAP,
+  EXTERNAL_LABEL_H,
+  esc,
+  rn,
+  wrapText,
+} from './utils.js';
 import { messageFlowPorts } from './coordinates.js';
 import {
-  renderEventMarker, inferEventMarker, renderTaskIcon, renderPentagon,
-  renderLoopMarker, renderMIParallelMarker, renderMISequentialMarker,
-  renderSubProcessMarker, renderAdHocMarker, renderCompensationMarker,
+  renderEventMarker,
+  inferEventMarker,
+  renderTaskIcon,
+  renderPentagon,
+  renderLoopMarker,
+  renderMIParallelMarker,
+  renderMISequentialMarker,
+  renderSubProcessMarker,
+  renderAdHocMarker,
+  renderCompensationMarker,
 } from './icons.js';
 
 /**
@@ -19,23 +39,25 @@ import {
  * mirroring the lookup pattern in visual-refinement.js.
  */
 function laneHeaderW(poolCoords, poolKey) {
-  return poolCoords?.[poolKey]?.laneHeaderWidth
-      ?? poolCoords?.['_singlePool']?.laneHeaderWidth
-      ?? LANE_HEADER_W;
+  return (
+    poolCoords?.[poolKey]?.laneHeaderWidth ??
+    poolCoords?.['_singlePool']?.laneHeaderWidth ??
+    LANE_HEADER_W
+  );
 }
 
 function generateSvg(lc, coordMap) {
   const { coords, laneCoords, poolCoords, edgeCoords, edgeLabels } = coordMap;
   const processes = lc.pools ? lc.pools : [lc];
-  const allNodes  = processes.flatMap(p => p.nodes || []);
-  const allEdges  = processes.flatMap(p => p.edges || []);
-  const allLanes  = processes.flatMap(p => p.lanes || []);
+  const allNodes = processes.flatMap((p) => p.nodes || []);
+  const allEdges = processes.flatMap((p) => p.edges || []);
+  const allLanes = processes.flatMap((p) => p.lanes || []);
 
   // Build lane-id → pool-key lookup for laneHeaderW resolution
   const laneToPoolKey = {};
   if (lc.pools) {
     for (const proc of lc.pools) {
-      for (const lane of (proc.lanes || [])) laneToPoolKey[lane.id] = proc.id;
+      for (const lane of proc.lanes || []) laneToPoolKey[lane.id] = proc.id;
     }
   } else {
     for (const lane of allLanes) laneToPoolKey[lane.id] = '_singlePool';
@@ -45,7 +67,7 @@ function generateSvg(lc, coordMap) {
   const PADDING = 50;
   const LABEL_CLEARANCE = 30; // Space for external labels below nodes
   const allPts = [
-    ...Object.values(coords).flatMap(c => [
+    ...Object.values(coords).flatMap((c) => [
       { x: c.x, y: c.y },
       { x: c.x + c.w, y: c.y + c.h + LABEL_CLEARANCE },
     ]),
@@ -53,26 +75,28 @@ function generateSvg(lc, coordMap) {
       { x: l.x - laneHeaderW(poolCoords, laneToPoolKey[lid]), y: l.y },
       { x: l.x + l.w, y: l.y + l.h },
     ]),
-    ...Object.values(poolCoords).flatMap(p => [
+    ...Object.values(poolCoords).flatMap((p) => [
       { x: p.x, y: p.y },
       { x: p.x + p.w, y: p.y + p.h },
     ]),
-    ...Object.values(edgeCoords).flatMap(pts => pts),
+    ...Object.values(edgeCoords).flatMap((pts) => pts),
   ];
   if (!allPts.length)
     return `<svg xmlns="http://www.w3.org/2000/svg"><text y="20">No elements</text></svg>`;
 
-  const minX = Math.min(...allPts.map(p => p.x)) - PADDING;
-  const minY = Math.min(...allPts.map(p => p.y)) - PADDING;
-  const maxX = Math.max(...allPts.map(p => p.x)) + PADDING;
-  const maxY = Math.max(...allPts.map(p => p.y)) + PADDING;
+  const minX = Math.min(...allPts.map((p) => p.x)) - PADDING;
+  const minY = Math.min(...allPts.map((p) => p.y)) - PADDING;
+  const maxX = Math.max(...allPts.map((p) => p.x)) + PADDING;
+  const maxY = Math.max(...allPts.map((p) => p.y)) + PADDING;
   const W = maxX - minX;
   const H = maxY - minY;
-  const tx = v => rn(v - minX);
-  const ty = v => rn(v - minY);
+  const tx = (v) => rn(v - minX);
+  const ty = (v) => rn(v - minY);
 
   const out = [];
-  out.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${rn(W)}" height="${rn(H)}" viewBox="0 0 ${rn(W)} ${rn(H)}" font-family="Arial, sans-serif">`);
+  out.push(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${rn(W)}" height="${rn(H)}" viewBox="0 0 ${rn(W)} ${rn(H)}" font-family="Arial, sans-serif">`,
+  );
 
   // §7.2  SVG Defs — markers for all connection types
   out.push(`<defs>
@@ -123,19 +147,25 @@ function generateSvg(lc, coordMap) {
     }
   } else if (allLanes.length > 0) {
     // Single pool with lanes
-    const allLc = allLanes.map(l => laneCoords[l.id]).filter(Boolean);
+    const allLc = allLanes.map((l) => laneCoords[l.id]).filter(Boolean);
     if (allLc.length) {
       const spLhw = laneHeaderW(poolCoords, '_singlePool');
-      const px = Math.min(...allLc.map(l => l.x)) - spLhw;
-      const py = Math.min(...allLc.map(l => l.y));
-      const pw = Math.max(...allLc.map(l => l.x + l.w)) - px;
-      const ph = Math.max(...allLc.map(l => l.y + l.h)) - py;
+      const px = Math.min(...allLc.map((l) => l.x)) - spLhw;
+      const py = Math.min(...allLc.map((l) => l.y));
+      const pw = Math.max(...allLc.map((l) => l.x + l.w)) - px;
+      const ph = Math.max(...allLc.map((l) => l.y + l.h)) - py;
 
-      out.push(`<rect x="${tx(px)}" y="${ty(py)}" width="${pw}" height="${ph}" fill="${CLR.fill}" stroke="${CLR.stroke}" stroke-width="${SW.pool}"/>`);
-      out.push(`<rect x="${tx(px)}" y="${ty(py)}" width="${spLhw}" height="${ph}" fill="${CLR.poolHeader}" stroke="${CLR.stroke}" stroke-width="${SW.pool}"/>`);
+      out.push(
+        `<rect x="${tx(px)}" y="${ty(py)}" width="${pw}" height="${ph}" fill="${CLR.fill}" stroke="${CLR.stroke}" stroke-width="${SW.pool}"/>`,
+      );
+      out.push(
+        `<rect x="${tx(px)}" y="${ty(py)}" width="${spLhw}" height="${ph}" fill="${CLR.poolHeader}" stroke="${CLR.stroke}" stroke-width="${SW.pool}"/>`,
+      );
       const plcx = tx(px) + spLhw / 2;
       const plcy = ty(py) + ph / 2;
-      out.push(`<text x="${plcx}" y="${plcy}" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="bold" fill="${CLR.label}" transform="rotate(-90,${plcx},${plcy})">${esc(lc.name || 'Process')}</text>`);
+      out.push(
+        `<text x="${plcx}" y="${plcy}" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="bold" fill="${CLR.label}" transform="rotate(-90,${plcx},${plcy})">${esc(lc.name || 'Process')}</text>`,
+      );
     }
   }
 
@@ -143,33 +173,45 @@ function generateSvg(lc, coordMap) {
   for (const cp of collapsedPools) {
     const pc = poolCoords[cp.id];
     if (!pc) continue;
-    out.push(`<rect x="${tx(pc.x)}" y="${ty(pc.y)}" width="${pc.w}" height="${pc.h}" fill="${CLR.fill}" stroke="${CLR.stroke}" stroke-width="${SW.pool}"/>`);
+    out.push(
+      `<rect x="${tx(pc.x)}" y="${ty(pc.y)}" width="${pc.w}" height="${pc.h}" fill="${CLR.fill}" stroke="${CLR.stroke}" stroke-width="${SW.pool}"/>`,
+    );
     const cx = tx(pc.x) + pc.w / 2;
     const cy = ty(pc.y) + pc.h / 2;
-    out.push(`<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="bold" fill="${CLR.label}">${esc(cp.name || cp.id)}</text>`);
+    out.push(
+      `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="bold" fill="${CLR.label}">${esc(cp.name || cp.id)}</text>`,
+    );
   }
 
   // §7.5  Lane bodies
   for (const lane of allLanes) {
     const lcc = laneCoords[lane.id];
     if (!lcc) continue;
-    out.push(`<rect x="${tx(lcc.x)}" y="${ty(lcc.y)}" width="${lcc.w}" height="${lcc.h}" fill="${CLR.fill}" fill-opacity="0.25" stroke="${CLR.stroke}" stroke-width="${SW.lane}"/>`);
+    out.push(
+      `<rect x="${tx(lcc.x)}" y="${ty(lcc.y)}" width="${lcc.w}" height="${lcc.h}" fill="${CLR.fill}" fill-opacity="0.25" stroke="${CLR.stroke}" stroke-width="${SW.lane}"/>`,
+    );
     // Lane header band
     const lhw = laneHeaderW(poolCoords, laneToPoolKey[lane.id]);
-    out.push(`<rect x="${tx(lcc.x - lhw)}" y="${ty(lcc.y)}" width="${lhw}" height="${lcc.h}" fill="${CLR.laneHeader}" stroke="${CLR.stroke}" stroke-width="${SW.lane}"/>`);
+    out.push(
+      `<rect x="${tx(lcc.x - lhw)}" y="${ty(lcc.y)}" width="${lhw}" height="${lcc.h}" fill="${CLR.laneHeader}" stroke="${CLR.stroke}" stroke-width="${SW.lane}"/>`,
+    );
     const lcx = tx(lcc.x - lhw) + lhw / 2;
     const lcy = ty(lcc.y) + lcc.h / 2;
     const rendered = lane._renderedLines;
     if (!rendered || rendered.length <= 1) {
       // Single-line (backwards compatible — refinement off or short label)
-      out.push(`<text x="${lcx}" y="${lcy}" text-anchor="middle" dominant-baseline="middle" font-size="11" fill="${CLR.label}" transform="rotate(-90,${lcx},${lcy})">${esc(lane.name || lane.id)}</text>`);
+      out.push(
+        `<text x="${lcx}" y="${lcy}" text-anchor="middle" dominant-baseline="middle" font-size="11" fill="${CLR.label}" transform="rotate(-90,${lcx},${lcy})">${esc(lane.name || lane.id)}</text>`,
+      );
     } else {
       // Multi-line (refinement on, label wrapped)
       const LINE_H = 14; // FONT_SIZE (11) + LINE_GAP (3), matches visual-refinement.js
       const N = rendered.length;
       for (let i = 0; i < N; i++) {
         const yOffset = (i - (N - 1) / 2) * LINE_H;
-        out.push(`<text x="${lcx}" y="${lcy + yOffset}" text-anchor="middle" dominant-baseline="middle" font-size="11" fill="${CLR.label}" transform="rotate(-90,${lcx},${lcy})">${esc(rendered[i])}</text>`);
+        out.push(
+          `<text x="${lcx}" y="${lcy + yOffset}" text-anchor="middle" dominant-baseline="middle" font-size="11" fill="${CLR.label}" transform="rotate(-90,${lcx},${lcy})">${esc(rendered[i])}</text>`,
+        );
       }
     }
   }
@@ -209,7 +251,9 @@ function generateSvg(lc, coordMap) {
         pathD = `M ${sx} ${sy} L ${sx} ${midY} L ${ex} ${midY} L ${ex} ${ey}`;
       }
 
-      out.push(`<path d="${pathD}" stroke="${CLR.stroke}" stroke-width="${SW.connection}" fill="none" stroke-dasharray="10,12" marker-start="url(#msg-start)" marker-end="url(#msg-end)"/>`);
+      out.push(
+        `<path d="${pathD}" stroke="${CLR.stroke}" stroke-width="${SW.connection}" fill="none" stroke-dasharray="10,12" marker-start="url(#msg-start)" marker-end="url(#msg-end)"/>`,
+      );
       if (mf.name) {
         const mfKey = mf.id || `mf_${mf.source}_${mf.target}`;
         const L = edgeLabels?.[mfKey];
@@ -217,7 +261,8 @@ function generateSvg(lc, coordMap) {
           renderEdgeLabel(out, L.text, tx(L.x), ty(L.y));
         } else {
           // Fallback: inline computation (coordMap may be missing mf entry)
-          const mx = rn((sx + ex) / 2), my = rn((sy + ey) / 2);
+          const mx = rn((sx + ex) / 2),
+            my = rn((sy + ey) / 2);
           renderEdgeLabel(out, mf.name, mx, my);
         }
       }
@@ -230,10 +275,14 @@ function generateSvg(lc, coordMap) {
     const srcC = coords[assoc.source];
     const tgtC = coords[assoc.target];
     if (!srcC || !tgtC) continue;
-    const sx = tx(srcC.x + srcC.w / 2), sy = ty(srcC.y + srcC.h / 2);
-    const ex = tx(tgtC.x + tgtC.w / 2), ey = ty(tgtC.y + tgtC.h / 2);
+    const sx = tx(srcC.x + srcC.w / 2),
+      sy = ty(srcC.y + srcC.h / 2);
+    const ex = tx(tgtC.x + tgtC.w / 2),
+      ey = ty(tgtC.y + tgtC.h / 2);
     const markerEnd = assoc.directed ? ` marker-end="url(#assoc-end)"` : '';
-    out.push(`<path d="M ${sx} ${sy} L ${ex} ${ey}" stroke="${CLR.stroke}" stroke-width="1.5" fill="none" stroke-dasharray="0.5,5"${markerEnd}/>`);
+    out.push(
+      `<path d="M ${sx} ${sy} L ${ex} ${ey}" stroke="${CLR.stroke}" stroke-width="1.5" fill="none" stroke-dasharray="0.5,5"${markerEnd}/>`,
+    );
   }
 
   // §7.9  Nodes
@@ -250,7 +299,7 @@ function generateSvg(lc, coordMap) {
         out.push(renderNode(child, cc, tx, ty));
       }
       // Render internal sequence flows
-      for (const subEdge of (node.edges || [])) {
+      for (const subEdge of node.edges || []) {
         const seid = subEdge.id || `flow_${subEdge.source}_${subEdge.target}`;
         const pts = edgeCoords[seid] || [];
         renderSequenceFlow(out, subEdge, pts, coords, tx, ty, edgeLabels);
@@ -264,43 +313,61 @@ function generateSvg(lc, coordMap) {
 
 function renderPoolSvg(out, proc, pc, laneCoords, poolCoords, tx, ty) {
   const lanes = proc.lanes || [];
-  let px = pc.x, py = pc.y, pw = pc.w, ph = pc.h;
+  let px = pc.x,
+    py = pc.y,
+    pw = pc.w,
+    ph = pc.h;
   const lhw = laneHeaderW(poolCoords, proc.id);
 
   if (lanes.length > 0) {
-    const lcs = lanes.map(l => laneCoords[l.id]).filter(Boolean);
+    const lcs = lanes.map((l) => laneCoords[l.id]).filter(Boolean);
     if (lcs.length) {
-      px = Math.min(...lcs.map(l => l.x)) - lhw;
-      py = Math.min(...lcs.map(l => l.y));
-      pw = Math.max(...lcs.map(l => l.x + l.w)) - px;
-      ph = Math.max(...lcs.map(l => l.y + l.h)) - py;
+      px = Math.min(...lcs.map((l) => l.x)) - lhw;
+      py = Math.min(...lcs.map((l) => l.y));
+      pw = Math.max(...lcs.map((l) => l.x + l.w)) - px;
+      ph = Math.max(...lcs.map((l) => l.y + l.h)) - py;
     }
   }
 
-  out.push(`<rect x="${tx(px)}" y="${ty(py)}" width="${pw}" height="${ph}" fill="${CLR.fill}" stroke="${CLR.stroke}" stroke-width="${SW.pool}"/>`);
-  out.push(`<rect x="${tx(px)}" y="${ty(py)}" width="${lhw}" height="${ph}" fill="${CLR.poolHeader}" stroke="${CLR.stroke}" stroke-width="${SW.pool}"/>`);
+  out.push(
+    `<rect x="${tx(px)}" y="${ty(py)}" width="${pw}" height="${ph}" fill="${CLR.fill}" stroke="${CLR.stroke}" stroke-width="${SW.pool}"/>`,
+  );
+  out.push(
+    `<rect x="${tx(px)}" y="${ty(py)}" width="${lhw}" height="${ph}" fill="${CLR.poolHeader}" stroke="${CLR.stroke}" stroke-width="${SW.pool}"/>`,
+  );
   const plcx = tx(px) + lhw / 2;
   const plcy = ty(py) + ph / 2;
-  out.push(`<text x="${plcx}" y="${plcy}" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="bold" fill="${CLR.label}" transform="rotate(-90,${plcx},${plcy})">${esc(proc.name || 'Process')}</text>`);
+  out.push(
+    `<text x="${plcx}" y="${plcy}" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="bold" fill="${CLR.label}" transform="rotate(-90,${plcx},${plcy})">${esc(proc.name || 'Process')}</text>`,
+  );
 }
 
 function renderSequenceFlow(out, edge, pts, coords, tx, ty, edgeLabels) {
   let pathD;
   if (pts.length >= 2) {
-    pathD = `M ${tx(pts[0].x)} ${ty(pts[0].y)} ` +
-            pts.slice(1).map(p => `L ${tx(p.x)} ${ty(p.y)}`).join(' ');
+    pathD =
+      `M ${tx(pts[0].x)} ${ty(pts[0].y)} ` +
+      pts
+        .slice(1)
+        .map((p) => `L ${tx(p.x)} ${ty(p.y)}`)
+        .join(' ');
   } else {
-    const s = coords[edge.source], t = coords[edge.target];
+    const s = coords[edge.source],
+      t = coords[edge.target];
     if (!s || !t) return;
-    pathD = `M ${tx(s.x + s.w/2)} ${ty(s.y + s.h/2)} L ${tx(t.x + t.w/2)} ${ty(t.y + t.h/2)}`;
+    pathD = `M ${tx(s.x + s.w / 2)} ${ty(s.y + s.h / 2)} L ${tx(t.x + t.w / 2)} ${ty(t.y + t.h / 2)}`;
   }
 
   const markerEnd = `marker-end="url(#seq-end)"`;
-  const markerStart = edge.isDefault     ? `marker-start="url(#seq-default-src)"`
-                    : edge.isConditional ? `marker-start="url(#seq-conditional-src)"`
-                    : '';
+  const markerStart = edge.isDefault
+    ? `marker-start="url(#seq-default-src)"`
+    : edge.isConditional
+      ? `marker-start="url(#seq-conditional-src)"`
+      : '';
 
-  out.push(`<path d="${pathD}" stroke="${CLR.stroke}" stroke-width="${SW.connection}" fill="none" ${markerStart} ${markerEnd}/>`);
+  out.push(
+    `<path d="${pathD}" stroke="${CLR.stroke}" stroke-width="${SW.connection}" fill="none" ${markerStart} ${markerEnd}/>`,
+  );
 
   // Edge label — read position from coordMap.edgeLabels (computed in coordinates.js)
   if (edge.label) {
@@ -314,8 +381,12 @@ function renderSequenceFlow(out, edge, pts, coords, tx, ty, edgeLabels) {
 
 function renderEdgeLabel(out, label, midX, midY) {
   const w = label.length * 6.5 + 8;
-  out.push(`<rect x="${rn(midX - w/2)}" y="${rn(midY - 8)}" width="${rn(w)}" height="16" rx="2" fill="white" fill-opacity="0.9"/>`);
-  out.push(`<text x="${rn(midX)}" y="${rn(midY + 4)}" text-anchor="middle" font-size="10" fill="${CLR.label}">${esc(label)}</text>`);
+  out.push(
+    `<rect x="${rn(midX - w / 2)}" y="${rn(midY - 8)}" width="${rn(w)}" height="16" rx="2" fill="white" fill-opacity="0.9"/>`,
+  );
+  out.push(
+    `<text x="${rn(midX)}" y="${rn(midY + 4)}" text-anchor="middle" font-size="10" fill="${CLR.label}">${esc(label)}</text>`,
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -324,10 +395,10 @@ function renderEdgeLabel(out, label, midX, midY) {
 function renderNode(node, c, tx, ty) {
   const type = node.type || 'task';
   let svg;
-  if (isEvent(type))         svg = renderEvent(node, c, tx, ty);
-  else if (isGateway(type))  svg = renderGateway(node, c, tx, ty);
+  if (isEvent(type)) svg = renderEvent(node, c, tx, ty);
+  else if (isGateway(type)) svg = renderGateway(node, c, tx, ty);
   else if (isDataArtifact(type)) svg = renderDataArtifact(node, c, tx, ty);
-  else                       svg = renderActivity(node, c, tx, ty);
+  else svg = renderActivity(node, c, tx, ty);
   if (node.documentation) {
     svg = `<g><title>${esc(node.documentation)}</title>\n${svg}\n</g>`;
   }
@@ -336,16 +407,16 @@ function renderNode(node, c, tx, ty) {
 
 // ── Events (OMG spec §10.4) ─────────────────────────────────────────
 function renderEvent(node, c, tx, ty) {
-  const type   = node.type;
-  const cx     = tx(c.x + c.w / 2);
-  const cy     = ty(c.y + c.h / 2);
-  const r      = c.w / 2;
-  const o      = [];
-  const fill   = node.color?.fill || CLR.fill;
+  const type = node.type;
+  const cx = tx(c.x + c.w / 2);
+  const cy = ty(c.y + c.h / 2);
+  const r = c.w / 2;
+  const o = [];
+  const fill = node.color?.fill || CLR.fill;
   const stroke = node.color?.stroke || CLR.stroke;
 
   const isStart = type === 'startEvent';
-  const isEnd   = type === 'endEvent';
+  const isEnd = type === 'endEvent';
   const isInter = type.includes('intermediate') || type === 'boundaryEvent';
   const isThrow = type === 'intermediateThrowEvent';
   const isNonInterrupting = node.isInterrupting === false || node.cancelActivity === false;
@@ -354,12 +425,16 @@ function renderEvent(node, c, tx, ty) {
   const dash = isNonInterrupting ? ` stroke-dasharray="5,3"` : '';
 
   // Outer circle
-  o.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" fill-opacity="0.95" stroke="${stroke}" stroke-width="${sw}"${dash}/>`);
+  o.push(
+    `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" fill-opacity="0.95" stroke="${stroke}" stroke-width="${sw}"${dash}/>`,
+  );
 
   // Intermediate/boundary: inner ring (3px gap, OMG spec Table 10.87)
   if (isInter) {
     const ri = r - INNER_OUTER_GAP;
-    o.push(`<circle cx="${cx}" cy="${cy}" r="${ri}" fill="none" stroke="${stroke}" stroke-width="${SW.intermediate}"${dash}/>`);
+    o.push(
+      `<circle cx="${cx}" cy="${cy}" r="${ri}" fill="none" stroke="${stroke}" stroke-width="${SW.intermediate}"${dash}/>`,
+    );
   }
 
   // Marker icon inside
@@ -381,38 +456,59 @@ function renderEvent(node, c, tx, ty) {
 // ── Gateways (OMG spec §10.5) ───────────────────────────────────────
 function renderGateway(node, c, tx, ty) {
   const type = node.type;
-  const x = tx(c.x), y = ty(c.y), w = c.w, h = c.h;
-  const cx = x + w/2, cy = y + h/2;
+  const x = tx(c.x),
+    y = ty(c.y),
+    w = c.w,
+    h = c.h;
+  const cx = x + w / 2,
+    cy = y + h / 2;
   const o = [];
-  const fill   = node.color?.fill || CLR.fill;
+  const fill = node.color?.fill || CLR.fill;
   const stroke = node.color?.stroke || CLR.stroke;
 
   // Diamond shape
-  o.push(`<polygon points="${cx},${y} ${x+w},${cy} ${cx},${y+h} ${x},${cy}" fill="${fill}" fill-opacity="0.95" stroke="${stroke}" stroke-width="${SW.gateway}"/>`);
+  o.push(
+    `<polygon points="${cx},${y} ${x + w},${cy} ${cx},${y + h} ${x},${cy}" fill="${fill}" fill-opacity="0.95" stroke="${stroke}" stroke-width="${SW.gateway}"/>`,
+  );
 
   // Internal marker
   const d = 9;
   if (type === 'exclusiveGateway') {
     // X mark (OMG spec Fig 10.59)
-    o.push(`<line x1="${cx-d}" y1="${cy-d}" x2="${cx+d}" y2="${cy+d}" stroke="${stroke}" stroke-width="3" stroke-linecap="round"/>`);
-    o.push(`<line x1="${cx+d}" y1="${cy-d}" x2="${cx-d}" y2="${cy+d}" stroke="${stroke}" stroke-width="3" stroke-linecap="round"/>`);
+    o.push(
+      `<line x1="${cx - d}" y1="${cy - d}" x2="${cx + d}" y2="${cy + d}" stroke="${stroke}" stroke-width="3" stroke-linecap="round"/>`,
+    );
+    o.push(
+      `<line x1="${cx + d}" y1="${cy - d}" x2="${cx - d}" y2="${cy + d}" stroke="${stroke}" stroke-width="3" stroke-linecap="round"/>`,
+    );
   } else if (type === 'parallelGateway') {
     // + mark (OMG spec Fig 10.69)
-    o.push(`<line x1="${cx}" y1="${cy-d}" x2="${cx}" y2="${cy+d}" stroke="${stroke}" stroke-width="3.5" stroke-linecap="round"/>`);
-    o.push(`<line x1="${cx-d}" y1="${cy}" x2="${cx+d}" y2="${cy}" stroke="${stroke}" stroke-width="3.5" stroke-linecap="round"/>`);
+    o.push(
+      `<line x1="${cx}" y1="${cy - d}" x2="${cx}" y2="${cy + d}" stroke="${stroke}" stroke-width="3.5" stroke-linecap="round"/>`,
+    );
+    o.push(
+      `<line x1="${cx - d}" y1="${cy}" x2="${cx + d}" y2="${cy}" stroke="${stroke}" stroke-width="3.5" stroke-linecap="round"/>`,
+    );
   } else if (type === 'inclusiveGateway') {
     // Bold circle (OMG spec Fig 10.64)
-    o.push(`<circle cx="${cx}" cy="${cy}" r="${rn(h * 0.24)}" fill="none" stroke="${stroke}" stroke-width="2.5"/>`);
+    o.push(
+      `<circle cx="${cx}" cy="${cy}" r="${rn(h * 0.24)}" fill="none" stroke="${stroke}" stroke-width="2.5"/>`,
+    );
   } else if (type === 'eventBasedGateway') {
     // Circle + pentagon (OMG spec Fig 10.73)
-    o.push(`<circle cx="${cx}" cy="${cy}" r="${rn(h * 0.22)}" fill="none" stroke="${stroke}" stroke-width="1.5"/>`);
+    o.push(
+      `<circle cx="${cx}" cy="${cy}" r="${rn(h * 0.22)}" fill="none" stroke="${stroke}" stroke-width="1.5"/>`,
+    );
     o.push(renderPentagon(cx, cy, h * 0.14, stroke));
   } else if (type === 'complexGateway') {
     // Asterisk (OMG spec Fig 10.67)
     for (const a of [0, 45, 90, 135]) {
-      const rad = a * Math.PI / 180;
-      const ddx = Math.cos(rad) * d, ddy = Math.sin(rad) * d;
-      o.push(`<line x1="${rn(cx-ddx)}" y1="${rn(cy-ddy)}" x2="${rn(cx+ddx)}" y2="${rn(cy+ddy)}" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round"/>`);
+      const rad = (a * Math.PI) / 180;
+      const ddx = Math.cos(rad) * d,
+        ddy = Math.sin(rad) * d;
+      o.push(
+        `<line x1="${rn(cx - ddx)}" y1="${rn(cy - ddy)}" x2="${rn(cx + ddx)}" y2="${rn(cy + ddy)}" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round"/>`,
+      );
     }
   }
 
@@ -426,10 +522,13 @@ function renderGateway(node, c, tx, ty) {
 // ── Activities (OMG spec §10.2) ─────────────────────────────────────
 function renderActivity(node, c, tx, ty) {
   const type = node.type || 'task';
-  const x = tx(c.x), y = ty(c.y), w = c.w, h = c.h;
-  const cx = x + w/2;
+  const x = tx(c.x),
+    y = ty(c.y),
+    w = c.w,
+    h = c.h;
+  const cx = x + w / 2;
   const o = [];
-  const fill   = node.color?.fill || CLR.fill;
+  const fill = node.color?.fill || CLR.fill;
   const stroke = node.color?.stroke || CLR.stroke;
 
   const sw = type === 'callActivity' ? SW.callActivity : SW.task;
@@ -437,18 +536,24 @@ function renderActivity(node, c, tx, ty) {
   const isTransaction = type === 'transaction';
 
   // Main rectangle (rx=10 per bpmn-js)
-  o.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${TASK_RX}" ry="${TASK_RX}" fill="${fill}" fill-opacity="0.95" stroke="${stroke}" stroke-width="${sw}"${dash}/>`);
+  o.push(
+    `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${TASK_RX}" ry="${TASK_RX}" fill="${fill}" fill-opacity="0.95" stroke="${stroke}" stroke-width="${sw}"${dash}/>`,
+  );
 
   // Transaction: inner rectangle (double border, OMG spec §13.2.2)
   if (isTransaction) {
     const gap = 3;
-    o.push(`<rect x="${x+gap}" y="${y+gap}" width="${w-2*gap}" height="${h-2*gap}" rx="${TASK_RX-1}" ry="${TASK_RX-1}" fill="none" stroke="${stroke}" stroke-width="${sw}"/>`);
+    o.push(
+      `<rect x="${x + gap}" y="${y + gap}" width="${w - 2 * gap}" height="${h - 2 * gap}" rx="${TASK_RX - 1}" ry="${TASK_RX - 1}" fill="none" stroke="${stroke}" stroke-width="${sw}"/>`,
+    );
   }
 
   // Expanded SubProcess: render title bar + internal flow, no [+] marker, no icon
   if (node.isExpanded && node.nodes && node.nodes.length > 0) {
     // SubProcess name as title (top-left, bold)
-    o.push(`<text x="${x + 10}" y="${rn(y + 18)}" text-anchor="start" font-size="12" font-weight="bold" fill="${CLR.label}">${esc(node.name || '')}</text>`);
+    o.push(
+      `<text x="${x + 10}" y="${rn(y + 18)}" text-anchor="start" font-size="12" font-weight="bold" fill="${CLR.label}">${esc(node.name || '')}</text>`,
+    );
     // Internal nodes and edges rendered by the main generateSvg loop (coords are absolute)
     return o.join('\n');
   }
@@ -462,18 +567,20 @@ function renderActivity(node, c, tx, ty) {
   if (markers) o.push(markers);
 
   // Label centered inside
-  const hasIcon    = icon !== null;
-  const topPad     = hasIcon ? 18 : 0;
-  const bottomPad  = markers ? 16 : 0;
-  const usableH    = h - topPad - bottomPad;
-  const maxChars   = Math.floor(w / 6.5);
-  const lines      = wrapText(node.name || '', maxChars);
-  const lineH      = 14;
+  const hasIcon = icon !== null;
+  const topPad = hasIcon ? 18 : 0;
+  const bottomPad = markers ? 16 : 0;
+  const usableH = h - topPad - bottomPad;
+  const maxChars = Math.floor(w / 6.5);
+  const lines = wrapText(node.name || '', maxChars);
+  const lineH = 14;
   const textAreaCy = y + topPad + usableH / 2;
-  const startY     = textAreaCy - ((lines.length - 1) * lineH) / 2;
+  const startY = textAreaCy - ((lines.length - 1) * lineH) / 2;
 
   for (let i = 0; i < lines.length; i++) {
-    o.push(`<text x="${cx}" y="${rn(startY + i * lineH)}" text-anchor="middle" dominant-baseline="middle" font-size="12" fill="${CLR.label}">${esc(lines[i])}</text>`);
+    o.push(
+      `<text x="${cx}" y="${rn(startY + i * lineH)}" text-anchor="middle" dominant-baseline="middle" font-size="12" fill="${CLR.label}">${esc(lines[i])}</text>`,
+    );
   }
 
   return o.join('\n');
@@ -513,10 +620,10 @@ function renderBottomMarkers(node, cx, bottomY, actX, actW) {
   // Position markers side by side at bottom center
   const totalW = markers.length * 16;
   const startX = cx - totalW / 2;
-  const my     = bottomY - 18;
+  const my = bottomY - 18;
 
-  const parts = markers.map((m, i) =>
-    `<g transform="translate(${rn(startX + i * 16)},${rn(my)})">${m}</g>`
+  const parts = markers.map(
+    (m, i) => `<g transform="translate(${rn(startX + i * 16)},${rn(my)})">${m}</g>`,
   );
 
   return parts.join('\n');
@@ -525,42 +632,72 @@ function renderBottomMarkers(node, cx, bottomY, actX, actW) {
 // ── Data Objects & Artifacts (OMG spec §10.6) ───────────────────────
 function renderDataArtifact(node, c, tx, ty) {
   const type = node.type;
-  const x = tx(c.x), y = ty(c.y), w = c.w, h = c.h;
-  const cx = x + w/2;
+  const x = tx(c.x),
+    y = ty(c.y),
+    w = c.w,
+    h = c.h;
+  const cx = x + w / 2;
   const o = [];
-  const fill   = node.color?.fill || CLR.fill;
+  const fill = node.color?.fill || CLR.fill;
   const stroke = node.color?.stroke || CLR.stroke;
 
   if (type === 'dataObjectReference') {
     // Data object: rectangle with folded corner (OMG spec Fig 10.82)
     const fold = 10;
-    o.push(`<path d="M ${x},${y} L ${x+w-fold},${y} L ${x+w},${y+fold} L ${x+w},${y+h} L ${x},${y+h} Z" fill="${fill}" stroke="${stroke}" stroke-width="${SW.dataObject}"/>`);
-    o.push(`<path d="M ${x+w-fold},${y} L ${x+w-fold},${y+fold} L ${x+w},${y+fold}" fill="none" stroke="${stroke}" stroke-width="${SW.dataObject}"/>`);
+    o.push(
+      `<path d="M ${x},${y} L ${x + w - fold},${y} L ${x + w},${y + fold} L ${x + w},${y + h} L ${x},${y + h} Z" fill="${fill}" stroke="${stroke}" stroke-width="${SW.dataObject}"/>`,
+    );
+    o.push(
+      `<path d="M ${x + w - fold},${y} L ${x + w - fold},${y + fold} L ${x + w},${y + fold}" fill="none" stroke="${stroke}" stroke-width="${SW.dataObject}"/>`,
+    );
     // Collection marker (three vertical lines)
     if (node.isCollection) {
-      const bx = cx - 6, by = y + h - 12;
-      o.push(`<line x1="${bx}" y1="${by}" x2="${bx}" y2="${by+8}" stroke="${stroke}" stroke-width="1.5"/>`);
-      o.push(`<line x1="${bx+6}" y1="${by}" x2="${bx+6}" y2="${by+8}" stroke="${stroke}" stroke-width="1.5"/>`);
-      o.push(`<line x1="${bx+12}" y1="${by}" x2="${bx+12}" y2="${by+8}" stroke="${stroke}" stroke-width="1.5"/>`);
+      const bx = cx - 6,
+        by = y + h - 12;
+      o.push(
+        `<line x1="${bx}" y1="${by}" x2="${bx}" y2="${by + 8}" stroke="${stroke}" stroke-width="1.5"/>`,
+      );
+      o.push(
+        `<line x1="${bx + 6}" y1="${by}" x2="${bx + 6}" y2="${by + 8}" stroke="${stroke}" stroke-width="1.5"/>`,
+      );
+      o.push(
+        `<line x1="${bx + 12}" y1="${by}" x2="${bx + 12}" y2="${by + 8}" stroke="${stroke}" stroke-width="1.5"/>`,
+      );
     }
     // Label below
     o.push(renderExternalLabel(node.name || '', cx, ty(c.y + c.h) + 5, 70));
   } else if (type === 'dataStoreReference') {
     // Data store: cylinder (OMG spec Fig 10.85)
     const ry = 6;
-    o.push(`<ellipse cx="${cx}" cy="${y+ry}" rx="${w/2}" ry="${ry}" fill="${fill}" stroke="${stroke}" stroke-width="${SW.dataObject}"/>`);
-    o.push(`<path d="M ${x},${y+ry} L ${x},${y+h-ry}" stroke="${stroke}" stroke-width="${SW.dataObject}" fill="none"/>`);
-    o.push(`<path d="M ${x+w},${y+ry} L ${x+w},${y+h-ry}" stroke="${stroke}" stroke-width="${SW.dataObject}" fill="none"/>`);
-    o.push(`<ellipse cx="${cx}" cy="${y+h-ry}" rx="${w/2}" ry="${ry}" fill="${fill}" stroke="${stroke}" stroke-width="${SW.dataObject}"/>`);
+    o.push(
+      `<ellipse cx="${cx}" cy="${y + ry}" rx="${w / 2}" ry="${ry}" fill="${fill}" stroke="${stroke}" stroke-width="${SW.dataObject}"/>`,
+    );
+    o.push(
+      `<path d="M ${x},${y + ry} L ${x},${y + h - ry}" stroke="${stroke}" stroke-width="${SW.dataObject}" fill="none"/>`,
+    );
+    o.push(
+      `<path d="M ${x + w},${y + ry} L ${x + w},${y + h - ry}" stroke="${stroke}" stroke-width="${SW.dataObject}" fill="none"/>`,
+    );
+    o.push(
+      `<ellipse cx="${cx}" cy="${y + h - ry}" rx="${w / 2}" ry="${ry}" fill="${fill}" stroke="${stroke}" stroke-width="${SW.dataObject}"/>`,
+    );
     o.push(renderExternalLabel(node.name || '', cx, ty(c.y + c.h) + 5, 70));
   } else if (type === 'textAnnotation') {
     // Open bracket [ shape (OMG spec Fig 10.86)
-    o.push(`<path d="M ${x+15},${y} L ${x},${y} L ${x},${y+h} L ${x+15},${y+h}" fill="none" stroke="${stroke}" stroke-width="${SW.annotation}"/>`);
-    o.push(`<text x="${x+20}" y="${rn(y+h/2+4)}" font-size="11" fill="${CLR.label}">${esc(node.name || '')}</text>`);
+    o.push(
+      `<path d="M ${x + 15},${y} L ${x},${y} L ${x},${y + h} L ${x + 15},${y + h}" fill="none" stroke="${stroke}" stroke-width="${SW.annotation}"/>`,
+    );
+    o.push(
+      `<text x="${x + 20}" y="${rn(y + h / 2 + 4)}" font-size="11" fill="${CLR.label}">${esc(node.name || '')}</text>`,
+    );
   } else if (type === 'group') {
     // Dashed rounded rectangle (OMG spec Fig 10.88)
-    o.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10" ry="10" fill="none" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="8,4,2,4"/>`);
-    o.push(`<text x="${cx}" y="${rn(y-5)}" text-anchor="middle" font-size="12" font-weight="bold" fill="${CLR.label}">${esc(node.name || '')}</text>`);
+    o.push(
+      `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10" ry="10" fill="none" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="8,4,2,4"/>`,
+    );
+    o.push(
+      `<text x="${cx}" y="${rn(y - 5)}" text-anchor="middle" font-size="12" font-weight="bold" fill="${CLR.label}">${esc(node.name || '')}</text>`,
+    );
   }
 
   return o.join('\n');
@@ -569,9 +706,12 @@ function renderDataArtifact(node, c, tx, ty) {
 function renderExternalLabel(text, cx, y, maxW) {
   if (!text) return '';
   const lines = wrapText(text, Math.floor(maxW / 6));
-  return lines.map((line, i) =>
-    `<text x="${cx}" y="${rn(y + i*13 + 10)}" text-anchor="middle" font-size="11" fill="${CLR.label}">${esc(line)}</text>`
-  ).join('\n');
+  return lines
+    .map(
+      (line, i) =>
+        `<text x="${cx}" y="${rn(y + i * 13 + 10)}" text-anchor="middle" font-size="11" fill="${CLR.label}">${esc(line)}</text>`,
+    )
+    .join('\n');
 }
 
 export { generateSvg };

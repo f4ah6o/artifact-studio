@@ -8,13 +8,22 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const frontendDir = join(__dirname, '..', 'frontend');
 
-const MIME = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml' };
+const MIME = {
+  '.html': 'text/html',
+  '.js': 'application/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.svg': 'image/svg+xml',
+};
 
 import { runPipeline, validateLogicCore } from './pipeline.js';
 import { bpmnToLogicCore } from './import.js';
 import { orchestrate } from './orchestrator.js';
 import { chatAgent } from './agents/chat.js';
-import { codexAppServer, createCodexAppServerProvider } from './agents/codex-app-server-provider.js';
+import {
+  codexAppServer,
+  createCodexAppServerProvider,
+} from './agents/codex-app-server-provider.js';
 import { deliver } from './delivery.js';
 import { auditLog } from './audit.js';
 import { validateLogicCoreSchema } from './schema-gate.js';
@@ -33,7 +42,7 @@ export function startupCheck(env, logger = console.warn) {
   if (env.NODE_ENV === 'production' && !env.BPMN_API_KEY) {
     throw new Error(
       'Refusing to start in production without BPMN_API_KEY. ' +
-      'Set BPMN_API_KEY=<secret> or unset NODE_ENV for dev mode.'
+        'Set BPMN_API_KEY=<secret> or unset NODE_ENV for dev mode.',
     );
   }
   if (!env.BPMN_API_KEY) {
@@ -45,7 +54,7 @@ export function parseBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
     let size = 0;
-    req.on('data', c => {
+    req.on('data', (c) => {
       size += c.length;
       if (size > MAX_BODY_SIZE) {
         req.destroy();
@@ -54,8 +63,11 @@ export function parseBody(req) {
       chunks.push(c);
     });
     req.on('end', () => {
-      try { resolve(JSON.parse(Buffer.concat(chunks).toString())); }
-      catch { reject(new Error('Invalid JSON')); }
+      try {
+        resolve(JSON.parse(Buffer.concat(chunks).toString()));
+      } catch {
+        reject(new Error('Invalid JSON'));
+      }
     });
     req.on('error', reject);
   });
@@ -77,20 +89,22 @@ export function isInternalHost(host) {
   if (host === 'localhost' || host === '127.0.0.1') return true;
   if (host.startsWith('10.') || host.startsWith('192.168.')) return true;
   if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return true;
-  if (/^169\.254\./.test(host)) return true; // link-local + AWS metadata
+  if (host.startsWith('169.254.')) return true; // link-local + AWS metadata
   // IPv6
   if (host === '::1') return true;
   // Strip brackets if URL passed them through (e.g., [fc00::1] → fc00::1)
   const h = host.replace(/^\[|\]$/g, '').toLowerCase();
   if (h === '::1') return true;
-  if (/^f[cd][0-9a-f]{0,2}:/.test(h)) return true;  // fc00::/7 (ULA)
-  if (/^fe[89ab][0-9a-f]?:/.test(h)) return true;   // fe80::/10 (link-local)
+  if (/^f[cd][0-9a-f]{0,2}:/.test(h)) return true; // fc00::/7 (ULA)
+  if (/^fe[89ab][0-9a-f]?:/.test(h)) return true; // fe80::/10 (link-local)
   return false;
 }
 
 // Swappable DNS lookup (overridable in tests via _setDnsLookup).
 let _lookup = dnsLookup;
-export function _setDnsLookup(fn) { _lookup = fn || dnsLookup; }
+export function _setDnsLookup(fn) {
+  _lookup = fn || dnsLookup;
+}
 
 export async function validateCallbackUrlAsync(url) {
   const sync = validateCallbackUrl(url);
@@ -127,7 +141,8 @@ function checkRateLimit(req, res) {
   const now = Date.now();
   const bucket = rateBuckets.get(ip) || { count: 0, start: now };
   if (now - bucket.start > RATE_LIMIT.windowMs) {
-    bucket.count = 0; bucket.start = now;
+    bucket.count = 0;
+    bucket.start = now;
   }
   bucket.count++;
   rateBuckets.set(ip, bucket);
@@ -185,7 +200,10 @@ const server = createServer(async (req, res) => {
 
   // Config (frontend bootstrap — Codex owns LLM authentication).
   if (method === 'GET' && url === '/api/v1/config') {
-    return json(res, 200, { codex: await getCodexStatus(), demo: resolveDemoConfig(process.env, CFG) });
+    return json(res, 200, {
+      codex: await getCodexStatus(),
+      demo: resolveDemoConfig(process.env, CFG),
+    });
   }
 
   // Frontend static files
@@ -201,7 +219,9 @@ const server = createServer(async (req, res) => {
       const body = readFileSync(path);
       res.writeHead(200, { 'Content-Type': MIME[extname(file)] || 'application/octet-stream' });
       return res.end(body);
-    } catch { return res.writeHead(404).end(); }
+    } catch {
+      return res.writeHead(404).end();
+    }
   }
   // Legacy static route kept for compatibility with older bookmarks/builds.
   if (method === 'GET' && url.startsWith('/static/')) {
@@ -212,7 +232,9 @@ const server = createServer(async (req, res) => {
       const body = readFileSync(path);
       res.writeHead(200, { 'Content-Type': MIME[extname(file)] || 'application/octet-stream' });
       return res.end(body);
-    } catch { return res.writeHead(404).end(); }
+    } catch {
+      return res.writeHead(404).end();
+    }
   }
   if (method === 'GET' && url.startsWith('/examples/')) {
     const file = url.replace('/examples/', '');
@@ -222,7 +244,9 @@ const server = createServer(async (req, res) => {
       const body = readFileSync(path);
       res.writeHead(200, { 'Content-Type': MIME[extname(file)] || 'application/octet-stream' });
       return res.end(body);
-    } catch { return res.writeHead(404).end(); }
+    } catch {
+      return res.writeHead(404).end();
+    }
   }
 
   // Auth + rate limiting (skip for health/config/static files)
@@ -233,8 +257,11 @@ const server = createServer(async (req, res) => {
   if (method !== 'POST') return json(res, 405, { error: 'Method Not Allowed' });
 
   let body;
-  try { body = await parseBody(req); }
-  catch { return json(res, 400, { error: 'Invalid JSON body' }); }
+  try {
+    body = await parseBody(req);
+  } catch {
+    return json(res, 400, { error: 'Invalid JSON body' });
+  }
 
   const correlationId = body.correlationId || crypto.randomUUID();
   const clientId = body.clientId || 'anonymous';
@@ -261,8 +288,18 @@ const server = createServer(async (req, res) => {
       auditLog({ event: 'request', correlationId, clientId, endpoint: '/generate' });
       const schemaCheck = validateLogicCoreSchema(body.logicCore);
       if (!schemaCheck.valid) {
-        auditLog({ event: 'schema_rejected', correlationId, clientId, endpoint: '/generate', errorCount: schemaCheck.errors.length });
-        return json(res, 400, { correlationId, status: 'schema_error', errors: schemaCheck.errors });
+        auditLog({
+          event: 'schema_rejected',
+          correlationId,
+          clientId,
+          endpoint: '/generate',
+          errorCount: schemaCheck.errors.length,
+        });
+        return json(res, 400, {
+          correlationId,
+          status: 'schema_error',
+          errors: schemaCheck.errors,
+        });
       }
       const result = await runPipeline(body.logicCore, { visualRefinement: body.visualRefinement });
       const durationMs = Date.now() - t0;
@@ -286,7 +323,7 @@ const server = createServer(async (req, res) => {
           return json(res, 400, { error: 'callbackUrl is not a valid URL' });
         }
         if (urlError) return json(res, 400, { error: urlError });
-        deliver(body.callbackUrl, payload).catch(err => {
+        deliver(body.callbackUrl, payload).catch((err) => {
           auditLog({ event: 'delivery_failed', correlationId, error: err.message });
         });
         callbackStatus = 'pending';
@@ -300,12 +337,27 @@ const server = createServer(async (req, res) => {
       auditLog({ event: 'request', correlationId, clientId, endpoint: '/validate' });
       const schemaCheck = validateLogicCoreSchema(body.logicCore);
       if (!schemaCheck.valid) {
-        auditLog({ event: 'schema_rejected', correlationId, clientId, endpoint: '/validate', errorCount: schemaCheck.errors.length });
-        return json(res, 400, { correlationId, status: 'schema_error', errors: schemaCheck.errors });
+        auditLog({
+          event: 'schema_rejected',
+          correlationId,
+          clientId,
+          endpoint: '/validate',
+          errorCount: schemaCheck.errors.length,
+        });
+        return json(res, 400, {
+          correlationId,
+          status: 'schema_error',
+          errors: schemaCheck.errors,
+        });
       }
       const validation = validateLogicCore(body.logicCore);
       const durationMs = Date.now() - t0;
-      auditLog({ event: 'completed', correlationId, durationMs, hasErrors: validation.errors.length > 0 });
+      auditLog({
+        event: 'completed',
+        correlationId,
+        durationMs,
+        hasErrors: validation.errors.length > 0,
+      });
       return json(res, 200, { correlationId, status: 'success', validation });
     }
 
@@ -320,7 +372,12 @@ const server = createServer(async (req, res) => {
 
     // Mermaid artifact generation — source-only output, rendered and validated in the browser.
     if (url === '/api/v1/artifacts/mermaid/generate') {
-      auditLog({ event: 'request', correlationId, clientId, endpoint: '/artifacts/mermaid/generate' });
+      auditLog({
+        event: 'request',
+        correlationId,
+        clientId,
+        endpoint: '/artifacts/mermaid/generate',
+      });
       if (typeof body.userText !== 'string' || !body.userText.trim()) {
         return json(res, 400, { error: 'Provide userText (string)' });
       }
@@ -351,14 +408,29 @@ const server = createServer(async (req, res) => {
       if (body.logicCore) {
         const schemaCheck = validateLogicCoreSchema(body.logicCore);
         if (!schemaCheck.valid) {
-          auditLog({ event: 'schema_rejected', correlationId, clientId, endpoint: '/orchestrate', errorCount: schemaCheck.errors.length });
-          return json(res, 400, { correlationId, status: 'schema_error', errors: schemaCheck.errors });
+          auditLog({
+            event: 'schema_rejected',
+            correlationId,
+            clientId,
+            endpoint: '/orchestrate',
+            errorCount: schemaCheck.errors.length,
+          });
+          return json(res, 400, {
+            correlationId,
+            status: 'schema_error',
+            errors: schemaCheck.errors,
+          });
         }
       }
 
       const result = await orchestrate(input, options);
       const durationMs = Date.now() - t0;
-      auditLog({ event: 'completed', correlationId, durationMs, isCompliant: result.compliance?.isCompliant });
+      auditLog({
+        event: 'completed',
+        correlationId,
+        durationMs,
+        isCompliant: result.compliance?.isCompliant,
+      });
 
       return json(res, 200, {
         correlationId,
@@ -384,7 +456,12 @@ const server = createServer(async (req, res) => {
       const llmProvider = createCodexAppServerProvider();
       const result = await chatAgent({ messages: body.messages, llmProvider });
       const durationMs = Date.now() - t0;
-      auditLog({ event: 'completed', correlationId, durationMs, readyToGenerate: result.readyToGenerate });
+      auditLog({
+        event: 'completed',
+        correlationId,
+        durationMs,
+        readyToGenerate: result.readyToGenerate,
+      });
 
       return json(res, 200, { ...result, correlationId });
     }

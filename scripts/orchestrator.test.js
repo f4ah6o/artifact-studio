@@ -3,7 +3,7 @@
  * Tests agent contracts, state machine convergence, and iteration limits.
  */
 
-import { describe, test, expect, jest } from '@jest/globals';
+import { describe, test, expect, vi } from 'vite-plus/test';
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -27,7 +27,7 @@ describe('reviewerAgent', () => {
     const result = await reviewerAgent({ logicCore: lc });
     expect(result.isValid).toBe(true);
     expect(result.done).toBe(true);
-    expect(result.reviewIssues.filter(i => i.severity === 'ERROR')).toHaveLength(0);
+    expect(result.reviewIssues.filter((i) => i.severity === 'ERROR')).toHaveLength(0);
   });
 
   test('multi-pool LogicCore → isValid: true', async () => {
@@ -38,10 +38,13 @@ describe('reviewerAgent', () => {
 
   test('broken LogicCore → issues with severity', async () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'Test',
-        lanes: [{ id: 'L1', name: 'Lane', nodeIds: ['t1'] }],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'Test',
+          lanes: [{ id: 'L1', name: 'Lane', nodeIds: ['t1'] }],
+        },
+      ],
       nodes: [{ id: 't1', type: 'task', label: 'Do stuff' }],
       edges: [],
     };
@@ -122,8 +125,7 @@ import { modelerAgent } from './agents/modeler.js';
 
 describe('modelerAgent', () => {
   test('throws without llmProvider', async () => {
-    await expect(modelerAgent({ userText: 'test', options: {} }))
-      .rejects.toThrow('llmProvider');
+    await expect(modelerAgent({ userText: 'test', options: {} })).rejects.toThrow('llmProvider');
   });
 
   test('extract mode: calls LLM and returns logicCore', async () => {
@@ -156,7 +158,9 @@ describe('modelerAgent', () => {
 
     const result = await modelerAgent({
       logicCore: mockLc,
-      layoutFeedback: [{ issue: 'Overlap', suggestion: 'Move node', requiresLogicCoreChange: true }],
+      layoutFeedback: [
+        { issue: 'Overlap', suggestion: 'Move node', requiresLogicCoreChange: true },
+      ],
       options: { llmProvider: mockLlm },
     });
     expect(result.mode).toBe('amend');
@@ -216,16 +220,16 @@ describe('orchestrate', () => {
     expect(result.svg).toBeDefined();
     expect(result.compliance).toBeDefined();
     expect(result.history.length).toBeGreaterThanOrEqual(3); // reviewer + layout + compliance
-    expect(result.history.some(h => h.agent === 'reviewer')).toBe(true);
-    expect(result.history.some(h => h.agent === 'layout')).toBe(true);
-    expect(result.history.some(h => h.agent === 'compliance')).toBe(true);
+    expect(result.history.some((h) => h.agent === 'reviewer')).toBe(true);
+    expect(result.history.some((h) => h.agent === 'layout')).toBe(true);
+    expect(result.history.some((h) => h.agent === 'compliance')).toBe(true);
   });
 
   test('valid LogicCore converges in 1 review iteration', async () => {
     const lc = loadFixture('simple-approval.json');
     const result = await orchestrate(lc);
 
-    const reviewEntries = result.history.filter(h => h.agent === 'reviewer');
+    const reviewEntries = result.history.filter((h) => h.agent === 'reviewer');
     expect(reviewEntries).toHaveLength(1);
     expect(reviewEntries[0].isValid).toBe(true);
   });
@@ -256,7 +260,7 @@ describe('orchestrate', () => {
     expect(result.bpmnXml).toBeDefined();
     expect(result.compliance).toBeDefined();
 
-    const modelerEntries = result.history.filter(h => h.agent === 'modeler');
+    const modelerEntries = result.history.filter((h) => h.agent === 'modeler');
     expect(modelerEntries.length).toBeGreaterThanOrEqual(1);
     expect(modelerEntries[0].phase).toBe('extract');
   });
@@ -287,7 +291,7 @@ describe('orchestrate', () => {
       maxReviewIterations: 2,
     });
 
-    const reviewEntries = result.history.filter(h => h.agent === 'reviewer');
+    const reviewEntries = result.history.filter((h) => h.agent === 'reviewer');
     expect(reviewEntries.length).toBeLessThanOrEqual(2);
   });
 });
@@ -310,7 +314,7 @@ describe('createLlmProvider', () => {
 
   test('legacy (systemPrompt, userPrompt) call shape sends a 2-message array', async () => {
     let capturedBody;
-    global.fetch = jest.fn(async (_url, init) => {
+    global.fetch = vi.fn(async (_url, init) => {
       capturedBody = JSON.parse(init.body);
       return {
         ok: true,
@@ -333,7 +337,7 @@ describe('createLlmProvider', () => {
 
   test('multi-turn (messages[], options) call shape sends messages verbatim', async () => {
     let capturedBody;
-    global.fetch = jest.fn(async (_url, init) => {
+    global.fetch = vi.fn(async (_url, init) => {
       capturedBody = JSON.parse(init.body);
       return {
         ok: true,
@@ -367,20 +371,26 @@ import { chatAgent } from './agents/chat.js';
 
 describe('chatAgent', () => {
   test('throws without llmProvider', async () => {
-    await expect(chatAgent({ messages: [{ role: 'user', content: 'hi' }] }))
-      .rejects.toThrow('llmProvider');
+    await expect(chatAgent({ messages: [{ role: 'user', content: 'hi' }] })).rejects.toThrow(
+      'llmProvider',
+    );
   });
 
   test('throws without a non-empty messages array', async () => {
-    await expect(chatAgent({ messages: [], llmProvider: async () => '{}' }))
-      .rejects.toThrow('messages');
+    await expect(chatAgent({ messages: [], llmProvider: async () => '{}' })).rejects.toThrow(
+      'messages',
+    );
   });
 
   test('sends the discovery system prompt plus the conversation to the llmProvider', async () => {
     let capturedMessages;
     const mockLlm = async (messages) => {
       capturedMessages = messages;
-      return JSON.stringify({ reply: 'Wie viele Beteiligte gibt es?', readyToGenerate: false, suggestedSummary: null });
+      return JSON.stringify({
+        reply: 'Wie viele Beteiligte gibt es?',
+        readyToGenerate: false,
+        suggestedSummary: null,
+      });
     };
 
     await chatAgent({
@@ -390,15 +400,19 @@ describe('chatAgent', () => {
 
     expect(capturedMessages[0].role).toBe('system');
     expect(capturedMessages[0].content).toContain('readyToGenerate');
-    expect(capturedMessages[1]).toEqual({ role: 'user', content: 'Ich will einen Genehmigungsprozess.' });
+    expect(capturedMessages[1]).toEqual({
+      role: 'user',
+      content: 'Ich will einen Genehmigungsprozess.',
+    });
   });
 
   test('returns parsed reply, readyToGenerate and suggestedSummary', async () => {
-    const mockLlm = async () => JSON.stringify({
-      reply: 'Ich habe alles was ich brauche.',
-      readyToGenerate: true,
-      suggestedSummary: 'Kunde sendet Antrag, Sachbearbeiter prüft.',
-    });
+    const mockLlm = async () =>
+      JSON.stringify({
+        reply: 'Ich habe alles was ich brauche.',
+        readyToGenerate: true,
+        suggestedSummary: 'Kunde sendet Antrag, Sachbearbeiter prüft.',
+      });
 
     const result = await chatAgent({
       messages: [{ role: 'user', content: 'Das reicht, generier es.' }],
@@ -425,7 +439,10 @@ describe('chatAgent', () => {
   });
 
   test('extracts JSON from a fenced code block', async () => {
-    const mockLlm = async () => '```json\n' + JSON.stringify({ reply: 'ok', readyToGenerate: false, suggestedSummary: null }) + '\n```';
+    const mockLlm = async () =>
+      '```json\n' +
+      JSON.stringify({ reply: 'ok', readyToGenerate: false, suggestedSummary: null }) +
+      '\n```';
 
     const result = await chatAgent({
       messages: [{ role: 'user', content: 'Hallo' }],
@@ -438,9 +455,11 @@ describe('chatAgent', () => {
   test('throws a clear error when the LLM response is not valid JSON', async () => {
     const mockLlm = async () => 'Sure, here is my answer: not json at all';
 
-    await expect(chatAgent({
-      messages: [{ role: 'user', content: 'Hallo' }],
-      llmProvider: mockLlm,
-    })).rejects.toThrow('Chat agent');
+    await expect(
+      chatAgent({
+        messages: [{ role: 'user', content: 'Hallo' }],
+        llmProvider: mockLlm,
+      }),
+    ).rejects.toThrow('Chat agent');
   });
 });

@@ -16,20 +16,25 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v6
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@313600b80b104eadebb9111787d37a2e83e014ca # v1.17.0
         with:
+          working-directory: scripts
           node-version: ${{ matrix.node-version }}
-          cache: npm
-          cache-dependency-path: scripts/package-lock.json
+          cache: true
+          run-install: true
 
-      - name: Install dependencies
+      - name: Check
         working-directory: scripts
-        run: npm ci
+        run: vp check
 
-      - name: Run tests
+      - name: Test
         working-directory: scripts
-        run: npm test
+        run: vp test --run
+
+      - name: Build frontend
+        working-directory: scripts
+        run: vp build
 
       - name: Smoke test — generate BPMN + SVG
         working-directory: scripts

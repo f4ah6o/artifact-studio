@@ -26,7 +26,10 @@ const EXERCISES = {
     '04': { dir: 'English/04-Self-service-restaurant', name: 'Self-service restaurant' },
   },
   de: {
-    '01': { dir: 'German/01-Vorbereitung-des-Warenversands', name: 'Vorbereitung des Warenversands' },
+    '01': {
+      dir: 'German/01-Vorbereitung-des-Warenversands',
+      name: 'Vorbereitung des Warenversands',
+    },
     '02': { dir: 'German/02-Regressnahme', name: 'Regressnahme' },
     '03': { dir: 'German/03-Schufascoring', name: 'Schufascoring' },
     '04': { dir: 'German/04-Selbstbedienungsrestaurant', name: 'Selbstbedienungsrestaurant' },
@@ -100,9 +103,10 @@ function countNodes(lc) {
 }
 
 function toTrainingSample(description, logicCore, lang, exerciseId) {
-  const instruction = lang === 'de'
-    ? 'Konvertiere diese Prozessbeschreibung in Logic-Core JSON nach dem BPMN 2.0 Schema.'
-    : 'Convert this process description to Logic-Core JSON following the BPMN 2.0 schema.';
+  const instruction =
+    lang === 'de'
+      ? 'Konvertiere diese Prozessbeschreibung in Logic-Core JSON nach dem BPMN 2.0 Schema.'
+      : 'Convert this process description to Logic-Core JSON following the BPMN 2.0 schema.';
 
   return {
     instruction,
@@ -116,7 +120,10 @@ function toTrainingSample(description, logicCore, lang, exerciseId) {
 
 function parseArgs() {
   const args = process.argv.slice(2);
-  const flag = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : null; };
+  const flag = (name) => {
+    const i = args.indexOf(name);
+    return i >= 0 ? args[i + 1] : null;
+  };
   return {
     researchDir: flag('--research'),
     iwfBpmnDir: flag('--iwf-bpmn'),
@@ -128,15 +135,20 @@ function parseArgs() {
 const config = parseArgs();
 
 if (!config.researchDir && !config.iwfBpmnDir) {
-  console.error('Usage: node prepare-training-data.js --research <path> [--iwf-bpmn <path>] [--output <dir>]');
+  console.error(
+    'Usage: node prepare-training-data.js --research <path> [--iwf-bpmn <path>] [--output <dir>]',
+  );
   process.exit(1);
 }
 
 mkdirSync(config.outputDir, { recursive: true });
 
 const stats = {
-  total: 0, parsed: 0, parseFailed: 0,
-  valid: 0, compliant: 0,
+  total: 0,
+  parsed: 0,
+  parseFailed: 0,
+  valid: 0,
+  compliant: 0,
   byExercise: {},
   byLang: { en: 0, de: 0, iwf: 0 },
 };
@@ -226,7 +238,9 @@ if (config.iwfBpmnDir) {
           const meta = JSON.parse(readFileSync(metaPath, 'utf8'));
           const description = `Erstelle einen BPMN-Prozess für: ${meta.source_page_title || meta.attachment_title || basename(bpmnPath, '.bpmn')}`;
           allSamples.push(toTrainingSample(description, result.logicCore, 'de', 'iwf'));
-        } catch { /* skip */ }
+        } catch {
+          /* skip */
+        }
       }
     }
   }
@@ -244,7 +258,7 @@ const val = shuffled.slice(trainEnd, valEnd);
 const test = shuffled.slice(valEnd);
 
 if (!config.statsOnly) {
-  const toJsonl = (arr) => arr.map(s => JSON.stringify(s)).join('\n') + '\n';
+  const toJsonl = (arr) => arr.map((s) => JSON.stringify(s)).join('\n') + '\n';
 
   writeFileSync(join(config.outputDir, 'train.jsonl'), toJsonl(train), 'utf8');
   writeFileSync(join(config.outputDir, 'val.jsonl'), toJsonl(val), 'utf8');
@@ -263,7 +277,8 @@ const statsOutput = {
   qualityRates: {
     parseRate: stats.total > 0 ? `${((stats.parsed / stats.total) * 100).toFixed(1)}%` : 'N/A',
     validRate: stats.parsed > 0 ? `${((stats.valid / stats.parsed) * 100).toFixed(1)}%` : 'N/A',
-    compliantRate: stats.parsed > 0 ? `${((stats.compliant / stats.parsed) * 100).toFixed(1)}%` : 'N/A',
+    compliantRate:
+      stats.parsed > 0 ? `${((stats.compliant / stats.parsed) * 100).toFixed(1)}%` : 'N/A',
   },
 };
 
@@ -274,7 +289,9 @@ console.log(`  Total BPMN files:    ${stats.total}`);
 console.log(`  Parsed successfully: ${stats.parsed} (${statsOutput.qualityRates.parseRate})`);
 console.log(`  Parse failures:      ${stats.parseFailed}`);
 console.log(`  Valid (0 errors):    ${stats.valid} (${statsOutput.qualityRates.validRate})`);
-console.log(`  Compliant:           ${stats.compliant} (${statsOutput.qualityRates.compliantRate})`);
+console.log(
+  `  Compliant:           ${stats.compliant} (${statsOutput.qualityRates.compliantRate})`,
+);
 console.log(`\n  Training samples:    ${allSamples.length}`);
 console.log(`    Train:  ${train.length}`);
 console.log(`    Val:    ${val.length}`);
@@ -283,7 +300,9 @@ console.log(`    Test:   ${test.length}`);
 if (Object.keys(stats.byExercise).length > 0) {
   console.log(`\n  Per Exercise:`);
   for (const [key, ex] of Object.entries(stats.byExercise)) {
-    console.log(`    ${key}: ${ex.total} total, ${ex.parsed} parsed, ${ex.valid} valid, ${ex.compliant} compliant`);
+    console.log(
+      `    ${key}: ${ex.total} total, ${ex.parsed} parsed, ${ex.valid} valid, ${ex.compliant} compliant`,
+    );
   }
 }
 

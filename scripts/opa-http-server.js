@@ -27,11 +27,18 @@ async function readJson(req) {
   let bytes = 0;
   for await (const chunk of req) {
     bytes += chunk.length;
-    if (bytes > MAX_BODY_BYTES) throw new OpaWorkspaceError(`Request body exceeds ${MAX_BODY_BYTES} bytes`, 'OPA_REQUEST_TOO_LARGE');
+    if (bytes > MAX_BODY_BYTES)
+      throw new OpaWorkspaceError(
+        `Request body exceeds ${MAX_BODY_BYTES} bytes`,
+        'OPA_REQUEST_TOO_LARGE',
+      );
     chunks.push(chunk);
   }
-  try { return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}'); }
-  catch { throw new OpaWorkspaceError('Invalid JSON request body', 'OPA_REQUEST_INVALID'); }
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+  } catch {
+    throw new OpaWorkspaceError('Invalid JSON request body', 'OPA_REQUEST_INVALID');
+  }
 }
 
 function errorStatus(error) {
@@ -67,11 +74,17 @@ export function createOpaHttpServer() {
         case '/api/v1/artifacts/opa/check':
           return sendJson(res, 200, { status: 'success', ...(await checkWorkspace(workspace)) });
         case '/api/v1/artifacts/opa/format':
-          return sendJson(res, 200, { status: 'success', workspace: await formatWorkspace(workspace) });
+          return sendJson(res, 200, {
+            status: 'success',
+            workspace: await formatWorkspace(workspace),
+          });
         case '/api/v1/artifacts/opa/eval':
           return sendJson(res, 200, {
             status: 'success',
-            evaluation: await evaluateWorkspace(workspace, body.query, { input: body.input, explain: body.explain }),
+            evaluation: await evaluateWorkspace(workspace, body.query, {
+              input: body.input,
+              explain: body.explain,
+            }),
           });
         case '/api/v1/artifacts/opa/test':
           return sendJson(res, 200, { status: 'success', result: await testWorkspace(workspace) });

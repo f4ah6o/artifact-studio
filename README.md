@@ -86,7 +86,7 @@ The LLM **never** handles coordinates. Layout is 100% algorithmic.
 
 ```bash
 cd scripts/
-npm install          # installs elkjs + jest
+vp install           # installs the Vite+ managed toolchain and dependencies
 
 # Generate from JSON Logic-Core:
 node pipeline.js my-process.json my-process
@@ -104,7 +104,7 @@ node pipeline.js my-process.json my-process --dot
 node pipeline.js graph.dot output --import-dot
 
 # Run tests:
-npm test
+vp test --run
 ```
 
 **Output:** `output.bpmn` (BPMN 2.0 XML) + `output.svg` (vector preview)

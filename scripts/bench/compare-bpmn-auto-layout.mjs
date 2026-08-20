@@ -20,11 +20,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..', '..');
 
 // Three fixtures with progressively harder pool/lane structure
-const FIXTURES = [
-  'simple-approval.json',
-  'multi-pool-collaboration.json',
-  'sparse-lanes.json',
-];
+const FIXTURES = ['simple-approval.json', 'multi-pool-collaboration.json', 'sparse-lanes.json'];
 
 // Extract all id="..." values for elements matching a given tag-name regex.
 // Tag-name regex must NOT include the leading '<' or the trailing '\s' — we add those.
@@ -137,10 +133,7 @@ async function main() {
   }
 
   const balPkg = JSON.parse(
-    readFileSync(
-      join(repoRoot, 'scripts/node_modules/bpmn-auto-layout/package.json'),
-      'utf8',
-    ),
+    readFileSync(join(repoRoot, 'scripts/node_modules/bpmn-auto-layout/package.json'), 'utf8'),
   );
 
   // Build markdown report
@@ -158,9 +151,13 @@ async function main() {
   lines.push('');
   lines.push('## Semantic Preservation');
   lines.push('');
-  lines.push('Counts of `<bpmn:*>` elements before/after. These should be identical — a layout engine is not supposed to delete semantic elements. Mismatches are marked with ⚠.');
+  lines.push(
+    'Counts of `<bpmn:*>` elements before/after. These should be identical — a layout engine is not supposed to delete semantic elements. Mismatches are marked with ⚠.',
+  );
   lines.push('');
-  lines.push('| Fixture | Participants (ours / theirs) | Lanes (ours / theirs) | MsgFlows (ours / theirs) | SeqFlows (ours / theirs) | Their error |');
+  lines.push(
+    '| Fixture | Participants (ours / theirs) | Lanes (ours / theirs) | MsgFlows (ours / theirs) | SeqFlows (ours / theirs) | Their error |',
+  );
   lines.push('|---|---|---|---|---|---|');
   for (const r of results) {
     if (!r.ourCounts) {
@@ -176,9 +173,13 @@ async function main() {
   lines.push('');
   lines.push('## DI Output');
   lines.push('');
-  lines.push('Counts of `<bpmndi:*>` elements — what the layout engine actually drew. Missing pool/lane shapes or message-flow edges in "theirs" means the layout engine refused to draw them.');
+  lines.push(
+    'Counts of `<bpmndi:*>` elements — what the layout engine actually drew. Missing pool/lane shapes or message-flow edges in "theirs" means the layout engine refused to draw them.',
+  );
   lines.push('');
-  lines.push('| Fixture | Pool shapes (ours / theirs) | Lane shapes (ours / theirs) | MsgFlow edges (ours / theirs) | SeqFlow edges (ours / theirs) | Total shapes (ours / theirs) | Total edges (ours / theirs) |');
+  lines.push(
+    '| Fixture | Pool shapes (ours / theirs) | Lane shapes (ours / theirs) | MsgFlow edges (ours / theirs) | SeqFlow edges (ours / theirs) | Total shapes (ours / theirs) | Total edges (ours / theirs) |',
+  );
   lines.push('|---|---|---|---|---|---|---|');
   for (const r of results) {
     if (!r.ourCounts) {
@@ -194,13 +195,17 @@ async function main() {
   lines.push('');
   lines.push('## Interpretation');
   lines.push('');
-  lines.push('- **Semantic mismatch** (⚠ in first table): the layout engine dropped semantic elements — a serious data loss.');
-  lines.push('- **DI mismatch** (⚠ in second table): the layout engine refused to draw elements (typically pools beyond the first, or message flows). The BPMN file is still semantically valid but visually incomplete; rendering tools may show errors or invisible elements.');
+  lines.push(
+    '- **Semantic mismatch** (⚠ in first table): the layout engine dropped semantic elements — a serious data loss.',
+  );
+  lines.push(
+    '- **DI mismatch** (⚠ in second table): the layout engine refused to draw elements (typically pools beyond the first, or message flows). The BPMN file is still semantically valid but visually incomplete; rendering tools may show errors or invisible elements.',
+  );
   lines.push('- **"Their error"**: outright rejection of the input.');
   lines.push('');
   lines.push('Per the upstream README (`node_modules/bpmn-auto-layout/README.md`):');
   lines.push('');
-  lines.push('> * Given a collaboration only the first participant\'s process will be laid out');
+  lines.push("> * Given a collaboration only the first participant's process will be laid out");
   lines.push('> * Sub-processes will be laid out as collapsed sub-processes');
   lines.push('> * The following elements are not laid out:');
   lines.push('>   * Groups');
@@ -244,10 +249,18 @@ async function main() {
     }
     const o = r.ourCounts;
     const t = r.theirCounts;
-    if (o.participants !== t.participants || o.lanes !== t.lanes || o.messageFlows !== t.messageFlows) {
+    if (
+      o.participants !== t.participants ||
+      o.lanes !== t.lanes ||
+      o.messageFlows !== t.messageFlows
+    ) {
       semanticMismatch = true;
     }
-    if (o.poolShapes !== t.poolShapes || o.laneShapes !== t.laneShapes || o.messageFlowEdges !== t.messageFlowEdges) {
+    if (
+      o.poolShapes !== t.poolShapes ||
+      o.laneShapes !== t.laneShapes ||
+      o.messageFlowEdges !== t.messageFlowEdges
+    ) {
       diMismatch = true;
     }
   }

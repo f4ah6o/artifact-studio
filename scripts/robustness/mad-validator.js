@@ -13,15 +13,19 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_SUBSET = resolve(__dirname, '../../tests/fixtures/mad-subset');
 
 export async function runMadCheck({ subsetDir = DEFAULT_SUBSET, limit = Infinity } = {}) {
-  const files = readdirSync(subsetDir).filter(f => f.endsWith('.dot')).slice(0, limit);
-  let passed = 0, failed = 0;
+  const files = readdirSync(subsetDir)
+    .filter((f) => f.endsWith('.dot'))
+    .slice(0, limit);
+  let passed = 0,
+    failed = 0;
   const byCategory = {};
 
   for (const f of files) {
     const dot = readFileSync(join(subsetDir, f), 'utf8');
     let lc;
-    try { lc = dotToLogicCore(dot); }
-    catch (e) {
+    try {
+      lc = dotToLogicCore(dot);
+    } catch (e) {
       failed++;
       byCategory['dot-parse-fail'] = (byCategory['dot-parse-fail'] || 0) + 1;
       continue;

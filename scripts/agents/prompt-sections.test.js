@@ -1,4 +1,4 @@
-import { describe, test, expect } from '@jest/globals';
+import { describe, test, expect } from 'vite-plus/test';
 import { extractPromptSection } from './prompt-sections.js';
 
 describe('extractPromptSection', () => {

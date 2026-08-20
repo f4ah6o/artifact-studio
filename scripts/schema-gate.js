@@ -16,10 +16,12 @@ export function validateLogicCoreSchema(input) {
   const valid = validate(input);
   return {
     valid,
-    errors: valid ? [] : (validate.errors || []).map(e => ({
-      path: e.instancePath || '(root)',
-      message: e.message,
-      params: e.params,
-    })),
+    errors: valid
+      ? []
+      : (validate.errors || []).map((e) => ({
+          path: e.instancePath || '(root)',
+          message: e.message,
+          params: e.params,
+        })),
   };
 }

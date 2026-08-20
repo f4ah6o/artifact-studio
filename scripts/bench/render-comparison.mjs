@@ -20,17 +20,14 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..', '..');
 const benchDir = join(repoRoot, 'tests', 'bench');
 
-const FIXTURES = [
-  'simple-approval.json',
-  'multi-pool-collaboration.json',
-  'sparse-lanes.json',
-];
+const FIXTURES = ['simple-approval.json', 'multi-pool-collaboration.json', 'sparse-lanes.json'];
 
 // ── Minimal DI → SVG renderer for the OTHER tool's output ────────────────
 function renderTheirsAsSvg(bpmnXml) {
   // Parse BPMNShape: bpmnElement="X" -> { id, x, y, w, h }
   const shapes = [];
-  const shapeRe = /<bpmndi:BPMNShape[^>]*bpmnElement="([^"]+)"[\s\S]*?<dc:Bounds\s+x="([^"]+)"\s+y="([^"]+)"\s+width="([^"]+)"\s+height="([^"]+)"/g;
+  const shapeRe =
+    /<bpmndi:BPMNShape[^>]*bpmnElement="([^"]+)"[\s\S]*?<dc:Bounds\s+x="([^"]+)"\s+y="([^"]+)"\s+width="([^"]+)"\s+height="([^"]+)"/g;
   let m;
   while ((m = shapeRe.exec(bpmnXml)) !== null) {
     shapes.push({ id: m[1], x: +m[2], y: +m[3], w: +m[4], h: +m[5] });
@@ -41,8 +38,10 @@ function renderTheirsAsSvg(bpmnXml) {
   const edgeRe = /<bpmndi:BPMNEdge[^>]*bpmnElement="([^"]+)"[\s\S]*?<\/bpmndi:BPMNEdge>/g;
   while ((m = edgeRe.exec(bpmnXml)) !== null) {
     const block = m[0];
-    const pts = [...block.matchAll(/<di:waypoint\s+x="([^"]+)"\s+y="([^"]+)"/g)]
-      .map(w => ({ x: +w[1], y: +w[2] }));
+    const pts = [...block.matchAll(/<di:waypoint\s+x="([^"]+)"\s+y="([^"]+)"/g)].map((w) => ({
+      x: +w[1],
+      y: +w[2],
+    }));
     edges.push({ id: m[1], pts });
   }
 
@@ -58,19 +57,34 @@ function renderTheirsAsSvg(bpmnXml) {
   }
 
   // Compute viewBox
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
   for (const s of shapes) {
-    minX = Math.min(minX, s.x); minY = Math.min(minY, s.y);
-    maxX = Math.max(maxX, s.x + s.w); maxY = Math.max(maxY, s.y + s.h);
+    minX = Math.min(minX, s.x);
+    minY = Math.min(minY, s.y);
+    maxX = Math.max(maxX, s.x + s.w);
+    maxY = Math.max(maxY, s.y + s.h);
   }
-  for (const e of edges) for (const p of e.pts) {
-    minX = Math.min(minX, p.x); minY = Math.min(minY, p.y);
-    maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y);
+  for (const e of edges)
+    for (const p of e.pts) {
+      minX = Math.min(minX, p.x);
+      minY = Math.min(minY, p.y);
+      maxX = Math.max(maxX, p.x);
+      maxY = Math.max(maxY, p.y);
+    }
+  if (!isFinite(minX)) {
+    minX = 0;
+    minY = 0;
+    maxX = 100;
+    maxY = 100;
   }
-  if (!isFinite(minX)) { minX = 0; minY = 0; maxX = 100; maxY = 100; }
   const pad = 20;
-  const vbX = minX - pad, vbY = minY - pad;
-  const vbW = (maxX - minX) + 2 * pad, vbH = (maxY - minY) + 2 * pad;
+  const vbX = minX - pad,
+    vbY = minY - pad;
+  const vbW = maxX - minX + 2 * pad,
+    vbH = maxY - minY + 2 * pad;
 
   const shapeColor = (type) => {
     if (!type) return '#fff';
@@ -89,13 +103,15 @@ function renderTheirsAsSvg(bpmnXml) {
     const fill = shapeColor(type);
     const name = nameByEl[s.id] || s.id;
     if (isEvent(type)) {
-      const cx = s.x + s.w / 2, cy = s.y + s.h / 2;
-      svgBody += `<circle cx="${cx}" cy="${cy}" r="${s.w/2}" fill="${fill}" stroke="#333" stroke-width="2"/>`;
+      const cx = s.x + s.w / 2,
+        cy = s.y + s.h / 2;
+      svgBody += `<circle cx="${cx}" cy="${cy}" r="${s.w / 2}" fill="${fill}" stroke="#333" stroke-width="2"/>`;
       svgBody += `<text x="${cx}" y="${s.y + s.h + 12}" text-anchor="middle" font-size="10" fill="#222">${escapeXml(name)}</text>`;
     } else if (isGateway(type)) {
-      const cx = s.x + s.w / 2, cy = s.y + s.h / 2;
+      const cx = s.x + s.w / 2,
+        cy = s.y + s.h / 2;
       const r = s.w / 2;
-      svgBody += `<polygon points="${cx},${cy-r} ${cx+r},${cy} ${cx},${cy+r} ${cx-r},${cy}" fill="${fill}" stroke="#333" stroke-width="2"/>`;
+      svgBody += `<polygon points="${cx},${cy - r} ${cx + r},${cy} ${cx},${cy + r} ${cx - r},${cy}" fill="${fill}" stroke="#333" stroke-width="2"/>`;
       svgBody += `<text x="${cx}" y="${s.y + s.h + 12}" text-anchor="middle" font-size="10" fill="#222">${escapeXml(name)}</text>`;
     } else {
       svgBody += `<rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" rx="6" fill="${fill}" stroke="#333" stroke-width="1.5"/>`;
@@ -115,7 +131,11 @@ function renderTheirsAsSvg(bpmnXml) {
 }
 
 function escapeXml(s) {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 async function main() {
@@ -177,4 +197,7 @@ async function main() {
   for (const s of summaries) console.log(`  ${s.path}`);
 }
 
-main().catch(err => { console.error(err); process.exit(1); });
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

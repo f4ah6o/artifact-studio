@@ -5,19 +5,19 @@
  * stay deterministic and never depend on an authenticated Codex process.
  */
 
-import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
+import { describe, test, expect, beforeAll, afterAll } from 'vite-plus/test';
 import { server } from './http-server.js';
 
 let baseUrl;
 
 beforeAll(async () => {
-  await new Promise(resolve => server.listen(0, resolve));
+  await new Promise((resolve) => server.listen(0, resolve));
   const { port } = server.address();
   baseUrl = `http://127.0.0.1:${port}`;
 });
 
 afterAll(async () => {
-  await new Promise(resolve => server.close(resolve));
+  await new Promise((resolve) => server.close(resolve));
 });
 
 describe('HTTP API', () => {

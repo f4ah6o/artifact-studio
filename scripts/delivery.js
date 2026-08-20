@@ -15,7 +15,7 @@ export function getDeadLetterDir() {
   return deadLetterDir;
 }
 
-const sleep = ms => new Promise(r => setTimeout(r, ms));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export async function deliver(callbackUrl, payload, retries = 3) {
   for (let i = 0; i < retries; i++) {
@@ -30,7 +30,9 @@ export async function deliver(callbackUrl, payload, retries = 3) {
         auditLog({ event: 'delivery_sent', correlationId: payload.correlationId });
         return { status: 'sent' };
       }
-    } catch { /* retry */ }
+    } catch {
+      /* retry */
+    }
     if (i < retries - 1) await sleep(1000 * 4 ** i);
   }
   const dlPath = join(deadLetterDir, `${payload.correlationId}.json`);

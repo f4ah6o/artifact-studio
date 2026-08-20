@@ -1,7 +1,16 @@
+import { describe, expect, test } from 'vite-plus/test';
 /**
  * Visual Refinement — unit tests
  */
-import { estimateTextWidth, computeDynamicLaneHeaders, estimateTextBBox, bboxOverlaps, anchorEdgeLabelsToRoutes, repairEdgeLabels, compactLanes } from './visual-refinement.js';
+import {
+  estimateTextWidth,
+  computeDynamicLaneHeaders,
+  estimateTextBBox,
+  bboxOverlaps,
+  anchorEdgeLabelsToRoutes,
+  repairEdgeLabels,
+  compactLanes,
+} from './visual-refinement.js';
 
 describe('estimateTextWidth', () => {
   test('returns 0 for empty string', () => {
@@ -10,7 +19,7 @@ describe('estimateTextWidth', () => {
 
   test('scales roughly with character count at fontSize 11', () => {
     const short = estimateTextWidth('abc', 11);
-    const long  = estimateTextWidth('abcabcabc', 11);
+    const long = estimateTextWidth('abcabcabc', 11);
     expect(long).toBeGreaterThan(short * 2.5);
     expect(long).toBeLessThan(short * 3.5);
   });
@@ -30,22 +39,25 @@ describe('estimateTextWidth', () => {
 
 describe('computeDynamicLaneHeaders', () => {
   const mkCoordMap = () => ({
-    poolCoords: { 'pool1': { x: 0, y: 0, w: 500, h: 200, laneHeaderWidth: 40 } },
+    poolCoords: { pool1: { x: 0, y: 0, w: 500, h: 200, laneHeaderWidth: 40 } },
     laneCoords: {
-      'lane1': { x: 40, y:   0, w: 460, h: 100 },
-      'lane2': { x: 40, y: 100, w: 460, h: 100 },
+      lane1: { x: 40, y: 0, w: 460, h: 100 },
+      lane2: { x: 40, y: 100, w: 460, h: 100 },
     },
-    coords: {}, edgeCoords: {}
+    coords: {},
+    edgeCoords: {},
   });
 
   const mkProcess = (laneNames) => ({
-    pools: [{
-      id: 'pool1',
-      lanes: [
-        { id: 'lane1', name: laneNames[0] },
-        { id: 'lane2', name: laneNames[1] },
-      ],
-    }],
+    pools: [
+      {
+        id: 'pool1',
+        lanes: [
+          { id: 'lane1', name: laneNames[0] },
+          { id: 'lane2', name: laneNames[1] },
+        ],
+      },
+    ],
   });
 
   test('leaves short labels at min width', () => {
@@ -85,18 +97,26 @@ describe('computeDynamicLaneHeaders', () => {
 
   test('handles single-pool via _singlePool key', () => {
     const coords = {
-      poolCoords: { '_singlePool': { x: 0, y: 0, w: 500, h: 200, laneHeaderWidth: 40 } },
-      laneCoords: { 'lane1': { x: 40, y: 0, w: 460, h: 100 } },
-      coords: {}, edgeCoords: {}
+      poolCoords: { _singlePool: { x: 0, y: 0, w: 500, h: 200, laneHeaderWidth: 40 } },
+      laneCoords: { lane1: { x: 40, y: 0, w: 460, h: 100 } },
+      coords: {},
+      edgeCoords: {},
     };
-    const proc = { pools: [{ id: 'pool1', lanes: [{ id: 'lane1', name: 'Prozessverantwortlicher' }] }] };
+    const proc = {
+      pools: [{ id: 'pool1', lanes: [{ id: 'lane1', name: 'Prozessverantwortlicher' }] }],
+    };
     const out = computeDynamicLaneHeaders(coords, proc, { minWidth: 30, maxWidth: 120 });
     // Falls back to '_singlePool' if pool.id not found
     expect(out.poolCoords['_singlePool'].laneHeaderWidth).toBeGreaterThan(30);
   });
 
   test('no-op for pool with no lanes', () => {
-    const coords = { poolCoords: { 'pool1': { x: 0, y: 0, w: 500, h: 200, laneHeaderWidth: 40 } }, laneCoords: {}, coords: {}, edgeCoords: {} };
+    const coords = {
+      poolCoords: { pool1: { x: 0, y: 0, w: 500, h: 200, laneHeaderWidth: 40 } },
+      laneCoords: {},
+      coords: {},
+      edgeCoords: {},
+    };
     const proc = { pools: [{ id: 'pool1', lanes: [] }] };
     const out = computeDynamicLaneHeaders(coords, proc, { minWidth: 30, maxWidth: 120 });
     expect(out.poolCoords.pool1.laneHeaderWidth).toBe(40);
@@ -127,7 +147,7 @@ describe('estimateTextBBox', () => {
 
   test('wider text produces wider bbox', () => {
     const short = estimateTextBBox('Yes', 100, 100, 11);
-    const long  = estimateTextBBox('This is a longer label', 100, 100, 11);
+    const long = estimateTextBBox('This is a longer label', 100, 100, 11);
     expect(long.w).toBeGreaterThan(short.w);
   });
 
@@ -180,9 +200,13 @@ describe('anchorEdgeLabelsToRoutes', () => {
   test('re-anchors a stale label to the longest horizontal segment of the final route', () => {
     const cm = {
       coords: {},
-      edgeCoords: { e1: [
-        { x: 20, y: 100 }, { x: 20, y: 20 }, { x: 220, y: 20 }
-      ] },
+      edgeCoords: {
+        e1: [
+          { x: 20, y: 100 },
+          { x: 20, y: 20 },
+          { x: 220, y: 20 },
+        ],
+      },
       edgeLabels: { e1: { text: 'Option A', x: 35, y: 95 } },
     };
     anchorEdgeLabelsToRoutes(cm);
@@ -193,10 +217,14 @@ describe('anchorEdgeLabelsToRoutes', () => {
   test('prefers a shorter horizontal segment when the longest one crosses a node', () => {
     const cm = {
       coords: { n1: { x: 80, y: 10, w: 80, h: 30 } },
-      edgeCoords: { e1: [
-        { x: 0, y: 25 }, { x: 200, y: 25 },
-        { x: 200, y: 100 }, { x: 260, y: 100 }
-      ] },
+      edgeCoords: {
+        e1: [
+          { x: 0, y: 25 },
+          { x: 200, y: 25 },
+          { x: 200, y: 100 },
+          { x: 260, y: 100 },
+        ],
+      },
       edgeLabels: { e1: { text: 'Yes', x: 5, y: 5 } },
     };
     anchorEdgeLabelsToRoutes(cm);
@@ -206,7 +234,8 @@ describe('anchorEdgeLabelsToRoutes', () => {
 
   test('leaves labels without routed edge geometry unchanged', () => {
     const cm = {
-      coords: {}, edgeCoords: {},
+      coords: {},
+      edgeCoords: {},
       edgeLabels: { message1: { text: 'Request', x: 10, y: 20 } },
     };
     anchorEdgeLabelsToRoutes(cm);
@@ -217,10 +246,16 @@ describe('anchorEdgeLabelsToRoutes', () => {
 describe('repairEdgeLabels', () => {
   test('leaves non-colliding labels untouched', () => {
     const cm = {
-      coords: { 'n1': { x: 0, y: 0, w: 50, h: 50 } },
-      poolCoords: {}, laneCoords: {},
-      edgeCoords: { 'e1': [{x:100,y:100}, {x:200,y:100}] },
-      edgeLabels: { 'e1': { text: 'OK', x: 150, y: 100 } }
+      coords: { n1: { x: 0, y: 0, w: 50, h: 50 } },
+      poolCoords: {},
+      laneCoords: {},
+      edgeCoords: {
+        e1: [
+          { x: 100, y: 100 },
+          { x: 200, y: 100 },
+        ],
+      },
+      edgeLabels: { e1: { text: 'OK', x: 150, y: 100 } },
     };
     repairEdgeLabels(cm);
     expect(cm.edgeLabels.e1.x).toBe(150);
@@ -230,11 +265,17 @@ describe('repairEdgeLabels', () => {
   test('nudges a label that collides with a node', () => {
     const cm = {
       // Node at (140, 90) size 30x30 → occupies (140..170, 90..120)
-      coords: { 'n1': { x: 140, y: 90, w: 30, h: 30 } },
-      poolCoords: {}, laneCoords: {},
-      edgeCoords: { 'e1': [{x:100,y:105},{x:200,y:105}] },
+      coords: { n1: { x: 140, y: 90, w: 30, h: 30 } },
+      poolCoords: {},
+      laneCoords: {},
+      edgeCoords: {
+        e1: [
+          { x: 100, y: 105 },
+          { x: 200, y: 105 },
+        ],
+      },
       // Label bbox at (150,105) collides with n1
-      edgeLabels: { 'e1': { text: 'Yes', x: 150, y: 105 } }
+      edgeLabels: { e1: { text: 'Yes', x: 150, y: 105 } },
     };
     repairEdgeLabels(cm, { maxShift: 25 });
     const moved = cm.edgeLabels.e1.x !== 150 || cm.edgeLabels.e1.y !== 105;
@@ -243,15 +284,23 @@ describe('repairEdgeLabels', () => {
 
   test('nudges one of two colliding labels', () => {
     const cm = {
-      coords: {}, poolCoords: {}, laneCoords: {},
+      coords: {},
+      poolCoords: {},
+      laneCoords: {},
       edgeCoords: {
-        'e1': [{x:100,y:100},{x:200,y:100}],
-        'e2': [{x:100,y:100},{x:200,y:100}],
+        e1: [
+          { x: 100, y: 100 },
+          { x: 200, y: 100 },
+        ],
+        e2: [
+          { x: 100, y: 100 },
+          { x: 200, y: 100 },
+        ],
       },
       edgeLabels: {
-        'e1': { text: 'Option A', x: 150, y: 100 },
-        'e2': { text: 'Option B', x: 150, y: 100 },  // exactly overlapping
-      }
+        e1: { text: 'Option A', x: 150, y: 100 },
+        e2: { text: 'Option B', x: 150, y: 100 }, // exactly overlapping
+      },
     };
     repairEdgeLabels(cm, { maxShift: 25 });
     // At least one of the two labels should have moved
@@ -264,14 +313,20 @@ describe('repairEdgeLabels', () => {
     // Label boxed in by nodes on all sides — no nudge can free it
     const cm = {
       coords: {
-        'n1': { x:   0, y:  85, w: 140, h: 30 }, // left wall
-        'n2': { x: 170, y:  85, w: 140, h: 30 }, // right wall
-        'n3': { x: 140, y:   0, w:  30, h:  85 }, // top wall
-        'n4': { x: 140, y: 115, w:  30, h: 200 }, // bottom wall
+        n1: { x: 0, y: 85, w: 140, h: 30 }, // left wall
+        n2: { x: 170, y: 85, w: 140, h: 30 }, // right wall
+        n3: { x: 140, y: 0, w: 30, h: 85 }, // top wall
+        n4: { x: 140, y: 115, w: 30, h: 200 }, // bottom wall
       },
-      poolCoords: {}, laneCoords: {},
-      edgeCoords: { 'e1': [{x:100,y:100},{x:200,y:100}] },
-      edgeLabels: { 'e1': { text: 'Stuck', x: 150, y: 100 } }
+      poolCoords: {},
+      laneCoords: {},
+      edgeCoords: {
+        e1: [
+          { x: 100, y: 100 },
+          { x: 200, y: 100 },
+        ],
+      },
+      edgeLabels: { e1: { text: 'Stuck', x: 150, y: 100 } },
     };
     const before = { ...cm.edgeLabels.e1 };
     repairEdgeLabels(cm, { maxShift: 10 });
@@ -282,14 +337,21 @@ describe('repairEdgeLabels', () => {
 
   test('no-op when coordMap has no edgeLabels', () => {
     const cm = {
-      coords: {}, poolCoords: {}, laneCoords: {}, edgeCoords: {}
+      coords: {},
+      poolCoords: {},
+      laneCoords: {},
+      edgeCoords: {},
     };
     expect(() => repairEdgeLabels(cm)).not.toThrow();
   });
 
   test('returns the coordMap for chaining', () => {
     const cm = {
-      coords: {}, poolCoords: {}, laneCoords: {}, edgeCoords: {}, edgeLabels: {}
+      coords: {},
+      poolCoords: {},
+      laneCoords: {},
+      edgeCoords: {},
+      edgeLabels: {},
     };
     expect(repairEdgeLabels(cm)).toBe(cm);
   });
@@ -301,16 +363,20 @@ describe('compactLanes — basic shrink', () => {
       coords: { n1: { x: 50, y: 20, w: 100, h: 80 } },
       poolCoords: { p1: { x: 0, y: 0, w: 300, h: 400, laneHeaderWidth: 40 } },
       laneCoords: {
-        laneA: { x: 40, y:   0, w: 260, h: 200 },
-        laneB: { x: 40, y: 200, w: 260, h: 200 }
+        laneA: { x: 40, y: 0, w: 260, h: 200 },
+        laneB: { x: 40, y: 200, w: 260, h: 200 },
       },
-      edgeCoords: {}
+      edgeCoords: {},
     };
-    const proc = { pools: [{
-      id: 'p1',
-      lanes: [{ id: 'laneA' }, { id: 'laneB' }],
-      nodes: [{ id: 'n1', lane: 'laneA' }]
-    }] };
+    const proc = {
+      pools: [
+        {
+          id: 'p1',
+          lanes: [{ id: 'laneA' }, { id: 'laneB' }],
+          nodes: [{ id: 'n1', lane: 'laneA' }],
+        },
+      ],
+    };
     compactLanes(cm, proc, { minLaneHeight: 60 });
     // n1 at y=20 h=80 → content height 80; +2*20 padding = 120
     expect(cm.laneCoords.laneA.h).toBe(120);
@@ -321,16 +387,20 @@ describe('compactLanes — basic shrink', () => {
       coords: { n1: { x: 50, y: 20, w: 100, h: 80 } },
       poolCoords: { p1: { x: 0, y: 0, w: 300, h: 400, laneHeaderWidth: 40 } },
       laneCoords: {
-        laneA: { x: 40, y:   0, w: 260, h: 200 },
-        laneB: { x: 40, y: 200, w: 260, h: 200 }
+        laneA: { x: 40, y: 0, w: 260, h: 200 },
+        laneB: { x: 40, y: 200, w: 260, h: 200 },
       },
-      edgeCoords: {}
+      edgeCoords: {},
     };
-    const proc = { pools: [{
-      id: 'p1',
-      lanes: [{ id: 'laneA' }, { id: 'laneB' }],
-      nodes: [{ id: 'n1', lane: 'laneA' }]
-    }] };
+    const proc = {
+      pools: [
+        {
+          id: 'p1',
+          lanes: [{ id: 'laneA' }, { id: 'laneB' }],
+          nodes: [{ id: 'n1', lane: 'laneA' }],
+        },
+      ],
+    };
     compactLanes(cm, proc, { minLaneHeight: 60 });
     // laneA shrinks from 200→120 (delta 80). laneB shifts up by 80.
     expect(cm.laneCoords.laneB.y).toBe(120);
@@ -342,7 +412,7 @@ describe('compactLanes — basic shrink', () => {
       coords: {},
       poolCoords: { p1: { x: 0, y: 0, w: 300, h: 200, laneHeaderWidth: 40 } },
       laneCoords: { laneA: { x: 40, y: 0, w: 260, h: 200 } },
-      edgeCoords: {}
+      edgeCoords: {},
     };
     const proc = { pools: [{ id: 'p1', lanes: [{ id: 'laneA' }] }], nodes: [] };
     compactLanes(cm, proc, { minLaneHeight: 60 });
@@ -352,22 +422,34 @@ describe('compactLanes — basic shrink', () => {
   test('shifts nodes in subsequent lanes up by the shrink delta', () => {
     const cm = {
       coords: {
-        n1: { x: 50, y: 20,  w: 100, h: 80 },
-        n2: { x: 50, y: 220, w: 100, h: 80 }  // lane B
+        n1: { x: 50, y: 20, w: 100, h: 80 },
+        n2: { x: 50, y: 220, w: 100, h: 80 }, // lane B
       },
       poolCoords: { p1: { x: 0, y: 0, w: 300, h: 400, laneHeaderWidth: 40 } },
       laneCoords: {
-        laneA: { x: 40, y:   0, w: 260, h: 200 },
-        laneB: { x: 40, y: 200, w: 260, h: 200 }
+        laneA: { x: 40, y: 0, w: 260, h: 200 },
+        laneB: { x: 40, y: 200, w: 260, h: 200 },
       },
-      edgeCoords: { e1: [{ x: 100, y: 60 }, { x: 100, y: 260 }] }
+      edgeCoords: {
+        e1: [
+          { x: 100, y: 60 },
+          { x: 100, y: 260 },
+        ],
+      },
     };
     // NOTE: nodes go inside the pool per schema (see commit 66bad2d for context)
-    const proc = { pools: [{
-      id: 'p1',
-      lanes: [{ id: 'laneA' }, { id: 'laneB' }],
-      nodes: [{ id: 'n1', lane: 'laneA' }, { id: 'n2', lane: 'laneB' }]
-    }] };
+    const proc = {
+      pools: [
+        {
+          id: 'p1',
+          lanes: [{ id: 'laneA' }, { id: 'laneB' }],
+          nodes: [
+            { id: 'n1', lane: 'laneA' },
+            { id: 'n2', lane: 'laneB' },
+          ],
+        },
+      ],
+    };
     compactLanes(cm, proc, { minLaneHeight: 60 });
     // laneA: content 80 + 2*20 = 120 → delta 80 from 200
     // n2 (in laneB) should be shifted up by 80
@@ -383,23 +465,36 @@ describe('compactLanes — basic shrink', () => {
       coords: { n1: { x: 50, y: 20, w: 100, h: 80 } },
       poolCoords: { p1: { x: 0, y: 0, w: 300, h: 400, laneHeaderWidth: 40 } },
       laneCoords: {
-        laneA: { x: 40, y:   0, w: 260, h: 200 },
-        laneB: { x: 40, y: 200, w: 260, h: 200 }
+        laneA: { x: 40, y: 0, w: 260, h: 200 },
+        laneB: { x: 40, y: 200, w: 260, h: 200 },
       },
-      edgeCoords: { e1: [{ x: 100, y: 60 }, { x: 100, y: 260 }] }
+      edgeCoords: {
+        e1: [
+          { x: 100, y: 60 },
+          { x: 100, y: 260 },
+        ],
+      },
     };
-    const proc = { pools: [{
-      id: 'p1',
-      lanes: [{ id: 'laneA' }, { id: 'laneB' }],
-      nodes: [{ id: 'n1', lane: 'laneA' }]
-    }] };
+    const proc = {
+      pools: [
+        {
+          id: 'p1',
+          lanes: [{ id: 'laneA' }, { id: 'laneB' }],
+          nodes: [{ id: 'n1', lane: 'laneA' }],
+        },
+      ],
+    };
     compactLanes(cm, proc, { minLaneHeight: 60 });
     const snap1 = structuredClone({
-      coords: cm.coords, laneCoords: cm.laneCoords, edgeCoords: cm.edgeCoords
+      coords: cm.coords,
+      laneCoords: cm.laneCoords,
+      edgeCoords: cm.edgeCoords,
     });
     compactLanes(cm, proc, { minLaneHeight: 60 });
     expect({
-      coords: cm.coords, laneCoords: cm.laneCoords, edgeCoords: cm.edgeCoords
+      coords: cm.coords,
+      laneCoords: cm.laneCoords,
+      edgeCoords: cm.edgeCoords,
     }).toEqual(snap1);
   });
 });

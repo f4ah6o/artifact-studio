@@ -3,7 +3,7 @@
  * K0c: Tests for critical functions + golden-file regression tests
  */
 
-import { describe, test, expect } from '@jest/globals';
+import { describe, expect, test, vi } from 'vite-plus/test';
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -26,7 +26,10 @@ import {
 import { normalizeLaneAssignments } from './topology.js';
 import { wrapText, wrapTextByPx } from './utils.js';
 import { alignLinearFlowCrossAxis, messageFlowPorts } from './coordinates.js';
-import { routeGatewayFlowsToCardinalPorts, routeCrossLaneFlowsByDirection } from './visual-refinement.js';
+import {
+  routeGatewayFlowsToCardinalPorts,
+  routeCrossLaneFlowsByDirection,
+} from './visual-refinement.js';
 
 import { bpmnToLogicCore, bpmnToLogicCoreLegacy } from './import.js';
 import { moddleParse, moddleToLogicCore } from './moddle-import.js';
@@ -71,9 +74,9 @@ describe('cross-axis linear-flow alignment', () => {
       lowerEnd: { x: 520, y: 150, w: 36, h: 36 },
     };
     const process = {
-      nodes: Object.keys(coords).map(id => ({
+      nodes: Object.keys(coords).map((id) => ({
         id,
-        type: id === 'split' ? 'exclusiveGateway' : (id.includes('End') ? 'endEvent' : 'task'),
+        type: id === 'split' ? 'exclusiveGateway' : id.includes('End') ? 'endEvent' : 'task',
         lane: 'l1',
       })),
       lanes: [{ id: 'l1' }],
@@ -90,7 +93,7 @@ describe('cross-axis linear-flow alignment', () => {
     alignLinearFlowCrossAxis(coords, [process], 'RIGHT');
 
     const splitCenterBefore = -30 + 50 / 2;
-    const cy = id => coords[id].y + coords[id].h / 2;
+    const cy = (id) => coords[id].y + coords[id].h / 2;
     expect(cy('task')).toBe(cy('start'));
     expect(cy('split')).toBe(cy('start'));
     expect(cy('split')).toBe(splitCenterBefore);
@@ -122,7 +125,7 @@ describe('cross-axis linear-flow alignment', () => {
     const nextLaneCenterBefore = coords.nextLane.x + coords.nextLane.w / 2;
     alignLinearFlowCrossAxis(coords, [process], 'DOWN');
 
-    const cx = id => coords[id].x + coords[id].w / 2;
+    const cx = (id) => coords[id].x + coords[id].w / 2;
     expect(cx('task')).toBe(cx('start'));
     expect(cx('nextLane')).toBe(nextLaneCenterBefore);
     expect(cx('nextLane')).not.toBe(cx('task'));
@@ -179,7 +182,7 @@ describe('cross-lane directional routing', () => {
         source: { x: 125, y: 200, w: 50, h: 50 },
         target: { x: 320, y: 40, w: 100, h: 80 },
       },
-      edgeCoords: { e1: original.map(p => ({ ...p })) },
+      edgeCoords: { e1: original.map((p) => ({ ...p })) },
     };
     const lc = {
       nodes: [
@@ -236,50 +239,59 @@ describe('validateLogicCore', () => {
 
   test('rejects process without startEvent', () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'Test',
-        nodes: [
-          { id: 'task1', type: 'userTask', name: 'Do something' },
-          { id: 'end1', type: 'endEvent', name: 'End' },
-        ],
-        edges: [{ id: 'f1', source: 'task1', target: 'end1' }],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'Test',
+          nodes: [
+            { id: 'task1', type: 'userTask', name: 'Do something' },
+            { id: 'end1', type: 'endEvent', name: 'End' },
+          ],
+          edges: [{ id: 'f1', source: 'task1', target: 'end1' }],
+          lanes: [],
+        },
+      ],
     };
     const { errors } = validateLogicCore(lc);
-    expect(errors.some(e => /startEvent/i.test(e))).toBe(true);
+    expect(errors.some((e) => /startEvent/i.test(e))).toBe(true);
   });
 
   test('rejects process without endEvent', () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'Test',
-        nodes: [
-          { id: 'start1', type: 'startEvent', name: 'Start' },
-          { id: 'task1', type: 'userTask', name: 'Do something' },
-        ],
-        edges: [{ id: 'f1', source: 'start1', target: 'task1' }],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'Test',
+          nodes: [
+            { id: 'start1', type: 'startEvent', name: 'Start' },
+            { id: 'task1', type: 'userTask', name: 'Do something' },
+          ],
+          edges: [{ id: 'f1', source: 'start1', target: 'task1' }],
+          lanes: [],
+        },
+      ],
     };
     const { errors } = validateLogicCore(lc);
-    expect(errors.some(e => /endEvent/i.test(e))).toBe(true);
+    expect(errors.some((e) => /endEvent/i.test(e))).toBe(true);
   });
 
   test('rejects edge with unknown source', () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'Test',
-        nodes: [
-          { id: 'start1', type: 'startEvent', name: 'Start' },
-          { id: 'end1', type: 'endEvent', name: 'End' },
-        ],
-        edges: [{ id: 'f1', source: 'nonexistent', target: 'end1' }],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'Test',
+          nodes: [
+            { id: 'start1', type: 'startEvent', name: 'Start' },
+            { id: 'end1', type: 'endEvent', name: 'End' },
+          ],
+          edges: [{ id: 'f1', source: 'nonexistent', target: 'end1' }],
+          lanes: [],
+        },
+      ],
     };
     const { errors } = validateLogicCore(lc);
-    expect(errors.some(e => /unknown source/i.test(e))).toBe(true);
+    expect(errors.some((e) => /unknown source/i.test(e))).toBe(true);
   });
 });
 
@@ -289,9 +301,7 @@ describe('validateLogicCore', () => {
 
 describe('inferGatewayDirections', () => {
   test('sets Diverging for gateway with 1 incoming, 2 outgoing', () => {
-    const nodes = [
-      { id: 'gw1', type: 'exclusiveGateway', name: 'Check?' },
-    ];
+    const nodes = [{ id: 'gw1', type: 'exclusiveGateway', name: 'Check?' }];
     const edges = [
       { id: 'f1', source: 'task1', target: 'gw1' },
       { id: 'f2', source: 'gw1', target: 'taskA' },
@@ -302,9 +312,7 @@ describe('inferGatewayDirections', () => {
   });
 
   test('sets Converging for gateway with 2 incoming, 1 outgoing', () => {
-    const nodes = [
-      { id: 'gw1', type: 'parallelGateway', name: '', has_join: true },
-    ];
+    const nodes = [{ id: 'gw1', type: 'parallelGateway', name: '', has_join: true }];
     const edges = [
       { id: 'f1', source: 'taskA', target: 'gw1' },
       { id: 'f2', source: 'taskB', target: 'gw1' },
@@ -315,9 +323,7 @@ describe('inferGatewayDirections', () => {
   });
 
   test('sets Mixed for gateway with 2+ incoming and 2+ outgoing', () => {
-    const nodes = [
-      { id: 'gw1', type: 'exclusiveGateway', name: '' },
-    ];
+    const nodes = [{ id: 'gw1', type: 'exclusiveGateway', name: '' }];
     const edges = [
       { id: 'f1', source: 'taskA', target: 'gw1' },
       { id: 'f2', source: 'taskB', target: 'gw1' },
@@ -359,7 +365,11 @@ describe('sortNodesTopologically', () => {
 
 describe('enforceOrthogonal', () => {
   test('returns unchanged for already-orthogonal path', () => {
-    const pts = [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 50 }];
+    const pts = [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 100, y: 50 },
+    ];
     const result = enforceOrthogonal(pts);
     expect(result).toHaveLength(3);
     // All segments should be axis-aligned
@@ -371,7 +381,10 @@ describe('enforceOrthogonal', () => {
   });
 
   test('inserts bend point for diagonal segment', () => {
-    const pts = [{ x: 0, y: 0 }, { x: 100, y: 80 }];
+    const pts = [
+      { x: 0, y: 0 },
+      { x: 100, y: 80 },
+    ];
     const result = enforceOrthogonal(pts);
     expect(result.length).toBeGreaterThan(2);
     // All segments should now be orthogonal
@@ -433,16 +446,16 @@ describe('BPMN style port constraints', () => {
     const layout = resolveFlowPortLayout('RIGHT');
     expect(layout).toEqual({ incoming: 'WEST', outgoing: 'EAST' });
     const ports = buildFlowPorts('task1', layout);
-    expect(ports.find(p => p.id === 'task1__in').properties['elk.port.side']).toBe('WEST');
-    expect(ports.find(p => p.id === 'task1__out').properties['elk.port.side']).toBe('EAST');
+    expect(ports.find((p) => p.id === 'task1__in').properties['elk.port.side']).toBe('WEST');
+    expect(ports.find((p) => p.id === 'task1__out').properties['elk.port.side']).toBe('EAST');
   });
 
   test('TB resolves sequence-flow ports to top/bottom sides', () => {
     const layout = resolveFlowPortLayout('DOWN');
     expect(layout).toEqual({ incoming: 'NORTH', outgoing: 'SOUTH' });
     const ports = buildFlowPorts('task1', layout);
-    expect(ports.find(p => p.id === 'task1__in').properties['elk.port.side']).toBe('NORTH');
-    expect(ports.find(p => p.id === 'task1__out').properties['elk.port.side']).toBe('SOUTH');
+    expect(ports.find((p) => p.id === 'task1__in').properties['elk.port.side']).toBe('NORTH');
+    expect(ports.find((p) => p.id === 'task1__out').properties['elk.port.side']).toBe('SOUTH');
   });
 
   test('gateway formatter uses T/R/B tips for upper/straight/lower branches', () => {
@@ -454,9 +467,22 @@ describe('BPMN style port constraints', () => {
         lower: { x: 360, y: 360, w: 100, h: 80 },
       },
       edgeCoords: {
-        up: [{ x: 250, y: 225 }, { x: 300, y: 225 }, { x: 300, y: 80 }, { x: 360, y: 80 }],
-        mid: [{ x: 250, y: 225 }, { x: 360, y: 225 }],
-        down: [{ x: 250, y: 225 }, { x: 300, y: 225 }, { x: 300, y: 400 }, { x: 360, y: 400 }],
+        up: [
+          { x: 250, y: 225 },
+          { x: 300, y: 225 },
+          { x: 300, y: 80 },
+          { x: 360, y: 80 },
+        ],
+        mid: [
+          { x: 250, y: 225 },
+          { x: 360, y: 225 },
+        ],
+        down: [
+          { x: 250, y: 225 },
+          { x: 300, y: 225 },
+          { x: 300, y: 400 },
+          { x: 360, y: 400 },
+        ],
       },
     };
     const lc = {
@@ -485,8 +511,6 @@ describe('BPMN style port constraints', () => {
     expect(messageFlowPorts(upper, lower)).toEqual({ sx: 150, sy: 100, ex: 360, ey: 300 });
     expect(messageFlowPorts(lower, upper)).toEqual({ sx: 360, sy: 300, ex: 150, ey: 100 });
   });
-
-
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -607,8 +631,8 @@ describe('SVG output', () => {
     expect(result.svg).toContain('xmlns="http://www.w3.org/2000/svg"');
     expect(result.svg).toContain('</svg>');
     // Should contain shapes for all nodes
-    expect(result.svg).toContain('<rect');    // tasks
-    expect(result.svg).toContain('<circle');  // events
+    expect(result.svg).toContain('<rect'); // tasks
+    expect(result.svg).toContain('<circle'); // events
     expect(result.svg).toContain('<polygon'); // gateways
   });
 });
@@ -620,86 +644,96 @@ describe('SVG output', () => {
 describe('Extended Validation (K4)', () => {
   test('detects inclusive-GW → AND-join deadlock', () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'Test',
-        nodes: [
-          { id: 's', type: 'startEvent', name: 'Start' },
-          { id: 'igw', type: 'inclusiveGateway', name: 'Split?' },
-          { id: 'a', type: 'userTask', name: 'A' },
-          { id: 'b', type: 'userTask', name: 'B' },
-          { id: 'pgw', type: 'parallelGateway', name: 'Join', has_join: true },
-          { id: 'e', type: 'endEvent', name: 'End' },
-        ],
-        edges: [
-          { id: 'f1', source: 's', target: 'igw' },
-          { id: 'f2', source: 'igw', target: 'a', label: 'Ja' },
-          { id: 'f3', source: 'igw', target: 'b', label: 'Nein' },
-          { id: 'f4', source: 'a', target: 'pgw' },
-          { id: 'f5', source: 'b', target: 'pgw' },
-          { id: 'f6', source: 'pgw', target: 'e' },
-        ],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'Test',
+          nodes: [
+            { id: 's', type: 'startEvent', name: 'Start' },
+            { id: 'igw', type: 'inclusiveGateway', name: 'Split?' },
+            { id: 'a', type: 'userTask', name: 'A' },
+            { id: 'b', type: 'userTask', name: 'B' },
+            { id: 'pgw', type: 'parallelGateway', name: 'Join', has_join: true },
+            { id: 'e', type: 'endEvent', name: 'End' },
+          ],
+          edges: [
+            { id: 'f1', source: 's', target: 'igw' },
+            { id: 'f2', source: 'igw', target: 'a', label: 'Ja' },
+            { id: 'f3', source: 'igw', target: 'b', label: 'Nein' },
+            { id: 'f4', source: 'a', target: 'pgw' },
+            { id: 'f5', source: 'b', target: 'pgw' },
+            { id: 'f6', source: 'pgw', target: 'e' },
+          ],
+          lanes: [],
+        },
+      ],
     };
     const { errors } = validateLogicCore(lc);
-    expect(errors.some(e => /Inclusive-split.*AND-join/i.test(e))).toBe(true);
+    expect(errors.some((e) => /Inclusive-split.*AND-join/i.test(e))).toBe(true);
   });
 
   test('warns boundary event path without endEvent', () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'Test',
-        nodes: [
-          { id: 's', type: 'startEvent', name: 'Start' },
-          { id: 't', type: 'userTask', name: 'Task' },
-          { id: 'be', type: 'boundaryEvent', name: 'Timer', attachedTo: 't', marker: 'timer' },
-          { id: 'dead', type: 'userTask', name: 'Dangling' },
-          { id: 'e', type: 'endEvent', name: 'End' },
-        ],
-        edges: [
-          { id: 'f1', source: 's', target: 't' },
-          { id: 'f2', source: 't', target: 'e' },
-          { id: 'f3', source: 'be', target: 'dead' },
-          // dead has no outgoing → path does not reach endEvent
-        ],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'Test',
+          nodes: [
+            { id: 's', type: 'startEvent', name: 'Start' },
+            { id: 't', type: 'userTask', name: 'Task' },
+            { id: 'be', type: 'boundaryEvent', name: 'Timer', attachedTo: 't', marker: 'timer' },
+            { id: 'dead', type: 'userTask', name: 'Dangling' },
+            { id: 'e', type: 'endEvent', name: 'End' },
+          ],
+          edges: [
+            { id: 'f1', source: 's', target: 't' },
+            { id: 'f2', source: 't', target: 'e' },
+            { id: 'f3', source: 'be', target: 'dead' },
+            // dead has no outgoing → path does not reach endEvent
+          ],
+          lanes: [],
+        },
+      ],
     };
     const { warnings } = validateLogicCore(lc);
-    expect(warnings.some(w => /boundary.*endEvent/i.test(w))).toBe(true);
+    expect(warnings.some((w) => /boundary.*endEvent/i.test(w))).toBe(true);
   });
 
   test('warns converging gateway with labeled outgoing edge', () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'Test',
-        nodes: [
-          { id: 's', type: 'startEvent', name: 'Start' },
-          { id: 'a', type: 'userTask', name: 'A' },
-          { id: 'b', type: 'userTask', name: 'B' },
-          { id: 'gw', type: 'exclusiveGateway', name: 'Merge', has_join: true },
-          { id: 't', type: 'userTask', name: 'Task' },
-          { id: 'e', type: 'endEvent', name: 'End' },
-        ],
-        edges: [
-          { id: 'f1', source: 's', target: 'a' },
-          { id: 'f2', source: 'a', target: 'gw' },
-          { id: 'f3', source: 'b', target: 'gw' },
-          { id: 'f4', source: 'gw', target: 't', label: 'Falsches Label' },
-          { id: 'f5', source: 't', target: 'e' },
-        ],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'Test',
+          nodes: [
+            { id: 's', type: 'startEvent', name: 'Start' },
+            { id: 'a', type: 'userTask', name: 'A' },
+            { id: 'b', type: 'userTask', name: 'B' },
+            { id: 'gw', type: 'exclusiveGateway', name: 'Merge', has_join: true },
+            { id: 't', type: 'userTask', name: 'Task' },
+            { id: 'e', type: 'endEvent', name: 'End' },
+          ],
+          edges: [
+            { id: 'f1', source: 's', target: 'a' },
+            { id: 'f2', source: 'a', target: 'gw' },
+            { id: 'f3', source: 'b', target: 'gw' },
+            { id: 'f4', source: 'gw', target: 't', label: 'Falsches Label' },
+            { id: 'f5', source: 't', target: 'e' },
+          ],
+          lanes: [],
+        },
+      ],
     };
     const { warnings } = validateLogicCore(lc);
-    expect(warnings.some(w => /Converging.*labeled/i.test(w))).toBe(true);
+    expect(warnings.some((w) => /Converging.*labeled/i.test(w))).toBe(true);
   });
 
   test('detects message flow within same pool', () => {
     const lc = {
       pools: [
         {
-          id: 'P1', name: 'Pool 1',
+          id: 'P1',
+          name: 'Pool 1',
           nodes: [
             { id: 's1', type: 'startEvent', name: 'Start' },
             { id: 't1', type: 'userTask', name: 'Task' },
@@ -712,12 +746,10 @@ describe('Extended Validation (K4)', () => {
           lanes: [],
         },
       ],
-      messageFlows: [
-        { id: 'mf1', source: 's1', target: 't1' },
-      ],
+      messageFlows: [{ id: 'mf1', source: 's1', target: 't1' }],
     };
     const { errors } = validateLogicCore(lc);
-    expect(errors.some(e => /within pool/i.test(e))).toBe(true);
+    expect(errors.some((e) => /within pool/i.test(e))).toBe(true);
   });
 });
 
@@ -754,29 +786,35 @@ describe('Expanded Sub-Processes', () => {
 
   test('validates subprocess children (missing endEvent)', async () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'Test',
-        nodes: [
-          { id: 'start1', type: 'startEvent', name: 'Start' },
-          {
-            id: 'sub1', type: 'subProcess', name: 'Sub', isExpanded: true,
-            nodes: [
-              { id: 'sub_s', type: 'startEvent', name: 'SubStart' },
-              { id: 'sub_t', type: 'userTask', name: 'SubTask' },
-            ],
-            edges: [{ id: 'sf1', source: 'sub_s', target: 'sub_t' }],
-          },
-          { id: 'end1', type: 'endEvent', name: 'End' },
-        ],
-        edges: [
-          { id: 'f1', source: 'start1', target: 'sub1' },
-          { id: 'f2', source: 'sub1', target: 'end1' },
-        ],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'Test',
+          nodes: [
+            { id: 'start1', type: 'startEvent', name: 'Start' },
+            {
+              id: 'sub1',
+              type: 'subProcess',
+              name: 'Sub',
+              isExpanded: true,
+              nodes: [
+                { id: 'sub_s', type: 'startEvent', name: 'SubStart' },
+                { id: 'sub_t', type: 'userTask', name: 'SubTask' },
+              ],
+              edges: [{ id: 'sf1', source: 'sub_s', target: 'sub_t' }],
+            },
+            { id: 'end1', type: 'endEvent', name: 'End' },
+          ],
+          edges: [
+            { id: 'f1', source: 'start1', target: 'sub1' },
+            { id: 'f2', source: 'sub1', target: 'end1' },
+          ],
+          lanes: [],
+        },
+      ],
     };
     const result = await runPipeline(lc);
-    expect(result.validation.errors.some(e => /SubProcess.*endEvent/i.test(e))).toBe(true);
+    expect(result.validation.errors.some((e) => /SubProcess.*endEvent/i.test(e))).toBe(true);
   });
 
   test('round-trip preserves subprocess structure', async () => {
@@ -788,7 +826,7 @@ describe('Expanded Sub-Processes', () => {
     // May return { pools: [...] } or flat { nodes, edges } depending on collaboration
     const nodes = reimported.pools ? reimported.pools[0].nodes : reimported.nodes;
     // Find the expanded subprocess node
-    const sub = nodes.find(n => n.type === 'subProcess' && n.isExpanded);
+    const sub = nodes.find((n) => n.type === 'subProcess' && n.isExpanded);
     expect(sub).toBeDefined();
     expect(sub.nodes.length).toBe(4); // start, task1, task2, end
     expect(sub.edges.length).toBe(3);
@@ -803,7 +841,7 @@ describe('collapseSubProcesses', () => {
   test('collapses expanded subprocesses', () => {
     const lc = loadFixture('expanded-subprocess.json');
     const collapsed = collapseSubProcesses(lc);
-    const sub = collapsed.pools[0].nodes.find(n => n.id === 'sub1');
+    const sub = collapsed.pools[0].nodes.find((n) => n.id === 'sub1');
     expect(sub.isExpanded).toBe(false);
     expect(sub.nodes).toBeUndefined();
     expect(sub.edges).toBeUndefined();
@@ -812,14 +850,14 @@ describe('collapseSubProcesses', () => {
   test('preserves non-subprocess nodes unchanged', () => {
     const lc = loadFixture('expanded-subprocess.json');
     const collapsed = collapseSubProcesses(lc);
-    const task = collapsed.pools[0].nodes.find(n => n.id === 'task1');
+    const task = collapsed.pools[0].nodes.find((n) => n.id === 'task1');
     expect(task.name).toBe('Vorprüfung');
   });
 
   test('does not mutate original', () => {
     const lc = loadFixture('expanded-subprocess.json');
     collapseSubProcesses(lc);
-    const sub = lc.pools[0].nodes.find(n => n.id === 'sub1');
+    const sub = lc.pools[0].nodes.find((n) => n.id === 'sub1');
     expect(sub.isExpanded).toBe(true);
     expect(sub.nodes.length).toBe(4);
   });
@@ -850,7 +888,10 @@ describe('normalizeLaneAssignments', () => {
   test('sets node.lane from lane.nodeIds (Format B → A)', () => {
     const proc = {
       lanes: [{ id: 'L1', name: 'Lane 1', nodeIds: ['n1', 'n2'] }],
-      nodes: [{ id: 'n1', type: 'task' }, { id: 'n2', type: 'task' }],
+      nodes: [
+        { id: 'n1', type: 'task' },
+        { id: 'n2', type: 'task' },
+      ],
     };
     normalizeLaneAssignments(proc);
     expect(proc.nodes[0].lane).toBe('L1');
@@ -872,7 +913,10 @@ describe('normalizeLaneAssignments', () => {
   test('leaves nodes without lane assignment unchanged', () => {
     const proc = {
       lanes: [{ id: 'L1', name: 'Lane 1', nodeIds: ['n1'] }],
-      nodes: [{ id: 'n1', type: 'task' }, { id: 'n2', type: 'task' }],
+      nodes: [
+        { id: 'n1', type: 'task' },
+        { id: 'n2', type: 'task' },
+      ],
     };
     normalizeLaneAssignments(proc);
     expect(proc.nodes[0].lane).toBe('L1');
@@ -945,7 +989,7 @@ describe('Workflow-Net Soundness', () => {
   test('sound process → no WF errors', () => {
     const lc = loadFixture('simple-approval.json');
     const result = checkWorkflowNetSoundness(lc);
-    const wfErrors = result.issues.filter(i => i.severity === 'ERROR');
+    const wfErrors = result.issues.filter((i) => i.severity === 'ERROR');
     expect(wfErrors).toHaveLength(0);
     expect(result.stats).toBeDefined();
   });
@@ -953,7 +997,7 @@ describe('Workflow-Net Soundness', () => {
   test('deadlock process → WF03 error', () => {
     const lc = loadFixture('deadlock-process.json');
     const result = checkWorkflowNetSoundness(lc);
-    const deadlocks = result.issues.filter(i => i.rule === 'WF03' && i.severity === 'ERROR');
+    const deadlocks = result.issues.filter((i) => i.rule === 'WF03' && i.severity === 'ERROR');
     expect(deadlocks.length).toBeGreaterThan(0);
     expect(deadlocks[0].message).toContain('Deadlock');
   });
@@ -1004,7 +1048,7 @@ describe('Workflow-Net Soundness', () => {
     };
     const pn = bpmnToPN(proc);
     // XOR with 2 outgoing → 2 choice transitions
-    const choiceTs = [...pn.transitions.keys()].filter(k => k.includes('choice'));
+    const choiceTs = [...pn.transitions.keys()].filter((k) => k.includes('choice'));
     expect(choiceTs).toHaveLength(2);
   });
 
@@ -1030,19 +1074,28 @@ describe('Workflow-Net Soundness', () => {
 describe('OMG Compliance — Execution Attributes', () => {
   test('timer expression round-trip (duration)', async () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'Timer Test',
-        nodes: [
-          { id: 's', type: 'startEvent', name: 'Start', marker: 'timer', timerExpression: { type: 'duration', value: 'PT5D' } },
-          { id: 't', type: 'userTask', name: 'Do Work' },
-          { id: 'e', type: 'endEvent', name: 'End' },
-        ],
-        edges: [
-          { id: 'f1', source: 's', target: 't' },
-          { id: 'f2', source: 't', target: 'e' },
-        ],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'Timer Test',
+          nodes: [
+            {
+              id: 's',
+              type: 'startEvent',
+              name: 'Start',
+              marker: 'timer',
+              timerExpression: { type: 'duration', value: 'PT5D' },
+            },
+            { id: 't', type: 'userTask', name: 'Do Work' },
+            { id: 'e', type: 'endEvent', name: 'End' },
+          ],
+          edges: [
+            { id: 'f1', source: 's', target: 't' },
+            { id: 'f2', source: 't', target: 'e' },
+          ],
+          lanes: [],
+        },
+      ],
     };
     const result = await runPipeline(lc);
     expect(result.bpmnXml).toMatch(/<(bpmn:)?timeDuration/);
@@ -1050,25 +1103,34 @@ describe('OMG Compliance — Execution Attributes', () => {
 
     const reimported = await bpmnToLogicCore(result.bpmnXml);
     const nodes = reimported.pools ? reimported.pools[0].nodes : reimported.nodes;
-    const timer = nodes.find(n => n.marker === 'timer');
+    const timer = nodes.find((n) => n.marker === 'timer');
     expect(timer.timerExpression).toEqual({ type: 'duration', value: 'PT5D' });
   });
 
   test('script task round-trip', async () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'Script Test',
-        nodes: [
-          { id: 's', type: 'startEvent', name: 'Start' },
-          { id: 'sc', type: 'scriptTask', name: 'Run Script', scriptFormat: 'groovy', script: 'println "hello"' },
-          { id: 'e', type: 'endEvent', name: 'End' },
-        ],
-        edges: [
-          { id: 'f1', source: 's', target: 'sc' },
-          { id: 'f2', source: 'sc', target: 'e' },
-        ],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'Script Test',
+          nodes: [
+            { id: 's', type: 'startEvent', name: 'Start' },
+            {
+              id: 'sc',
+              type: 'scriptTask',
+              name: 'Run Script',
+              scriptFormat: 'groovy',
+              script: 'println "hello"',
+            },
+            { id: 'e', type: 'endEvent', name: 'End' },
+          ],
+          edges: [
+            { id: 'f1', source: 's', target: 'sc' },
+            { id: 'f2', source: 'sc', target: 'e' },
+          ],
+          lanes: [],
+        },
+      ],
     };
     const result = await runPipeline(lc);
     expect(result.bpmnXml).toContain('scriptFormat="groovy"');
@@ -1077,51 +1139,63 @@ describe('OMG Compliance — Execution Attributes', () => {
 
     const reimported = await bpmnToLogicCore(result.bpmnXml);
     const nodes = reimported.pools ? reimported.pools[0].nodes : reimported.nodes;
-    const sc = nodes.find(n => n.type === 'scriptTask');
+    const sc = nodes.find((n) => n.type === 'scriptTask');
     expect(sc.scriptFormat).toBe('groovy');
     expect(sc.script).toContain('println');
   });
 
   test('callActivity calledElement round-trip', async () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'CallActivity Test',
-        nodes: [
-          { id: 's', type: 'startEvent', name: 'Start' },
-          { id: 'ca', type: 'callActivity', name: 'Call Sub', calledElement: 'SubProcess_123' },
-          { id: 'e', type: 'endEvent', name: 'End' },
-        ],
-        edges: [
-          { id: 'f1', source: 's', target: 'ca' },
-          { id: 'f2', source: 'ca', target: 'e' },
-        ],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'CallActivity Test',
+          nodes: [
+            { id: 's', type: 'startEvent', name: 'Start' },
+            { id: 'ca', type: 'callActivity', name: 'Call Sub', calledElement: 'SubProcess_123' },
+            { id: 'e', type: 'endEvent', name: 'End' },
+          ],
+          edges: [
+            { id: 'f1', source: 's', target: 'ca' },
+            { id: 'f2', source: 'ca', target: 'e' },
+          ],
+          lanes: [],
+        },
+      ],
     };
     const result = await runPipeline(lc);
     expect(result.bpmnXml).toContain('calledElement="SubProcess_123"');
 
     const reimported = await bpmnToLogicCore(result.bpmnXml);
     const nodes = reimported.pools ? reimported.pools[0].nodes : reimported.nodes;
-    const ca = nodes.find(n => n.type === 'callActivity');
+    const ca = nodes.find((n) => n.type === 'callActivity');
     expect(ca.calledElement).toBe('SubProcess_123');
   });
 
   test('conditional event condition round-trip', async () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'Conditional Test',
-        nodes: [
-          { id: 's', type: 'startEvent', name: 'Start', marker: 'conditional', conditionExpression: '${amount > 1000}' },
-          { id: 't', type: 'userTask', name: 'Handle' },
-          { id: 'e', type: 'endEvent', name: 'End' },
-        ],
-        edges: [
-          { id: 'f1', source: 's', target: 't' },
-          { id: 'f2', source: 't', target: 'e' },
-        ],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'Conditional Test',
+          nodes: [
+            {
+              id: 's',
+              type: 'startEvent',
+              name: 'Start',
+              marker: 'conditional',
+              conditionExpression: '${amount > 1000}',
+            },
+            { id: 't', type: 'userTask', name: 'Handle' },
+            { id: 'e', type: 'endEvent', name: 'End' },
+          ],
+          edges: [
+            { id: 'f1', source: 's', target: 't' },
+            { id: 'f2', source: 't', target: 'e' },
+          ],
+          lanes: [],
+        },
+      ],
     };
     const result = await runPipeline(lc);
     expect(result.bpmnXml).toContain('conditionalEventDefinition');
@@ -1129,26 +1203,41 @@ describe('OMG Compliance — Execution Attributes', () => {
 
     const reimported = await bpmnToLogicCore(result.bpmnXml);
     const nodes = reimported.pools ? reimported.pools[0].nodes : reimported.nodes;
-    const cond = nodes.find(n => n.marker === 'conditional');
+    const cond = nodes.find((n) => n.marker === 'conditional');
     expect(cond.conditionExpression).toContain('amount');
   });
 
   test('link event name round-trip', async () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'Link Test',
-        nodes: [
-          { id: 's', type: 'startEvent', name: 'Start' },
-          { id: 'lt', type: 'intermediateThrowEvent', name: 'Go To B', marker: 'link', linkName: 'LinkToB' },
-          { id: 'lc', type: 'intermediateCatchEvent', name: 'From A', marker: 'link', linkName: 'LinkToB' },
-          { id: 'e', type: 'endEvent', name: 'End' },
-        ],
-        edges: [
-          { id: 'f1', source: 's', target: 'lt' },
-          { id: 'f2', source: 'lc', target: 'e' },
-        ],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'Link Test',
+          nodes: [
+            { id: 's', type: 'startEvent', name: 'Start' },
+            {
+              id: 'lt',
+              type: 'intermediateThrowEvent',
+              name: 'Go To B',
+              marker: 'link',
+              linkName: 'LinkToB',
+            },
+            {
+              id: 'lc',
+              type: 'intermediateCatchEvent',
+              name: 'From A',
+              marker: 'link',
+              linkName: 'LinkToB',
+            },
+            { id: 'e', type: 'endEvent', name: 'End' },
+          ],
+          edges: [
+            { id: 'f1', source: 's', target: 'lt' },
+            { id: 'f2', source: 'lc', target: 'e' },
+          ],
+          lanes: [],
+        },
+      ],
     };
     const result = await runPipeline(lc);
     expect(result.bpmnXml).toContain('linkEventDefinition');
@@ -1156,25 +1245,37 @@ describe('OMG Compliance — Execution Attributes', () => {
 
     const reimported = await bpmnToLogicCore(result.bpmnXml);
     const nodes = reimported.pools ? reimported.pools[0].nodes : reimported.nodes;
-    const link = nodes.find(n => n.linkName === 'LinkToB');
+    const link = nodes.find((n) => n.linkName === 'LinkToB');
     expect(link).toBeDefined();
   });
 
   test('multi-instance with loopCardinality round-trip', async () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'MI Test',
-        nodes: [
-          { id: 's', type: 'startEvent', name: 'Start' },
-          { id: 't', type: 'userTask', name: 'Review', multiInstance: { type: 'parallel', loopCardinality: '5', completionCondition: '${nrOfCompleted >= 3}' } },
-          { id: 'e', type: 'endEvent', name: 'End' },
-        ],
-        edges: [
-          { id: 'f1', source: 's', target: 't' },
-          { id: 'f2', source: 't', target: 'e' },
-        ],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'MI Test',
+          nodes: [
+            { id: 's', type: 'startEvent', name: 'Start' },
+            {
+              id: 't',
+              type: 'userTask',
+              name: 'Review',
+              multiInstance: {
+                type: 'parallel',
+                loopCardinality: '5',
+                completionCondition: '${nrOfCompleted >= 3}',
+              },
+            },
+            { id: 'e', type: 'endEvent', name: 'End' },
+          ],
+          edges: [
+            { id: 'f1', source: 's', target: 't' },
+            { id: 'f2', source: 't', target: 'e' },
+          ],
+          lanes: [],
+        },
+      ],
     };
     const result = await runPipeline(lc);
     expect(result.bpmnXml).toContain('multiInstanceLoopCharacteristics');
@@ -1183,7 +1284,7 @@ describe('OMG Compliance — Execution Attributes', () => {
 
     const reimported = await bpmnToLogicCore(result.bpmnXml);
     const nodes = reimported.pools ? reimported.pools[0].nodes : reimported.nodes;
-    const mi = nodes.find(n => n.multiInstance);
+    const mi = nodes.find((n) => n.multiInstance);
     expect(mi.multiInstance.type).toBe('parallel');
     expect(mi.multiInstance.loopCardinality).toBe('5');
     expect(mi.multiInstance.completionCondition).toContain('nrOfCompleted');
@@ -1191,19 +1292,22 @@ describe('OMG Compliance — Execution Attributes', () => {
 
   test('simple multiInstance string still works (backward compat)', async () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'MI Simple',
-        nodes: [
-          { id: 's', type: 'startEvent', name: 'Start' },
-          { id: 't', type: 'userTask', name: 'Review', multiInstance: 'sequential' },
-          { id: 'e', type: 'endEvent', name: 'End' },
-        ],
-        edges: [
-          { id: 'f1', source: 's', target: 't' },
-          { id: 'f2', source: 't', target: 'e' },
-        ],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'MI Simple',
+          nodes: [
+            { id: 's', type: 'startEvent', name: 'Start' },
+            { id: 't', type: 'userTask', name: 'Review', multiInstance: 'sequential' },
+            { id: 'e', type: 'endEvent', name: 'End' },
+          ],
+          edges: [
+            { id: 'f1', source: 's', target: 't' },
+            { id: 'f2', source: 't', target: 'e' },
+          ],
+          lanes: [],
+        },
+      ],
     };
     const result = await runPipeline(lc);
     expect(result.bpmnXml).toContain('multiInstanceLoopCharacteristics');
@@ -1212,19 +1316,27 @@ describe('OMG Compliance — Execution Attributes', () => {
 
   test('loop with loopCondition round-trip', async () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'Loop Test',
-        nodes: [
-          { id: 's', type: 'startEvent', name: 'Start' },
-          { id: 't', type: 'userTask', name: 'Retry', loopType: { loopCondition: '${retry < 3}', testBefore: true, loopMaximum: 10 } },
-          { id: 'e', type: 'endEvent', name: 'End' },
-        ],
-        edges: [
-          { id: 'f1', source: 's', target: 't' },
-          { id: 'f2', source: 't', target: 'e' },
-        ],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'Loop Test',
+          nodes: [
+            { id: 's', type: 'startEvent', name: 'Start' },
+            {
+              id: 't',
+              type: 'userTask',
+              name: 'Retry',
+              loopType: { loopCondition: '${retry < 3}', testBefore: true, loopMaximum: 10 },
+            },
+            { id: 'e', type: 'endEvent', name: 'End' },
+          ],
+          edges: [
+            { id: 'f1', source: 's', target: 't' },
+            { id: 'f2', source: 't', target: 'e' },
+          ],
+          lanes: [],
+        },
+      ],
     };
     const result = await runPipeline(lc);
     expect(result.bpmnXml).toContain('standardLoopCharacteristics');
@@ -1234,7 +1346,7 @@ describe('OMG Compliance — Execution Attributes', () => {
 
     const reimported = await bpmnToLogicCore(result.bpmnXml);
     const nodes = reimported.pools ? reimported.pools[0].nodes : reimported.nodes;
-    const loop = nodes.find(n => n.loopType);
+    const loop = nodes.find((n) => n.loopType);
     // Note: < gets XML-escaped to &lt; during round-trip
     expect(loop.loopType.testBefore).toBe(true);
     expect(loop.loopType.loopMaximum).toBe(10);
@@ -1244,21 +1356,24 @@ describe('OMG Compliance — Execution Attributes', () => {
 
   test('top-level definitions round-trip', async () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'Defs Test',
-        nodes: [
-          { id: 's', type: 'startEvent', name: 'Start' },
-          { id: 't', type: 'userTask', name: 'Process' },
-          { id: 'ee', type: 'endEvent', name: 'Error End', marker: 'error' },
-          { id: 'e', type: 'endEvent', name: 'End' },
-        ],
-        edges: [
-          { id: 'f1', source: 's', target: 't' },
-          { id: 'f2', source: 't', target: 'ee' },
-          { id: 'f3', source: 't', target: 'e' },
-        ],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'Defs Test',
+          nodes: [
+            { id: 's', type: 'startEvent', name: 'Start' },
+            { id: 't', type: 'userTask', name: 'Process' },
+            { id: 'ee', type: 'endEvent', name: 'Error End', marker: 'error' },
+            { id: 'e', type: 'endEvent', name: 'End' },
+          ],
+          edges: [
+            { id: 'f1', source: 's', target: 't' },
+            { id: 'f2', source: 't', target: 'ee' },
+            { id: 'f3', source: 't', target: 'e' },
+          ],
+          lanes: [],
+        },
+      ],
       definitions: [
         { type: 'error', id: 'Err_1', name: 'Payment Failed', errorCode: 'ERR_PAY_001' },
         { type: 'message', id: 'Msg_1', name: 'Order Request' },
@@ -1270,27 +1385,30 @@ describe('OMG Compliance — Execution Attributes', () => {
 
     const reimported = await bpmnToLogicCore(result.bpmnXml);
     expect(reimported.definitions).toBeDefined();
-    const errDef = reimported.definitions.find(d => d.type === 'error');
+    const errDef = reimported.definitions.find((d) => d.type === 'error');
     expect(errDef.errorCode).toBe('ERR_PAY_001');
-    const msgDef = reimported.definitions.find(d => d.type === 'message');
+    const msgDef = reimported.definitions.find((d) => d.type === 'message');
     expect(msgDef.name).toBe('Order Request');
   });
 
   test('isForCompensation emitted on task', async () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'Compensation Test',
-        nodes: [
-          { id: 's', type: 'startEvent', name: 'Start' },
-          { id: 't', type: 'serviceTask', name: 'Compensate', isCompensation: true },
-          { id: 'e', type: 'endEvent', name: 'End' },
-        ],
-        edges: [
-          { id: 'f1', source: 's', target: 't' },
-          { id: 'f2', source: 't', target: 'e' },
-        ],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'Compensation Test',
+          nodes: [
+            { id: 's', type: 'startEvent', name: 'Start' },
+            { id: 't', type: 'serviceTask', name: 'Compensate', isCompensation: true },
+            { id: 'e', type: 'endEvent', name: 'End' },
+          ],
+          edges: [
+            { id: 'f1', source: 's', target: 't' },
+            { id: 'f2', source: 't', target: 'e' },
+          ],
+          lanes: [],
+        },
+      ],
     };
     const result = await runPipeline(lc);
     expect(result.bpmnXml).toContain('isForCompensation="true"');
@@ -1298,50 +1416,62 @@ describe('OMG Compliance — Execution Attributes', () => {
 
   test('implementation attribute on serviceTask', async () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'Impl Test',
-        nodes: [
-          { id: 's', type: 'startEvent', name: 'Start' },
-          { id: 't', type: 'serviceTask', name: 'Call WS', implementation: 'WebService' },
-          { id: 'e', type: 'endEvent', name: 'End' },
-        ],
-        edges: [
-          { id: 'f1', source: 's', target: 't' },
-          { id: 'f2', source: 't', target: 'e' },
-        ],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'Impl Test',
+          nodes: [
+            { id: 's', type: 'startEvent', name: 'Start' },
+            { id: 't', type: 'serviceTask', name: 'Call WS', implementation: 'WebService' },
+            { id: 'e', type: 'endEvent', name: 'End' },
+          ],
+          edges: [
+            { id: 'f1', source: 's', target: 't' },
+            { id: 'f2', source: 't', target: 'e' },
+          ],
+          lanes: [],
+        },
+      ],
     };
     const result = await runPipeline(lc);
     expect(result.bpmnXml).toContain('implementation="WebService"');
 
     const reimported = await bpmnToLogicCore(result.bpmnXml);
     const nodes = reimported.pools ? reimported.pools[0].nodes : reimported.nodes;
-    const svc = nodes.find(n => n.type === 'serviceTask');
+    const svc = nodes.find((n) => n.type === 'serviceTask');
     expect(svc.implementation).toBe('WebService');
   });
 
   test('eventBasedGateway attributes round-trip', async () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'EBG Test',
-        nodes: [
-          { id: 's', type: 'startEvent', name: 'Start' },
-          { id: 'ebg', type: 'eventBasedGateway', name: 'Wait', eventGatewayType: 'Parallel', instantiate: true },
-          { id: 'tc', type: 'intermediateCatchEvent', name: 'Timer', marker: 'timer' },
-          { id: 'mc', type: 'intermediateCatchEvent', name: 'Message', marker: 'message' },
-          { id: 'e1', type: 'endEvent', name: 'End1' },
-          { id: 'e2', type: 'endEvent', name: 'End2' },
-        ],
-        edges: [
-          { id: 'f1', source: 's', target: 'ebg' },
-          { id: 'f2', source: 'ebg', target: 'tc' },
-          { id: 'f3', source: 'ebg', target: 'mc' },
-          { id: 'f4', source: 'tc', target: 'e1' },
-          { id: 'f5', source: 'mc', target: 'e2' },
-        ],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'EBG Test',
+          nodes: [
+            { id: 's', type: 'startEvent', name: 'Start' },
+            {
+              id: 'ebg',
+              type: 'eventBasedGateway',
+              name: 'Wait',
+              eventGatewayType: 'Parallel',
+              instantiate: true,
+            },
+            { id: 'tc', type: 'intermediateCatchEvent', name: 'Timer', marker: 'timer' },
+            { id: 'mc', type: 'intermediateCatchEvent', name: 'Message', marker: 'message' },
+            { id: 'e1', type: 'endEvent', name: 'End1' },
+            { id: 'e2', type: 'endEvent', name: 'End2' },
+          ],
+          edges: [
+            { id: 'f1', source: 's', target: 'ebg' },
+            { id: 'f2', source: 'ebg', target: 'tc' },
+            { id: 'f3', source: 'ebg', target: 'mc' },
+            { id: 'f4', source: 'tc', target: 'e1' },
+            { id: 'f5', source: 'mc', target: 'e2' },
+          ],
+          lanes: [],
+        },
+      ],
     };
     const result = await runPipeline(lc);
     expect(result.bpmnXml).toContain('eventGatewayType="Parallel"');
@@ -1349,34 +1479,38 @@ describe('OMG Compliance — Execution Attributes', () => {
 
     const reimported = await bpmnToLogicCore(result.bpmnXml);
     const nodes = reimported.pools ? reimported.pools[0].nodes : reimported.nodes;
-    const ebg = nodes.find(n => n.type === 'eventBasedGateway');
+    const ebg = nodes.find((n) => n.type === 'eventBasedGateway');
     expect(ebg.eventGatewayType).toBe('Parallel');
     expect(ebg.instantiate).toBe(true);
   });
 
   test('nested lanes round-trip', async () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'Nested Lane Test',
-        nodes: [
-          { id: 's', type: 'startEvent', name: 'Start', lane: 'L1_1' },
-          { id: 't', type: 'userTask', name: 'Task', lane: 'L1_2' },
-          { id: 'e', type: 'endEvent', name: 'End', lane: 'L1_2' },
-        ],
-        edges: [
-          { id: 'f1', source: 's', target: 't' },
-          { id: 'f2', source: 't', target: 'e' },
-        ],
-        lanes: [
-          {
-            id: 'L1', name: 'Parent Lane',
-            children: [
-              { id: 'L1_1', name: 'Child Lane A' },
-              { id: 'L1_2', name: 'Child Lane B' },
-            ],
-          },
-        ],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'Nested Lane Test',
+          nodes: [
+            { id: 's', type: 'startEvent', name: 'Start', lane: 'L1_1' },
+            { id: 't', type: 'userTask', name: 'Task', lane: 'L1_2' },
+            { id: 'e', type: 'endEvent', name: 'End', lane: 'L1_2' },
+          ],
+          edges: [
+            { id: 'f1', source: 's', target: 't' },
+            { id: 'f2', source: 't', target: 'e' },
+          ],
+          lanes: [
+            {
+              id: 'L1',
+              name: 'Parent Lane',
+              children: [
+                { id: 'L1_1', name: 'Child Lane A' },
+                { id: 'L1_2', name: 'Child Lane B' },
+              ],
+            },
+          ],
+        },
+      ],
     };
     const result = await runPipeline(lc);
     expect(result.bpmnXml).toContain('childLaneSet');
@@ -1385,7 +1519,7 @@ describe('OMG Compliance — Execution Attributes', () => {
 
     const reimported = await bpmnToLogicCore(result.bpmnXml);
     const lanes = reimported.pools ? reimported.pools[0].lanes : reimported.lanes;
-    const parent = lanes.find(l => l.id === 'L1');
+    const parent = lanes.find((l) => l.id === 'L1');
     expect(parent).toBeDefined();
     expect(parent.children).toHaveLength(2);
     expect(parent.children[0].name).toBe('Child Lane A');
@@ -1393,30 +1527,38 @@ describe('OMG Compliance — Execution Attributes', () => {
 
   test('triggeredByEvent on event subProcess', async () => {
     const lc = {
-      pools: [{
-        id: 'P1', name: 'Event SubProcess Test',
-        nodes: [
-          { id: 's', type: 'startEvent', name: 'Start' },
-          { id: 'esp', type: 'subProcess', name: 'Error Handler', isExpanded: true, isEventSubProcess: true,
-            nodes: [
-              { id: 'es', type: 'startEvent', name: 'Error Start', marker: 'error' },
-              { id: 'et', type: 'userTask', name: 'Handle Error' },
-              { id: 'ee', type: 'endEvent', name: 'Done' },
-            ],
-            edges: [
-              { id: 'ef1', source: 'es', target: 'et' },
-              { id: 'ef2', source: 'et', target: 'ee' },
-            ],
-          },
-          { id: 't', type: 'userTask', name: 'Main Task' },
-          { id: 'e', type: 'endEvent', name: 'End' },
-        ],
-        edges: [
-          { id: 'f1', source: 's', target: 't' },
-          { id: 'f2', source: 't', target: 'e' },
-        ],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'P1',
+          name: 'Event SubProcess Test',
+          nodes: [
+            { id: 's', type: 'startEvent', name: 'Start' },
+            {
+              id: 'esp',
+              type: 'subProcess',
+              name: 'Error Handler',
+              isExpanded: true,
+              isEventSubProcess: true,
+              nodes: [
+                { id: 'es', type: 'startEvent', name: 'Error Start', marker: 'error' },
+                { id: 'et', type: 'userTask', name: 'Handle Error' },
+                { id: 'ee', type: 'endEvent', name: 'Done' },
+              ],
+              edges: [
+                { id: 'ef1', source: 'es', target: 'et' },
+                { id: 'ef2', source: 'et', target: 'ee' },
+              ],
+            },
+            { id: 't', type: 'userTask', name: 'Main Task' },
+            { id: 'e', type: 'endEvent', name: 'End' },
+          ],
+          edges: [
+            { id: 'f1', source: 's', target: 't' },
+            { id: 'f2', source: 't', target: 'e' },
+          ],
+          lanes: [],
+        },
+      ],
     };
     const result = await runPipeline(lc);
     expect(result.bpmnXml).toContain('triggeredByEvent="true"');
@@ -1441,8 +1583,8 @@ describe('bpmn-moddle Import', () => {
     expect(moddleNodes.length).toBe(legacyNodes.length);
 
     // Same node IDs
-    const moddleIds = moddleNodes.map(n => n.id).sort();
-    const legacyIds = legacyNodes.map(n => n.id).sort();
+    const moddleIds = moddleNodes.map((n) => n.id).sort();
+    const legacyIds = legacyNodes.map((n) => n.id).sort();
     expect(moddleIds).toEqual(legacyIds);
   });
 
@@ -1484,7 +1626,7 @@ describe('bpmn-moddle Import', () => {
 
     const result = await bpmnToLogicCore(xml);
     const nodes = result.pools ? result.pools[0].nodes : result.nodes;
-    const task = nodes.find(n => n.id === 't');
+    const task = nodes.find((n) => n.id === 't');
     expect(task.extensions).toBeDefined();
     expect(task.extensions.$attrs['camunda:assignee']).toContain('currentUser');
   });
@@ -1513,7 +1655,8 @@ describe('bpmn-moddle Import', () => {
     const files = findBpmn(examplesDir);
     expect(files.length).toBeGreaterThanOrEqual(25);
 
-    let ok = 0, fail = 0;
+    let ok = 0,
+      fail = 0;
     for (const f of files) {
       try {
         const xml = readFileSync(f, 'utf8');
@@ -1530,7 +1673,10 @@ describe('bpmn-moddle Import', () => {
 
   test('OMG nested lanes example imports correctly', async () => {
     const { readFileSync, existsSync } = await import('fs');
-    const nestedLanesFile = resolve(__dirname, '../references/omg-spec/informative/examples-bpmn/2010-06-03/Diagram Interchange/Examples - DI - Lanes and Nested Lanes.bpmn');
+    const nestedLanesFile = resolve(
+      __dirname,
+      '../references/omg-spec/informative/examples-bpmn/2010-06-03/Diagram Interchange/Examples - DI - Lanes and Nested Lanes.bpmn',
+    );
     if (!existsSync(nestedLanesFile)) return; // OMG spec files not in git (copyright)
     const xml = readFileSync(nestedLanesFile, 'utf8');
 
@@ -1538,7 +1684,7 @@ describe('bpmn-moddle Import', () => {
     const lanes = result.pools ? result.pools[0].lanes : result.lanes;
 
     // Should have at least one lane with children (nested)
-    const hasNested = lanes.some(l => l.children?.length > 0);
+    const hasNested = lanes.some((l) => l.children?.length > 0);
     expect(hasNested).toBe(true);
   });
 });
@@ -1555,341 +1701,425 @@ describe('Rule Engine — individual rules', () => {
   test('S01: missing startEvent → ERROR', () => {
     const lc = proc([{ id: 'e1', type: 'endEvent', name: 'End' }]);
     const result = runRules(lc);
-    expect(result.errors.some(e => e.includes('startEvent'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('startEvent'))).toBe(true);
   });
 
   test('S02: missing endEvent → ERROR', () => {
     const lc = proc([{ id: 's1', type: 'startEvent', name: 'Start' }]);
     const result = runRules(lc);
-    expect(result.errors.some(e => e.includes('endEvent'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('endEvent'))).toBe(true);
   });
 
   test('S03: edge with unknown source → ERROR', () => {
     const lc = proc(
-      [{ id: 's1', type: 'startEvent' }, { id: 'e1', type: 'endEvent' }],
+      [
+        { id: 's1', type: 'startEvent' },
+        { id: 'e1', type: 'endEvent' },
+      ],
       [{ id: 'f1', source: 'GHOST', target: 'e1' }],
     );
     const result = runRules(lc);
-    expect(result.errors.some(e => e.includes('unknown source'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('unknown source'))).toBe(true);
   });
 
   test('S04: isolated node → WARNING', () => {
-    const lc = proc([
-      { id: 's1', type: 'startEvent' },
-      { id: 't1', type: 'task', name: 'Lonely Task' },
-      { id: 'e1', type: 'endEvent' },
-    ], [{ id: 'f1', source: 's1', target: 'e1' }]);
+    const lc = proc(
+      [
+        { id: 's1', type: 'startEvent' },
+        { id: 't1', type: 'task', name: 'Lonely Task' },
+        { id: 'e1', type: 'endEvent' },
+      ],
+      [{ id: 'f1', source: 's1', target: 'e1' }],
+    );
     const result = runRules(lc);
-    expect(result.warnings.some(w => w.includes('isolated'))).toBe(true);
+    expect(result.warnings.some((w) => w.includes('isolated'))).toBe(true);
   });
 
   test('S05: XOR-split → AND-join deadlock → ERROR', () => {
-    const lc = proc([
-      { id: 's', type: 'startEvent' },
-      { id: 'xor', type: 'exclusiveGateway', name: 'XOR' },
-      { id: 't1', type: 'task', name: 'Branch A' },
-      { id: 't2', type: 'task', name: 'Branch B' },
-      { id: 'and', type: 'parallelGateway', name: 'AND Join' },
-      { id: 'e', type: 'endEvent' },
-    ], [
-      { id: 'f1', source: 's', target: 'xor' },
-      { id: 'f2', source: 'xor', target: 't1', label: 'Yes' },
-      { id: 'f3', source: 'xor', target: 't2', label: 'No' },
-      { id: 'f4', source: 't1', target: 'and' },
-      { id: 'f5', source: 't2', target: 'and' },
-      { id: 'f6', source: 'and', target: 'e' },
-    ]);
+    const lc = proc(
+      [
+        { id: 's', type: 'startEvent' },
+        { id: 'xor', type: 'exclusiveGateway', name: 'XOR' },
+        { id: 't1', type: 'task', name: 'Branch A' },
+        { id: 't2', type: 'task', name: 'Branch B' },
+        { id: 'and', type: 'parallelGateway', name: 'AND Join' },
+        { id: 'e', type: 'endEvent' },
+      ],
+      [
+        { id: 'f1', source: 's', target: 'xor' },
+        { id: 'f2', source: 'xor', target: 't1', label: 'Yes' },
+        { id: 'f3', source: 'xor', target: 't2', label: 'No' },
+        { id: 'f4', source: 't1', target: 'and' },
+        { id: 'f5', source: 't2', target: 'and' },
+        { id: 'f6', source: 'and', target: 'e' },
+      ],
+    );
     const result = runRules(lc);
-    expect(result.errors.some(e => e.includes('Deadlock') && e.includes('XOR'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('Deadlock') && e.includes('XOR'))).toBe(true);
   });
 
   test('S06: inclusive-split → AND-join → ERROR', () => {
-    const lc = proc([
-      { id: 's', type: 'startEvent' },
-      { id: 'or', type: 'inclusiveGateway', name: 'OR' },
-      { id: 't1', type: 'task', name: 'A' },
-      { id: 't2', type: 'task', name: 'B' },
-      { id: 'and', type: 'parallelGateway', name: 'AND' },
-      { id: 'e', type: 'endEvent' },
-    ], [
-      { id: 'f1', source: 's', target: 'or' },
-      { id: 'f2', source: 'or', target: 't1' },
-      { id: 'f3', source: 'or', target: 't2' },
-      { id: 'f4', source: 't1', target: 'and' },
-      { id: 'f5', source: 't2', target: 'and' },
-      { id: 'f6', source: 'and', target: 'e' },
-    ]);
+    const lc = proc(
+      [
+        { id: 's', type: 'startEvent' },
+        { id: 'or', type: 'inclusiveGateway', name: 'OR' },
+        { id: 't1', type: 'task', name: 'A' },
+        { id: 't2', type: 'task', name: 'B' },
+        { id: 'and', type: 'parallelGateway', name: 'AND' },
+        { id: 'e', type: 'endEvent' },
+      ],
+      [
+        { id: 'f1', source: 's', target: 'or' },
+        { id: 'f2', source: 'or', target: 't1' },
+        { id: 'f3', source: 'or', target: 't2' },
+        { id: 'f4', source: 't1', target: 'and' },
+        { id: 'f5', source: 't2', target: 'and' },
+        { id: 'f6', source: 'and', target: 'e' },
+      ],
+    );
     const result = runRules(lc);
-    expect(result.errors.some(e => e.includes('Deadlock') && e.includes('Inclusive'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('Deadlock') && e.includes('Inclusive'))).toBe(true);
   });
 
   test('S07: node without outgoing flow → WARNING', () => {
-    const lc = proc([
-      { id: 's', type: 'startEvent' },
-      { id: 't1', type: 'task', name: 'Dead End' },
-      { id: 'e', type: 'endEvent' },
-    ], [
-      { id: 'f1', source: 's', target: 't1' },
-      // t1 has no outgoing edge
-      { id: 'f2', source: 's', target: 'e' },
-    ]);
+    const lc = proc(
+      [
+        { id: 's', type: 'startEvent' },
+        { id: 't1', type: 'task', name: 'Dead End' },
+        { id: 'e', type: 'endEvent' },
+      ],
+      [
+        { id: 'f1', source: 's', target: 't1' },
+        // t1 has no outgoing edge
+        { id: 'f2', source: 's', target: 'e' },
+      ],
+    );
     const result = runRules(lc);
-    expect(result.warnings.some(w => w.includes('no outgoing'))).toBe(true);
+    expect(result.warnings.some((w) => w.includes('no outgoing'))).toBe(true);
   });
 
   test('S08: boundary event path without endEvent → WARNING', () => {
-    const lc = proc([
-      { id: 's', type: 'startEvent' },
-      { id: 't1', type: 'task', name: 'Do Work' },
-      { id: 'b1', type: 'boundaryEvent', name: 'Timer', attachedToRef: 't1' },
-      { id: 't2', type: 'task', name: 'Handle Timeout' },
-      { id: 'e', type: 'endEvent' },
-    ], [
-      { id: 'f1', source: 's', target: 't1' },
-      { id: 'f2', source: 't1', target: 'e' },
-      { id: 'f3', source: 'b1', target: 't2' },
-      // t2 has no path to endEvent
-    ]);
+    const lc = proc(
+      [
+        { id: 's', type: 'startEvent' },
+        { id: 't1', type: 'task', name: 'Do Work' },
+        { id: 'b1', type: 'boundaryEvent', name: 'Timer', attachedToRef: 't1' },
+        { id: 't2', type: 'task', name: 'Handle Timeout' },
+        { id: 'e', type: 'endEvent' },
+      ],
+      [
+        { id: 'f1', source: 's', target: 't1' },
+        { id: 'f2', source: 't1', target: 'e' },
+        { id: 'f3', source: 'b1', target: 't2' },
+        // t2 has no path to endEvent
+      ],
+    );
     const result = runRules(lc);
-    expect(result.warnings.some(w => w.includes('boundary') || w.includes('Boundary'))).toBe(true);
+    expect(result.warnings.some((w) => w.includes('boundary') || w.includes('Boundary'))).toBe(
+      true,
+    );
   });
 
   test('S09: messageFlow within same pool → ERROR', () => {
     const lc = {
-      pools: [{
-        id: 'pool1', name: 'Pool 1',
-        nodes: [
-          { id: 's', type: 'startEvent' },
-          { id: 't1', type: 'task', name: 'A' },
-          { id: 'e', type: 'endEvent' },
-        ],
-        edges: [
-          { id: 'f1', source: 's', target: 't1' },
-          { id: 'f2', source: 't1', target: 'e' },
-        ],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'pool1',
+          name: 'Pool 1',
+          nodes: [
+            { id: 's', type: 'startEvent' },
+            { id: 't1', type: 'task', name: 'A' },
+            { id: 'e', type: 'endEvent' },
+          ],
+          edges: [
+            { id: 'f1', source: 's', target: 't1' },
+            { id: 'f2', source: 't1', target: 'e' },
+          ],
+          lanes: [],
+        },
+      ],
       messageFlows: [{ id: 'mf1', source: 's', target: 't1' }],
       collapsedPools: [],
     };
     const result = runRules(lc);
-    expect(result.errors.some(e => e.includes('within pool'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('within pool'))).toBe(true);
   });
 
   test('S10: messageFlow with unknown reference → ERROR', () => {
     const lc = {
-      pools: [{
-        id: 'pool1', name: 'Pool 1',
-        nodes: [{ id: 's', type: 'startEvent' }, { id: 'e', type: 'endEvent' }],
-        edges: [{ id: 'f1', source: 's', target: 'e' }],
-        lanes: [],
-      }],
+      pools: [
+        {
+          id: 'pool1',
+          name: 'Pool 1',
+          nodes: [
+            { id: 's', type: 'startEvent' },
+            { id: 'e', type: 'endEvent' },
+          ],
+          edges: [{ id: 'f1', source: 's', target: 'e' }],
+          lanes: [],
+        },
+      ],
       messageFlows: [{ id: 'mf1', source: 's', target: 'NONEXISTENT' }],
       collapsedPools: [],
     };
     const result = runRules(lc);
-    expect(result.errors.some(e => e.includes('unknown'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('unknown'))).toBe(true);
   });
 
   test('S11: expanded subProcess without start/end → ERROR', () => {
-    const lc = proc([
-      { id: 's', type: 'startEvent' },
-      {
-        id: 'sub1', type: 'subProcess', name: 'Sub', isExpanded: true,
-        nodes: [{ id: 'inner_t', type: 'task', name: 'Inner' }],
-        edges: [],
-      },
-      { id: 'e', type: 'endEvent' },
-    ], [
-      { id: 'f1', source: 's', target: 'sub1' },
-      { id: 'f2', source: 'sub1', target: 'e' },
-    ]);
+    const lc = proc(
+      [
+        { id: 's', type: 'startEvent' },
+        {
+          id: 'sub1',
+          type: 'subProcess',
+          name: 'Sub',
+          isExpanded: true,
+          nodes: [{ id: 'inner_t', type: 'task', name: 'Inner' }],
+          edges: [],
+        },
+        { id: 'e', type: 'endEvent' },
+      ],
+      [
+        { id: 'f1', source: 's', target: 'sub1' },
+        { id: 'f2', source: 'sub1', target: 'e' },
+      ],
+    );
     const result = runRules(lc);
-    expect(result.errors.some(e => e.includes('SubProcess') && e.includes('startEvent'))).toBe(true);
-    expect(result.errors.some(e => e.includes('SubProcess') && e.includes('endEvent'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('SubProcess') && e.includes('startEvent'))).toBe(
+      true,
+    );
+    expect(result.errors.some((e) => e.includes('SubProcess') && e.includes('endEvent'))).toBe(
+      true,
+    );
   });
 
   test('M01: single-word task name → WARNING', () => {
-    const lc = proc([
-      { id: 's', type: 'startEvent' },
-      { id: 't1', type: 'task', name: 'Submit' },
-      { id: 'e', type: 'endEvent' },
-    ], [
-      { id: 'f1', source: 's', target: 't1' },
-      { id: 'f2', source: 't1', target: 'e' },
-    ]);
+    const lc = proc(
+      [
+        { id: 's', type: 'startEvent' },
+        { id: 't1', type: 'task', name: 'Submit' },
+        { id: 'e', type: 'endEvent' },
+      ],
+      [
+        { id: 'f1', source: 's', target: 't1' },
+        { id: 'f2', source: 't1', target: 'e' },
+      ],
+    );
     const result = runRules(lc);
-    expect(result.warnings.some(w => w.includes('Submit'))).toBe(true);
+    expect(result.warnings.some((w) => w.includes('Submit'))).toBe(true);
   });
 
   test('M01: Japanese action phrase without spaces → no warning', () => {
-    const lc = proc([
-      { id: 's', type: 'startEvent' },
-      { id: 't1', type: 'task', name: '申請内容を確認する' },
-      { id: 'e', type: 'endEvent' },
-    ], [
-      { id: 'f1', source: 's', target: 't1' },
-      { id: 'f2', source: 't1', target: 'e' },
-    ]);
+    const lc = proc(
+      [
+        { id: 's', type: 'startEvent' },
+        { id: 't1', type: 'task', name: '申請内容を確認する' },
+        { id: 'e', type: 'endEvent' },
+      ],
+      [
+        { id: 'f1', source: 's', target: 't1' },
+        { id: 'f2', source: 't1', target: 'e' },
+      ],
+    );
     const result = runRules(lc);
-    expect(result.warnings.some(w => w.includes('Review request'))).toBe(false);
+    expect(result.warnings.some((w) => w.includes('Review request'))).toBe(false);
   });
 
   test('M02: XOR gateway without question mark → WARNING', () => {
-    const lc = proc([
-      { id: 's', type: 'startEvent' },
-      { id: 'xor', type: 'exclusiveGateway', name: 'Check result' },
-      { id: 't1', type: 'task', name: 'Path A' },
-      { id: 't2', type: 'task', name: 'Path B' },
-      { id: 'e', type: 'endEvent' },
-    ], [
-      { id: 'f1', source: 's', target: 'xor' },
-      { id: 'f2', source: 'xor', target: 't1', label: 'Yes' },
-      { id: 'f3', source: 'xor', target: 't2', label: 'No' },
-      { id: 'f4', source: 't1', target: 'e' },
-      { id: 'f5', source: 't2', target: 'e' },
-    ]);
+    const lc = proc(
+      [
+        { id: 's', type: 'startEvent' },
+        { id: 'xor', type: 'exclusiveGateway', name: 'Check result' },
+        { id: 't1', type: 'task', name: 'Path A' },
+        { id: 't2', type: 'task', name: 'Path B' },
+        { id: 'e', type: 'endEvent' },
+      ],
+      [
+        { id: 'f1', source: 's', target: 'xor' },
+        { id: 'f2', source: 'xor', target: 't1', label: 'Yes' },
+        { id: 'f3', source: 'xor', target: 't2', label: 'No' },
+        { id: 'f4', source: 't1', target: 'e' },
+        { id: 'f5', source: 't2', target: 'e' },
+      ],
+    );
     const result = runRules(lc);
-    expect(result.warnings.some(w => w.includes('question'))).toBe(true);
+    expect(result.warnings.some((w) => w.includes('question'))).toBe(true);
   });
 
   test('M02: Japanese full-width question mark → no warning', () => {
-    const lc = proc([
-      { id: 's', type: 'startEvent' },
-      { id: 'xor', type: 'exclusiveGateway', name: '申請内容に不備がないか？' },
-      { id: 't1', type: 'task', name: 'Path A' },
-      { id: 't2', type: 'task', name: 'Path B' },
-      { id: 'e', type: 'endEvent' },
-    ], [
-      { id: 'f1', source: 's', target: 'xor' },
-      { id: 'f2', source: 'xor', target: 't1', label: 'はい' },
-      { id: 'f3', source: 'xor', target: 't2', label: 'いいえ' },
-      { id: 'f4', source: 't1', target: 'e' },
-      { id: 'f5', source: 't2', target: 'e' },
-    ]);
+    const lc = proc(
+      [
+        { id: 's', type: 'startEvent' },
+        { id: 'xor', type: 'exclusiveGateway', name: '申請内容に不備がないか？' },
+        { id: 't1', type: 'task', name: 'Path A' },
+        { id: 't2', type: 'task', name: 'Path B' },
+        { id: 'e', type: 'endEvent' },
+      ],
+      [
+        { id: 'f1', source: 's', target: 'xor' },
+        { id: 'f2', source: 'xor', target: 't1', label: 'はい' },
+        { id: 'f3', source: 'xor', target: 't2', label: 'いいえ' },
+        { id: 'f4', source: 't1', target: 'e' },
+        { id: 'f5', source: 't2', target: 'e' },
+      ],
+    );
     const result = runRules(lc);
-    expect(result.warnings.some(w => w.includes('should be phrased as a question'))).toBe(false);
+    expect(result.warnings.some((w) => w.includes('should be phrased as a question'))).toBe(false);
   });
 
   test('M03: converging gateway with labeled outgoing edge → WARNING', () => {
-    const lc = proc([
-      { id: 's', type: 'startEvent' },
-      { id: 't1', type: 'task', name: 'Do A' },
-      { id: 't2', type: 'task', name: 'Do B' },
-      { id: 'merge', type: 'exclusiveGateway', name: 'Merge', has_join: true },
-      { id: 'e', type: 'endEvent' },
-    ], [
-      { id: 'f1', source: 's', target: 't1' },
-      { id: 'f2', source: 's', target: 't2' },
-      { id: 'f3', source: 't1', target: 'merge' },
-      { id: 'f4', source: 't2', target: 'merge' },
-      { id: 'f5', source: 'merge', target: 'e', label: 'Should not have label' },
-    ]);
+    const lc = proc(
+      [
+        { id: 's', type: 'startEvent' },
+        { id: 't1', type: 'task', name: 'Do A' },
+        { id: 't2', type: 'task', name: 'Do B' },
+        { id: 'merge', type: 'exclusiveGateway', name: 'Merge', has_join: true },
+        { id: 'e', type: 'endEvent' },
+      ],
+      [
+        { id: 'f1', source: 's', target: 't1' },
+        { id: 'f2', source: 's', target: 't2' },
+        { id: 'f3', source: 't1', target: 'merge' },
+        { id: 'f4', source: 't2', target: 'merge' },
+        { id: 'f5', source: 'merge', target: 'e', label: 'Should not have label' },
+      ],
+    );
     const result = runRules(lc);
-    expect(result.warnings.some(w => w.includes('Converging'))).toBe(true);
+    expect(result.warnings.some((w) => w.includes('Converging'))).toBe(true);
   });
 
   test('M04: XOR outgoing edge without label → WARNING', () => {
-    const lc = proc([
-      { id: 's', type: 'startEvent' },
-      { id: 'xor', type: 'exclusiveGateway', name: 'Check?' },
-      { id: 't1', type: 'task', name: 'Path A' },
-      { id: 't2', type: 'task', name: 'Path B' },
-      { id: 'e', type: 'endEvent' },
-    ], [
-      { id: 'f1', source: 's', target: 'xor' },
-      { id: 'f2', source: 'xor', target: 't1' },  // no label
-      { id: 'f3', source: 'xor', target: 't2' },  // no label
-      { id: 'f4', source: 't1', target: 'e' },
-      { id: 'f5', source: 't2', target: 'e' },
-    ]);
+    const lc = proc(
+      [
+        { id: 's', type: 'startEvent' },
+        { id: 'xor', type: 'exclusiveGateway', name: 'Check?' },
+        { id: 't1', type: 'task', name: 'Path A' },
+        { id: 't2', type: 'task', name: 'Path B' },
+        { id: 'e', type: 'endEvent' },
+      ],
+      [
+        { id: 'f1', source: 's', target: 'xor' },
+        { id: 'f2', source: 'xor', target: 't1' }, // no label
+        { id: 'f3', source: 'xor', target: 't2' }, // no label
+        { id: 'f4', source: 't1', target: 'e' },
+        { id: 'f5', source: 't2', target: 'e' },
+      ],
+    );
     const result = runRules(lc);
-    expect(result.warnings.some(w => w.includes('missing label'))).toBe(true);
+    expect(result.warnings.some((w) => w.includes('missing label'))).toBe(true);
   });
 
   test('M05/M06: placeholder rules are OFF by default', () => {
-    const m05 = RULES.find(r => r.id === 'M05');
-    const m06 = RULES.find(r => r.id === 'M06');
+    const m05 = RULES.find((r) => r.id === 'M05');
+    const m06 = RULES.find((r) => r.id === 'M06');
     expect(m05.defaultSeverity).toBe('OFF');
     expect(m06.defaultSeverity).toBe('OFF');
   });
 
   test('M07: inclusive gateway present → WARNING', () => {
-    const lc = proc([
-      { id: 's', type: 'startEvent' },
-      { id: 'or', type: 'inclusiveGateway', name: 'OR' },
-      { id: 't1', type: 'task', name: 'Do Something' },
-      { id: 'e', type: 'endEvent' },
-    ], [
-      { id: 'f1', source: 's', target: 'or' },
-      { id: 'f2', source: 'or', target: 't1' },
-      { id: 'f3', source: 't1', target: 'e' },
-    ]);
+    const lc = proc(
+      [
+        { id: 's', type: 'startEvent' },
+        { id: 'or', type: 'inclusiveGateway', name: 'OR' },
+        { id: 't1', type: 'task', name: 'Do Something' },
+        { id: 'e', type: 'endEvent' },
+      ],
+      [
+        { id: 'f1', source: 's', target: 'or' },
+        { id: 'f2', source: 'or', target: 't1' },
+        { id: 'f3', source: 't1', target: 'e' },
+      ],
+    );
     const result = runRules(lc);
-    expect(result.warnings.some(w => w.includes('OR') || w.includes('inclusive'))).toBe(true);
+    expect(result.warnings.some((w) => w.includes('OR') || w.includes('inclusive'))).toBe(true);
   });
 
   test('M08: XOR with 3+ outgoing, no default → WARNING', () => {
-    const lc = proc([
-      { id: 's', type: 'startEvent' },
-      { id: 'xor', type: 'exclusiveGateway', name: 'Multi?' },
-      { id: 't1', type: 'task', name: 'Path A' },
-      { id: 't2', type: 'task', name: 'Path B' },
-      { id: 't3', type: 'task', name: 'Path C' },
-      { id: 'e', type: 'endEvent' },
-    ], [
-      { id: 'f1', source: 's', target: 'xor' },
-      { id: 'f2', source: 'xor', target: 't1', label: 'A' },
-      { id: 'f3', source: 'xor', target: 't2', label: 'B' },
-      { id: 'f4', source: 'xor', target: 't3', label: 'C' },
-      { id: 'f5', source: 't1', target: 'e' },
-      { id: 'f6', source: 't2', target: 'e' },
-      { id: 'f7', source: 't3', target: 'e' },
-    ]);
+    const lc = proc(
+      [
+        { id: 's', type: 'startEvent' },
+        { id: 'xor', type: 'exclusiveGateway', name: 'Multi?' },
+        { id: 't1', type: 'task', name: 'Path A' },
+        { id: 't2', type: 'task', name: 'Path B' },
+        { id: 't3', type: 'task', name: 'Path C' },
+        { id: 'e', type: 'endEvent' },
+      ],
+      [
+        { id: 'f1', source: 's', target: 'xor' },
+        { id: 'f2', source: 'xor', target: 't1', label: 'A' },
+        { id: 'f3', source: 'xor', target: 't2', label: 'B' },
+        { id: 'f4', source: 'xor', target: 't3', label: 'C' },
+        { id: 'f5', source: 't1', target: 'e' },
+        { id: 'f6', source: 't2', target: 'e' },
+        { id: 'f7', source: 't3', target: 'e' },
+      ],
+    );
     const result = runRules(lc);
-    expect(result.warnings.some(w => w.includes('default'))).toBe(true);
+    expect(result.warnings.some((w) => w.includes('default'))).toBe(true);
   });
 
   describe('Rule M10 — Lane/pool name length', () => {
     test('passes when all names ≤ 25 chars', () => {
       const lc = {
-        pools: [{
-          id: 'p1', name: 'Einkauf',
-          nodes: [{ id: 's', type: 'startEvent' }, { id: 'e', type: 'endEvent' }],
-          edges: [{ id: 'f1', source: 's', target: 'e' }],
-          lanes: [{ id: 'l1', name: 'Bearbeiter' }],
-        }],
+        pools: [
+          {
+            id: 'p1',
+            name: 'Einkauf',
+            nodes: [
+              { id: 's', type: 'startEvent' },
+              { id: 'e', type: 'endEvent' },
+            ],
+            edges: [{ id: 'f1', source: 's', target: 'e' }],
+            lanes: [{ id: 'l1', name: 'Bearbeiter' }],
+          },
+        ],
       };
       const result = runRules(lc);
-      expect(result.warnings.some(w => w.includes('M10') || w.includes('exceed'))).toBe(false);
+      expect(result.warnings.some((w) => w.includes('M10') || w.includes('exceed'))).toBe(false);
     });
 
     test('flags pool with name > 25 chars', () => {
       const lc = {
-        pools: [{
-          id: 'p1', name: 'This is a very descriptive pool name that is too long',
-          nodes: [{ id: 's', type: 'startEvent' }, { id: 'e', type: 'endEvent' }],
-          edges: [{ id: 'f1', source: 's', target: 'e' }],
-          lanes: [{ id: 'l1', name: 'OK' }],
-        }],
+        pools: [
+          {
+            id: 'p1',
+            name: 'This is a very descriptive pool name that is too long',
+            nodes: [
+              { id: 's', type: 'startEvent' },
+              { id: 'e', type: 'endEvent' },
+            ],
+            edges: [{ id: 'f1', source: 's', target: 'e' }],
+            lanes: [{ id: 'l1', name: 'OK' }],
+          },
+        ],
       };
       const result = runRules(lc);
-      expect(result.warnings.some(w => w.includes('pool') && w.includes('chars'))).toBe(true);
+      expect(result.warnings.some((w) => w.includes('pool') && w.includes('chars'))).toBe(true);
     });
 
     test('flags lane with name > 25 chars', () => {
       const lc = {
-        pools: [{
-          id: 'p1', name: 'Ok',
-          nodes: [{ id: 's', type: 'startEvent' }, { id: 'e', type: 'endEvent' }],
-          edges: [{ id: 'f1', source: 's', target: 'e' }],
-          lanes: [{
-            id: 'l1', name: 'Pipeline — Layout + Rendering (topology → ELK → coordinates)',
-          }],
-        }],
+        pools: [
+          {
+            id: 'p1',
+            name: 'Ok',
+            nodes: [
+              { id: 's', type: 'startEvent' },
+              { id: 'e', type: 'endEvent' },
+            ],
+            edges: [{ id: 'f1', source: 's', target: 'e' }],
+            lanes: [
+              {
+                id: 'l1',
+                name: 'Pipeline — Layout + Rendering (topology → ELK → coordinates)',
+              },
+            ],
+          },
+        ],
       };
       const result = runRules(lc);
-      expect(result.warnings.some(w => w.includes('lane'))).toBe(true);
+      expect(result.warnings.some((w) => w.includes('lane'))).toBe(true);
     });
   });
 
@@ -1898,36 +2128,40 @@ describe('Rule Engine — individual rules', () => {
     for (let i = 0; i < 55; i++) nodes.push({ id: `t${i}`, type: 'task', name: `Task ${i}` });
     nodes.push({ id: 'e', type: 'endEvent' });
     const edges = [{ id: 'f0', source: 's', target: 't0' }];
-    for (let i = 0; i < 54; i++) edges.push({ id: `f${i+1}`, source: `t${i}`, target: `t${i+1}` });
+    for (let i = 0; i < 54; i++)
+      edges.push({ id: `f${i + 1}`, source: `t${i}`, target: `t${i + 1}` });
     edges.push({ id: 'fend', source: 't54', target: 'e' });
     const result = runRules(proc(nodes, edges));
-    expect(result.infos.some(i => i.includes('elements'))).toBe(true);
+    expect(result.infos.some((i) => i.includes('elements'))).toBe(true);
   });
 
   test('P02: gateway nesting depth >3 → INFO', () => {
     // Chain of 4 nested XOR gateways
-    const lc = proc([
-      { id: 's', type: 'startEvent' },
-      { id: 'g1', type: 'exclusiveGateway', name: 'Q1?' },
-      { id: 'g2', type: 'exclusiveGateway', name: 'Q2?' },
-      { id: 'g3', type: 'exclusiveGateway', name: 'Q3?' },
-      { id: 'g4', type: 'exclusiveGateway', name: 'Q4?' },
-      { id: 't1', type: 'task', name: 'Deep Task' },
-      { id: 'e', type: 'endEvent' },
-    ], [
-      { id: 'f1', source: 's', target: 'g1' },
-      { id: 'f2', source: 'g1', target: 'g2', label: 'Y' },
-      { id: 'f3', source: 'g1', target: 'e', label: 'N' },
-      { id: 'f4', source: 'g2', target: 'g3', label: 'Y' },
-      { id: 'f5', source: 'g2', target: 'e', label: 'N' },
-      { id: 'f6', source: 'g3', target: 'g4', label: 'Y' },
-      { id: 'f7', source: 'g3', target: 'e', label: 'N' },
-      { id: 'f8', source: 'g4', target: 't1', label: 'Y' },
-      { id: 'f9', source: 'g4', target: 'e', label: 'N' },
-      { id: 'f10', source: 't1', target: 'e' },
-    ]);
+    const lc = proc(
+      [
+        { id: 's', type: 'startEvent' },
+        { id: 'g1', type: 'exclusiveGateway', name: 'Q1?' },
+        { id: 'g2', type: 'exclusiveGateway', name: 'Q2?' },
+        { id: 'g3', type: 'exclusiveGateway', name: 'Q3?' },
+        { id: 'g4', type: 'exclusiveGateway', name: 'Q4?' },
+        { id: 't1', type: 'task', name: 'Deep Task' },
+        { id: 'e', type: 'endEvent' },
+      ],
+      [
+        { id: 'f1', source: 's', target: 'g1' },
+        { id: 'f2', source: 'g1', target: 'g2', label: 'Y' },
+        { id: 'f3', source: 'g1', target: 'e', label: 'N' },
+        { id: 'f4', source: 'g2', target: 'g3', label: 'Y' },
+        { id: 'f5', source: 'g2', target: 'e', label: 'N' },
+        { id: 'f6', source: 'g3', target: 'g4', label: 'Y' },
+        { id: 'f7', source: 'g3', target: 'e', label: 'N' },
+        { id: 'f8', source: 'g4', target: 't1', label: 'Y' },
+        { id: 'f9', source: 'g4', target: 'e', label: 'N' },
+        { id: 'f10', source: 't1', target: 'e' },
+      ],
+    );
     const result = runRules(lc);
-    expect(result.infos.some(i => i.includes('nesting depth'))).toBe(true);
+    expect(result.infos.some((i) => i.includes('nesting depth'))).toBe(true);
   });
 
   test('P03: CFC score > 30 → INFO', () => {
@@ -1940,7 +2174,9 @@ describe('Rule Engine — individual rules', () => {
       const gwId = `gw${g}`;
       nodes.push({ id: gwId, type: 'exclusiveGateway', name: `Q${g}?` });
       edges.push({ id: `e${edgeId++}`, source: prev, target: gwId });
-      const t1 = `t${g}a`, t2 = `t${g}b`, t3 = `t${g}c`;
+      const t1 = `t${g}a`,
+        t2 = `t${g}b`,
+        t3 = `t${g}c`;
       nodes.push({ id: t1, type: 'task', name: `${g}A` });
       nodes.push({ id: t2, type: 'task', name: `${g}B` });
       nodes.push({ id: t3, type: 'task', name: `${g}C` });
@@ -1957,26 +2193,29 @@ describe('Rule Engine — individual rules', () => {
     nodes.push({ id: 'e', type: 'endEvent' });
     edges.push({ id: `e${edgeId++}`, source: prev, target: 'e' });
     const result = runRules(proc(nodes, edges));
-    expect(result.infos.some(i => i.includes('CFC') || i.includes('Complexity'))).toBe(true);
+    expect(result.infos.some((i) => i.includes('CFC') || i.includes('Complexity'))).toBe(true);
   });
 
   test('WF03: deadlock detected via workflow-net → ERROR', () => {
     // XOR-split → AND-join = deadlock
-    const lc = proc([
-      { id: 's', type: 'startEvent' },
-      { id: 'xor', type: 'exclusiveGateway', name: 'XOR' },
-      { id: 't1', type: 'task', name: 'A' },
-      { id: 't2', type: 'task', name: 'B' },
-      { id: 'and', type: 'parallelGateway', name: 'AND' },
-      { id: 'e', type: 'endEvent' },
-    ], [
-      { id: 'f1', source: 's', target: 'xor' },
-      { id: 'f2', source: 'xor', target: 't1', label: 'Y' },
-      { id: 'f3', source: 'xor', target: 't2', label: 'N' },
-      { id: 'f4', source: 't1', target: 'and' },
-      { id: 'f5', source: 't2', target: 'and' },
-      { id: 'f6', source: 'and', target: 'e' },
-    ]);
+    const lc = proc(
+      [
+        { id: 's', type: 'startEvent' },
+        { id: 'xor', type: 'exclusiveGateway', name: 'XOR' },
+        { id: 't1', type: 'task', name: 'A' },
+        { id: 't2', type: 'task', name: 'B' },
+        { id: 'and', type: 'parallelGateway', name: 'AND' },
+        { id: 'e', type: 'endEvent' },
+      ],
+      [
+        { id: 'f1', source: 's', target: 'xor' },
+        { id: 'f2', source: 'xor', target: 't1', label: 'Y' },
+        { id: 'f3', source: 'xor', target: 't2', label: 'N' },
+        { id: 'f4', source: 't1', target: 'and' },
+        { id: 'f5', source: 't2', target: 'and' },
+        { id: 'f6', source: 'and', target: 'e' },
+      ],
+    );
     const result = runRules(lc, wfProfile);
     expect(result.errors.length).toBeGreaterThan(0);
   });
@@ -1996,14 +2235,24 @@ describe('HTTP Server utilities', () => {
   test('parseBody with valid JSON → object', async () => {
     const { Readable } = await import('stream');
     const data = JSON.stringify({ logicCore: { id: 'P1' } });
-    const req = new Readable({ read() { this.push(data); this.push(null); } });
+    const req = new Readable({
+      read() {
+        this.push(data);
+        this.push(null);
+      },
+    });
     const result = await parseBody(req);
     expect(result.logicCore.id).toBe('P1');
   });
 
   test('parseBody with invalid JSON → rejects', async () => {
     const { Readable } = await import('stream');
-    const req = new Readable({ read() { this.push('not json'); this.push(null); } });
+    const req = new Readable({
+      read() {
+        this.push('not json');
+        this.push(null);
+      },
+    });
     await expect(parseBody(req)).rejects.toThrow('Invalid JSON');
   });
 
@@ -2013,10 +2262,14 @@ describe('HTTP Server utilities', () => {
     let sent = 0;
     const req = new Readable({
       read() {
-        if (sent < 11) { this.push(chunk); sent++; }
-        else this.push(null);
+        if (sent < 11) {
+          this.push(chunk);
+          sent++;
+        } else this.push(null);
       },
-      destroy() { /* allow destroy */ }
+      destroy() {
+        /* allow destroy */
+      },
     });
     await expect(parseBody(req)).rejects.toThrow('exceeds');
   });
@@ -2064,9 +2317,11 @@ describe('HTTP Server utilities', () => {
     // ESM `node:dns/promises` exports are read-only in Jest 30, so we inject the
     // lookup function via the test-only `_setDnsLookup` hook on http-server.
     const { validateCallbackUrlAsync, _setDnsLookup } = await import('./http-server.js');
-    _setDnsLookup(async (h) => h === 'evil.example.com'
-      ? [{ address: '127.0.0.1', family: 4 }]
-      : [{ address: '93.184.216.34', family: 4 }]);
+    _setDnsLookup(async (h) =>
+      h === 'evil.example.com'
+        ? [{ address: '127.0.0.1', family: 4 }]
+        : [{ address: '93.184.216.34', family: 4 }],
+    );
     try {
       const result = await validateCallbackUrlAsync('http://evil.example.com/hook');
       expect(result).toMatch(/internal/);
@@ -2098,21 +2353,22 @@ describe('HTTP Server utilities', () => {
 describe('http-server production auth gate', () => {
   test('startupCheck refuses production without API key', async () => {
     const { startupCheck } = await import('./http-server.js');
-    expect(() => startupCheck({ NODE_ENV: 'production', BPMN_API_KEY: undefined }))
-      .toThrow(/BPMN_API_KEY/);
+    expect(() => startupCheck({ NODE_ENV: 'production', BPMN_API_KEY: undefined })).toThrow(
+      /BPMN_API_KEY/,
+    );
   });
 
   test('startupCheck allows production with API key', async () => {
     const { startupCheck } = await import('./http-server.js');
-    expect(() => startupCheck({ NODE_ENV: 'production', BPMN_API_KEY: 'secret' }))
-      .not.toThrow();
+    expect(() => startupCheck({ NODE_ENV: 'production', BPMN_API_KEY: 'secret' })).not.toThrow();
   });
 
   test('startupCheck warns in dev mode without API key', async () => {
     const { startupCheck } = await import('./http-server.js');
     const warns = [];
-    expect(() => startupCheck({ NODE_ENV: 'development', BPMN_API_KEY: undefined }, msg => warns.push(msg)))
-      .not.toThrow();
+    expect(() =>
+      startupCheck({ NODE_ENV: 'development', BPMN_API_KEY: undefined }, (msg) => warns.push(msg)),
+    ).not.toThrow();
     expect(warns.join('\n')).toMatch(/no BPMN API key/i);
   });
 });
@@ -2121,8 +2377,8 @@ describe('audit/dead-letter path configuration', () => {
   test('audit module defaults to os.tmpdir()/bpmn-generator/audit/', async () => {
     delete process.env.AUDIT_LOG_PATH;
     const os = await import('node:os');
-    // cache-bust the import so module-init re-evaluates env
-    const { getAuditPath } = await import(`./audit.js?cb=default-${Date.now()}`);
+    vi.resetModules();
+    const { getAuditPath } = await import('./audit.js');
     const p = getAuditPath();
     expect(p.startsWith(os.tmpdir())).toBe(true);
     expect(p).toMatch(/bpmn-generator/);
@@ -2133,7 +2389,8 @@ describe('audit/dead-letter path configuration', () => {
     process.env.AUDIT_LOG_PATH = '/tmp/test-audit-' + Date.now() + '.jsonl';
     const expected = process.env.AUDIT_LOG_PATH;
     const fs = await import('node:fs');
-    const { auditLog, getAuditPath } = await import(`./audit.js?cb=env-${Date.now()}`);
+    vi.resetModules();
+    const { auditLog, getAuditPath } = await import('./audit.js');
     expect(getAuditPath()).toBe(expected);
     auditLog({ event: 'env-path-test' });
     expect(fs.existsSync(expected)).toBe(true);
@@ -2144,7 +2401,8 @@ describe('audit/dead-letter path configuration', () => {
   test('delivery module honors DEAD_LETTER_PATH env', async () => {
     const dir = '/tmp/test-dl-' + Date.now();
     process.env.DEAD_LETTER_PATH = dir;
-    const { getDeadLetterDir } = await import(`./delivery.js?cb=env-${Date.now()}`);
+    vi.resetModules();
+    const { getDeadLetterDir } = await import('./delivery.js');
     expect(getDeadLetterDir()).toBe(dir);
     const fs = await import('node:fs');
     expect(fs.existsSync(dir)).toBe(true);
@@ -2169,7 +2427,8 @@ describe('DOT format', () => {
 
   test('round-trip preserves node and edge count', () => {
     const lc = {
-      id: 'P1', name: 'Test',
+      id: 'P1',
+      name: 'Test',
       nodes: [
         { id: 'start', type: 'startEvent', name: 'Start' },
         { id: 'do_work', type: 'task', name: 'Do Work' },
@@ -2190,8 +2449,20 @@ describe('DOT format', () => {
   test('multi-pool export contains subgraph clusters', () => {
     const lc = {
       pools: [
-        { id: 'pool1', name: 'Pool A', nodes: [{ id: 's1', type: 'startEvent', name: 'S' }], edges: [], lanes: [] },
-        { id: 'pool2', name: 'Pool B', nodes: [{ id: 's2', type: 'startEvent', name: 'S' }], edges: [], lanes: [] },
+        {
+          id: 'pool1',
+          name: 'Pool A',
+          nodes: [{ id: 's1', type: 'startEvent', name: 'S' }],
+          edges: [],
+          lanes: [],
+        },
+        {
+          id: 'pool2',
+          name: 'Pool B',
+          nodes: [{ id: 's2', type: 'startEvent', name: 'S' }],
+          edges: [],
+          lanes: [],
+        },
       ],
       messageFlows: [],
       collapsedPools: [],
@@ -2234,7 +2505,9 @@ describe('Round-Trip XML Validation', () => {
   });
 
   test('validateBpmnXml detects invalid XML', async () => {
-    const result = await validateBpmnXml('<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"><bpmn:process id="p1"><bpmn:bogusElement id="x"/></bpmn:process></bpmn:definitions>');
+    const result = await validateBpmnXml(
+      '<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"><bpmn:process id="p1"><bpmn:bogusElement id="x"/></bpmn:process></bpmn:definitions>',
+    );
     expect(result.warnings.length).toBeGreaterThan(0);
   });
 
@@ -2263,7 +2536,9 @@ describe('SVG Golden-File Regression', () => {
       try {
         expected = readFileSync(resolve(fixturesDir, `${name}.expected.svg`), 'utf8');
       } catch {
-        throw new Error(`Golden file missing: tests/fixtures/${name}.expected.svg — run golden file generation first`);
+        throw new Error(
+          `Golden file missing: tests/fixtures/${name}.expected.svg — run golden file generation first`,
+        );
       }
       expect(result.svg).toBe(expected);
     });
@@ -2277,7 +2552,9 @@ describe('SVG Golden-File Regression', () => {
       try {
         expected = readFileSync(resolve(fixturesDir, `${name}.expected.bpmn`), 'utf8');
       } catch {
-        throw new Error(`Golden file missing: tests/fixtures/${name}.expected.bpmn — run golden file generation first`);
+        throw new Error(
+          `Golden file missing: tests/fixtures/${name}.expected.bpmn — run golden file generation first`,
+        );
       }
       expect(result.bpmnXml).toBe(expected);
     });
@@ -2291,7 +2568,9 @@ describe('SVG Golden-File Regression', () => {
       try {
         expected = readFileSync(resolve(fixturesDir, `${name}.refined.svg`), 'utf8');
       } catch {
-        throw new Error(`Golden file missing: tests/fixtures/${name}.refined.svg — run golden file generation first`);
+        throw new Error(
+          `Golden file missing: tests/fixtures/${name}.refined.svg — run golden file generation first`,
+        );
       }
       expect(result.svg).toBe(expected);
     });
@@ -2305,7 +2584,9 @@ describe('SVG Golden-File Regression', () => {
       try {
         expected = readFileSync(resolve(fixturesDir, `${name}.refined.bpmn`), 'utf8');
       } catch {
-        throw new Error(`Golden file missing: tests/fixtures/${name}.refined.bpmn — run golden file generation first`);
+        throw new Error(
+          `Golden file missing: tests/fixtures/${name}.refined.bpmn — run golden file generation first`,
+        );
       }
       expect(result.bpmnXml).toBe(expected);
     });
@@ -2333,16 +2614,16 @@ describe('wrapText char-level fallback', () => {
   test('breaks a single word longer than maxChars with hyphen', () => {
     const result = wrapText('Prozessverantwortlicher', 10);
     expect(result.length).toBeGreaterThan(1);
-    expect(result.every(line => line.length <= 11)).toBe(true);  // 10 + hyphen
+    expect(result.every((line) => line.length <= 11)).toBe(true); // 10 + hyphen
     // At least one line should end with hyphen (continuation marker)
-    expect(result.slice(0, -1).every(l => l.endsWith('-'))).toBe(true);
+    expect(result.slice(0, -1).every((l) => l.endsWith('-'))).toBe(true);
     // Joining without hyphens reconstructs the original
-    expect(result.map(l => l.replace(/-$/, '')).join('')).toBe('Prozessverantwortlicher');
+    expect(result.map((l) => l.replace(/-$/, '')).join('')).toBe('Prozessverantwortlicher');
   });
 
   test('respects max chars per line', () => {
     const result = wrapText('aaaaaaaaaaaaaaaaaaaa', 5);
-    expect(result.every(l => l.length <= 6)).toBe(true);
+    expect(result.every((l) => l.length <= 6)).toBe(true);
   });
 
   test('returns array with empty string for empty input', () => {
@@ -2354,7 +2635,7 @@ describe('wrapText char-level fallback', () => {
     const result = wrapText('hello', 1);
     expect(Array.isArray(result)).toBe(true);
     expect(result.length).toBeGreaterThan(0);
-    expect(result.every(l => l.length <= 3)).toBe(true); // 2 chars + hyphen at most
+    expect(result.every((l) => l.length <= 3)).toBe(true); // 2 chars + hyphen at most
   });
 
   test('clamps maxChars to 2 when called with 0', () => {
@@ -2376,7 +2657,7 @@ describe('wrapTextByPx', () => {
     // 60px at fontSize=11 ≈ 9 chars (60 / (11 * 0.6))
     const result = wrapTextByPx('Hello World Foo Bar', 60, 11);
     expect(result.length).toBeGreaterThan(1);
-    expect(result.every(l => l.length <= 10)).toBe(true);
+    expect(result.every((l) => l.length <= 10)).toBe(true);
   });
 
   test('handles zero-width gracefully (does not infinite-loop)', () => {
@@ -2398,7 +2679,7 @@ describe('long-lane-names matrix', () => {
   test('matches .expected golden with refinement disabled', async () => {
     const res = await runPipeline(JSON.parse(JSON.stringify(lc)), { visualRefinement: false });
     const goldenBpmn = readFileSync('../tests/fixtures/long-lane-names.expected.bpmn', 'utf8');
-    const goldenSvg  = readFileSync('../tests/fixtures/long-lane-names.expected.svg',  'utf8');
+    const goldenSvg = readFileSync('../tests/fixtures/long-lane-names.expected.svg', 'utf8');
     expect(res.bpmnXml).toBe(goldenBpmn);
     expect(res.svg).toBe(goldenSvg);
   });
@@ -2406,7 +2687,7 @@ describe('long-lane-names matrix', () => {
   test('matches .refined golden with refinement enabled', async () => {
     const res = await runPipeline(JSON.parse(JSON.stringify(lc)), { visualRefinement: true });
     const goldenBpmn = readFileSync('../tests/fixtures/long-lane-names.refined.bpmn', 'utf8');
-    const goldenSvg  = readFileSync('../tests/fixtures/long-lane-names.refined.svg',  'utf8');
+    const goldenSvg = readFileSync('../tests/fixtures/long-lane-names.refined.svg', 'utf8');
     expect(res.bpmnXml).toBe(goldenBpmn);
     expect(res.svg).toBe(goldenSvg);
   });
@@ -2422,10 +2703,10 @@ describe('Pass 1 metric assertions', () => {
     // For long-lane-names, the rotated text fits within 30px height — no widening needed.
     // Test invariant is "refinement never produces a narrower header than off".
     const off = await runPipeline(JSON.parse(JSON.stringify(lc)), { visualRefinement: false });
-    const on  = await runPipeline(JSON.parse(JSON.stringify(lc)), { visualRefinement: true });
+    const on = await runPipeline(JSON.parse(JSON.stringify(lc)), { visualRefinement: true });
     const poolKey = Object.keys(off.coordMap.poolCoords)[0];
     const offWidth = off.coordMap.poolCoords[poolKey].laneHeaderWidth;
-    const onWidth  = on.coordMap.poolCoords[poolKey].laneHeaderWidth;
+    const onWidth = on.coordMap.poolCoords[poolKey].laneHeaderWidth;
     expect(onWidth).toBeGreaterThanOrEqual(offWidth);
   });
 
@@ -2435,13 +2716,13 @@ describe('Pass 1 metric assertions', () => {
     // widening from 30 → up to 120) is ~1.53× the baseline. Bumped tolerance from
     // 1.5× to 1.6× to accommodate. Intent ("canvas doesn't blow up") preserved.
     const off = await runPipeline(JSON.parse(JSON.stringify(lc)), { visualRefinement: false });
-    const on  = await runPipeline(JSON.parse(JSON.stringify(lc)), { visualRefinement: true });
+    const on = await runPipeline(JSON.parse(JSON.stringify(lc)), { visualRefinement: true });
     const extractW = (svg) => {
       const m = svg.match(/width="(\d+)"/);
       return m ? parseInt(m[1], 10) : 0;
     };
     const wOff = extractW(off.svg);
-    const wOn  = extractW(on.svg);
+    const wOn = extractW(on.svg);
     expect(wOn).toBeLessThanOrEqual(wOff * 1.6);
   });
 });
@@ -2451,13 +2732,17 @@ describe('dense-edge-labels matrix', () => {
 
   test('matches .expected golden (refinement off)', async () => {
     const r = await runPipeline(JSON.parse(JSON.stringify(lc)), { visualRefinement: false });
-    expect(r.bpmnXml).toBe(readFileSync('../tests/fixtures/dense-edge-labels.expected.bpmn', 'utf8'));
+    expect(r.bpmnXml).toBe(
+      readFileSync('../tests/fixtures/dense-edge-labels.expected.bpmn', 'utf8'),
+    );
     expect(r.svg).toBe(readFileSync('../tests/fixtures/dense-edge-labels.expected.svg', 'utf8'));
   });
 
   test('matches .refined golden (refinement on)', async () => {
     const r = await runPipeline(JSON.parse(JSON.stringify(lc)), { visualRefinement: true });
-    expect(r.bpmnXml).toBe(readFileSync('../tests/fixtures/dense-edge-labels.refined.bpmn', 'utf8'));
+    expect(r.bpmnXml).toBe(
+      readFileSync('../tests/fixtures/dense-edge-labels.refined.bpmn', 'utf8'),
+    );
     expect(r.svg).toBe(readFileSync('../tests/fixtures/dense-edge-labels.refined.svg', 'utf8'));
   });
 });
@@ -2471,7 +2756,9 @@ describe('Pass 3 metric assertions', () => {
     // mid-edge X and the nudge directions cancel (known limitation).
     const { estimateTextBBox, bboxOverlaps } = await import('./visual-refinement.js');
     const countOverlaps = (coordMap) => {
-      const bboxes = Object.values(coordMap.edgeLabels ?? {}).map(L => estimateTextBBox(L.text, L.x, L.y, 11));
+      const bboxes = Object.values(coordMap.edgeLabels ?? {}).map((L) =>
+        estimateTextBBox(L.text, L.x, L.y, 11),
+      );
       let n = 0;
       for (let i = 0; i < bboxes.length; i++) {
         for (let j = i + 1; j < bboxes.length; j++) {
@@ -2481,9 +2768,9 @@ describe('Pass 3 metric assertions', () => {
       return n;
     };
     const off = await runPipeline(JSON.parse(JSON.stringify(lc)), { visualRefinement: false });
-    const on  = await runPipeline(JSON.parse(JSON.stringify(lc)), { visualRefinement: true });
+    const on = await runPipeline(JSON.parse(JSON.stringify(lc)), { visualRefinement: true });
     const overlapsOff = countOverlaps(off.coordMap);
-    const overlapsOn  = countOverlaps(on.coordMap);
+    const overlapsOn = countOverlaps(on.coordMap);
     // Refinement must strictly reduce overlaps (5 → 2 observed)
     expect(overlapsOn).toBeLessThan(overlapsOff);
   });
@@ -2491,7 +2778,9 @@ describe('Pass 3 metric assertions', () => {
   test('refinement ON has fewer or equal label overlaps vs OFF', async () => {
     const { estimateTextBBox, bboxOverlaps } = await import('./visual-refinement.js');
     const countOverlaps = (coordMap) => {
-      const bboxes = Object.values(coordMap.edgeLabels ?? {}).map(L => estimateTextBBox(L.text, L.x, L.y, 11));
+      const bboxes = Object.values(coordMap.edgeLabels ?? {}).map((L) =>
+        estimateTextBBox(L.text, L.x, L.y, 11),
+      );
       let n = 0;
       for (let i = 0; i < bboxes.length; i++) {
         for (let j = i + 1; j < bboxes.length; j++) {
@@ -2501,7 +2790,7 @@ describe('Pass 3 metric assertions', () => {
       return n;
     };
     const off = await runPipeline(JSON.parse(JSON.stringify(lc)), { visualRefinement: false });
-    const on  = await runPipeline(JSON.parse(JSON.stringify(lc)), { visualRefinement: true });
+    const on = await runPipeline(JSON.parse(JSON.stringify(lc)), { visualRefinement: true });
     expect(countOverlaps(on)).toBeLessThanOrEqual(countOverlaps(off));
   });
 });
@@ -2522,7 +2811,7 @@ describe('logicCoreToElk — conditional ELK wrapping', () => {
     nodes.push({ id: 'e', type: 'endEvent', name: 'End' });
     const edges = [{ id: 'f0', source: 's', target: 't1' }];
     for (let i = 1; i < 30; i++) {
-      edges.push({ id: `f${i}`, source: `t${i}`, target: `t${i+1}` });
+      edges.push({ id: `f${i}`, source: `t${i}`, target: `t${i + 1}` });
     }
     edges.push({ id: 'f30', source: 't30', target: 'e' });
     return { nodes, edges };
@@ -2561,7 +2850,7 @@ describe('logicCoreToElk — conditional ELK wrapping', () => {
         { id: 'f1', source: 't1', target: 't2' },
         { id: 'f2', source: 't2', target: 't3' },
         { id: 'f3', source: 't3', target: 'e' },
-      ]
+      ],
     };
     const graph = logicCoreToElk(lc, { elkWrapping: true });
     expect(graph.properties['elk.layered.wrapping.strategy']).toBeUndefined();
@@ -2602,9 +2891,9 @@ describe('Pass 5 (ELK wrapping) metric assertions', () => {
 
   test('refinement ON has significantly better aspect ratio than OFF', async () => {
     const off = await runPipeline(JSON.parse(JSON.stringify(lc)), { visualRefinement: false });
-    const on  = await runPipeline(JSON.parse(JSON.stringify(lc)), { visualRefinement: true });
+    const on = await runPipeline(JSON.parse(JSON.stringify(lc)), { visualRefinement: true });
     const offRatio = parseCanvas(off.svg).w / parseCanvas(off.svg).h;
-    const onRatio  = parseCanvas(on.svg).w  / parseCanvas(on.svg).h;
+    const onRatio = parseCanvas(on.svg).w / parseCanvas(on.svg).h;
     // Require at least 2× improvement
     expect(offRatio / onRatio).toBeGreaterThan(2);
   });
@@ -2670,10 +2959,7 @@ function doSegmentsIntersect(p1, p2, p3, p4) {
 function segmentsCross(polylineA, polylineB) {
   for (let i = 0; i < polylineA.length - 1; i++) {
     for (let j = 0; j < polylineB.length - 1; j++) {
-      if (doSegmentsIntersect(
-        polylineA[i], polylineA[i + 1],
-        polylineB[j], polylineB[j + 1]
-      )) {
+      if (doSegmentsIntersect(polylineA[i], polylineA[i + 1], polylineB[j], polylineB[j + 1])) {
         return true;
       }
     }
@@ -2747,8 +3033,11 @@ describe('schema-gate', () => {
     // structurally valid per schema; the rule engine catches the bad reference.
     const { validateLogicCoreSchema } = await import('./schema-gate.js');
     const r = validateLogicCoreSchema({
-      nodes: [{ id: 'a', type: 'startEvent' }, { id: 'z', type: 'endEvent' }],
-      edges: [{ id: 'e1', source: 'a', target: 'b' }] // 'b' doesn't exist, schema doesn't care
+      nodes: [
+        { id: 'a', type: 'startEvent' },
+        { id: 'z', type: 'endEvent' },
+      ],
+      edges: [{ id: 'e1', source: 'a', target: 'b' }], // 'b' doesn't exist, schema doesn't care
     });
     expect(r.valid).toBe(true);
   });
@@ -2759,7 +3048,10 @@ describe('$schemaVersion field', () => {
     const { validateLogicCoreSchema } = await import('./schema-gate.js');
     const lc = {
       $schemaVersion: '1.0',
-      nodes: [{ id: 'a', type: 'startEvent' }, { id: 'b', type: 'endEvent' }],
+      nodes: [
+        { id: 'a', type: 'startEvent' },
+        { id: 'b', type: 'endEvent' },
+      ],
       edges: [{ id: 'e', source: 'a', target: 'b' }],
     };
     const r = validateLogicCoreSchema(lc);
@@ -2770,7 +3062,10 @@ describe('$schemaVersion field', () => {
   test('schema accepts input without $schemaVersion (backward compat)', async () => {
     const { validateLogicCoreSchema } = await import('./schema-gate.js');
     const lc = {
-      nodes: [{ id: 'a', type: 'startEvent' }, { id: 'b', type: 'endEvent' }],
+      nodes: [
+        { id: 'a', type: 'startEvent' },
+        { id: 'b', type: 'endEvent' },
+      ],
       edges: [{ id: 'e', source: 'a', target: 'b' }],
     };
     const r = validateLogicCoreSchema(lc);
@@ -2781,7 +3076,10 @@ describe('$schemaVersion field', () => {
     const { validateLogicCoreSchema } = await import('./schema-gate.js');
     const lc = {
       $schemaVersion: '99.0',
-      nodes: [{ id: 'a', type: 'startEvent' }, { id: 'b', type: 'endEvent' }],
+      nodes: [
+        { id: 'a', type: 'startEvent' },
+        { id: 'b', type: 'endEvent' },
+      ],
       edges: [{ id: 'e', source: 'a', target: 'b' }],
     };
     const r = validateLogicCoreSchema(lc);

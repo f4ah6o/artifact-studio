@@ -10,15 +10,16 @@ import { isGateway } from './types.js';
  * OMG spec §10.5.1
  */
 export function inferGatewayDirections(nodes, edges) {
-  const outCount = {}, inCount = {};
+  const outCount = {},
+    inCount = {};
   for (const e of edges) {
     outCount[e.source] = (outCount[e.source] || 0) + 1;
-    inCount[e.target]  = (inCount[e.target]  || 0) + 1;
+    inCount[e.target] = (inCount[e.target] || 0) + 1;
   }
   for (const n of nodes) {
     if (!isGateway(n.type)) continue;
     const outs = outCount[n.id] || 0;
-    const ins  = inCount[n.id]  || 0;
+    const ins = inCount[n.id] || 0;
 
     if (n.has_join && outs <= 1 && ins > 1) {
       n._direction = 'Converging';
@@ -77,8 +78,8 @@ export function sortNodesTopologically(proc) {
     if (!visited.has(n.id)) sorted.push(n.id);
   }
 
-  const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]));
-  proc.nodes = sorted.map(id => nodeMap[id]).filter(Boolean);
+  const nodeMap = Object.fromEntries(nodes.map((n) => [n.id, n]));
+  proc.nodes = sorted.map((id) => nodeMap[id]).filter(Boolean);
 }
 
 /**
@@ -90,20 +91,23 @@ export function orderLanesByFlow(proc) {
   if (lanes.length <= 1) return;
 
   const nodeIndex = {};
-  nodes.forEach((n, i) => { nodeIndex[n.id] = i; });
+  nodes.forEach((n, i) => {
+    nodeIndex[n.id] = i;
+  });
 
   const laneScores = {};
   const laneStartCount = {};
 
   for (const lane of lanes) {
-    const laneNodes = nodes.filter(n => n.lane === lane.id);
+    const laneNodes = nodes.filter((n) => n.lane === lane.id);
     if (laneNodes.length === 0) {
       laneScores[lane.id] = 9999;
       laneStartCount[lane.id] = 0;
       continue;
     }
-    laneScores[lane.id] = laneNodes.reduce((s, n) => s + (nodeIndex[n.id] || 0), 0) / laneNodes.length;
-    laneStartCount[lane.id] = laneNodes.filter(n => n.type === 'startEvent').length;
+    laneScores[lane.id] =
+      laneNodes.reduce((s, n) => s + (nodeIndex[n.id] || 0), 0) / laneNodes.length;
+    laneStartCount[lane.id] = laneNodes.filter((n) => n.type === 'startEvent').length;
   }
 
   proc.lanes = [...lanes].sort((a, b) => {
@@ -118,7 +122,7 @@ export function orderLanesByFlow(proc) {
  * Returns a Set of node IDs.
  */
 export function identifyHappyPathNodes(nodes, edges) {
-  const happyEdges = edges.filter(e => e.isHappyPath);
+  const happyEdges = edges.filter((e) => e.isHappyPath);
   if (happyEdges.length === 0) return new Set();
   const ids = new Set();
   for (const e of happyEdges) {

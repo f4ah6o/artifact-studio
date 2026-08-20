@@ -1,4 +1,4 @@
-import { describe, test, expect } from '@jest/globals';
+import { describe, test, expect } from 'vite-plus/test';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -12,8 +12,8 @@ describe('Robustness Regression', () => {
   const autoFixtures = fs.existsSync(autoDir)
     ? fs
         .readdirSync(autoDir)
-        .filter(f => f.endsWith('.json') && !f.endsWith('.meta.json'))
-        .map(f => path.join(autoDir, f))
+        .filter((f) => f.endsWith('.json') && !f.endsWith('.meta.json'))
+        .map((f) => path.join(autoDir, f))
     : [];
 
   if (autoFixtures.length === 0) {
@@ -21,7 +21,7 @@ describe('Robustness Regression', () => {
     return;
   }
 
-  autoFixtures.forEach(f => {
+  autoFixtures.forEach((f) => {
     test(`auto-fixture: ${path.basename(f)}`, async () => {
       const lc = JSON.parse(fs.readFileSync(f, 'utf8'));
       const result = await runPipeline(lc);

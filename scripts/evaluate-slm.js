@@ -26,7 +26,10 @@ import { createLlmProvider } from './agents/llm-provider.js';
 
 function parseArgs() {
   const args = process.argv.slice(2);
-  const flag = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : null; };
+  const flag = (name) => {
+    const i = args.indexOf(name);
+    return i >= 0 ? args[i + 1] : null;
+  };
   return {
     testFile: flag('--test') || 'training/test.jsonl',
     apiUrl: flag('--api-url'),
@@ -41,7 +44,9 @@ function parseArgs() {
 const config = parseArgs();
 
 if (!config.apiUrl || !config.model) {
-  console.error('Usage: node evaluate-slm.js --test <file.jsonl> --api-url <url> --model <model> [--limit N]');
+  console.error(
+    'Usage: node evaluate-slm.js --test <file.jsonl> --api-url <url> --model <model> [--limit N]',
+  );
   process.exit(1);
 }
 
@@ -54,17 +59,23 @@ function countNodes(lc) {
 
 function extractJson(text) {
   // Try direct parse first
-  try { return JSON.parse(text); } catch {}
+  try {
+    return JSON.parse(text);
+  } catch {}
   // Try fenced code block
   const match = text.match(/```(?:json)?\s*\n([\s\S]*?)\n```/);
   if (match) {
-    try { return JSON.parse(match[1]); } catch {}
+    try {
+      return JSON.parse(match[1]);
+    } catch {}
   }
   // Try first { to last }
   const start = text.indexOf('{');
   const end = text.lastIndexOf('}');
   if (start >= 0 && end > start) {
-    try { return JSON.parse(text.slice(start, end + 1)); } catch {}
+    try {
+      return JSON.parse(text.slice(start, end + 1));
+    } catch {}
   }
   return null;
 }
@@ -80,7 +91,7 @@ function hasRequiredKeys(obj) {
 // ── Main ────────────────────────────────────────────────────────────────
 
 const lines = readFileSync(config.testFile, 'utf8').trim().split('\n');
-const samples = lines.map(l => JSON.parse(l)).slice(0, config.limit);
+const samples = lines.map((l) => JSON.parse(l)).slice(0, config.limit);
 
 const llm = createLlmProvider({
   baseUrl: config.apiUrl,
@@ -164,7 +175,6 @@ for (let i = 0; i < samples.length; i++) {
       result.structureOk ? '✓' : '✗',
     ].join('');
     process.stdout.write(`${status} (${genNodeCount}/${refNodeCount} nodes)\n`);
-
   } catch (err) {
     result.error = err.message;
     result.parseOk = false;
@@ -177,7 +187,7 @@ for (let i = 0; i < samples.length; i++) {
 
 // ── Report ──────────────────────────────────────────────────────────────
 
-const pct = (n) => metrics.total > 0 ? `${((n / metrics.total) * 100).toFixed(1)}%` : 'N/A';
+const pct = (n) => (metrics.total > 0 ? `${((n / metrics.total) * 100).toFixed(1)}%` : 'N/A');
 
 const report = {
   model: config.model,
@@ -210,11 +220,21 @@ console.log(`  Model:       ${config.model}`);
 console.log(`  Test file:   ${config.testFile}`);
 console.log(`  Samples:     ${metrics.total}`);
 console.log(`${'─'.repeat(50)}`);
-console.log(`  Parse Rate:    ${metrics.parseOk}/${metrics.total} (${pct(metrics.parseOk)})  threshold: ≥ 95%`);
-console.log(`  Schema Valid:  ${metrics.schemaValid}/${metrics.total} (${pct(metrics.schemaValid)})  threshold: ≥ 90%`);
-console.log(`  Soundness:     ${metrics.soundnessOk}/${metrics.total} (${pct(metrics.soundnessOk)})  threshold: ≥ 85%`);
-console.log(`  Compliance:    ${metrics.complianceOk}/${metrics.total} (${pct(metrics.complianceOk)})  threshold: ≥ 80%`);
-console.log(`  Structure:     ${metrics.structureOk}/${metrics.total} (${pct(metrics.structureOk)})  threshold: ≥ 70%`);
+console.log(
+  `  Parse Rate:    ${metrics.parseOk}/${metrics.total} (${pct(metrics.parseOk)})  threshold: ≥ 95%`,
+);
+console.log(
+  `  Schema Valid:  ${metrics.schemaValid}/${metrics.total} (${pct(metrics.schemaValid)})  threshold: ≥ 90%`,
+);
+console.log(
+  `  Soundness:     ${metrics.soundnessOk}/${metrics.total} (${pct(metrics.soundnessOk)})  threshold: ≥ 85%`,
+);
+console.log(
+  `  Compliance:    ${metrics.complianceOk}/${metrics.total} (${pct(metrics.complianceOk)})  threshold: ≥ 80%`,
+);
+console.log(
+  `  Structure:     ${metrics.structureOk}/${metrics.total} (${pct(metrics.structureOk)})  threshold: ≥ 70%`,
+);
 console.log(`${'─'.repeat(50)}`);
 
 const pass = (rate, threshold) => parseFloat(rate) >= threshold;

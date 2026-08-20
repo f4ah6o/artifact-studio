@@ -80,7 +80,7 @@ export async function runStressTest(samples, { timeoutMs = 30_000 } = {}) {
           stage: 'pre-filter',
           schemaErrors: pre.schemaErrors,
           ruleErrors: pre.ruleErrors,
-        }
+        },
       });
       continue;
     }
@@ -93,9 +93,9 @@ export async function runStressTest(samples, { timeoutMs = 30_000 } = {}) {
 
     const failure = pipelineResult.failedStep
       ? { stage: 'pipeline', failedStep: pipelineResult.failedStep, error: pipelineResult.error }
-      : (roundtripResult && !roundtripResult.equal
+      : roundtripResult && !roundtripResult.equal
         ? { stage: 'roundtrip', delta: roundtripResult.delta }
-        : null);
+        : null;
 
     out.push({
       sample,
@@ -123,7 +123,7 @@ export async function runPipelineChecks(lc, { timeoutMs = 30_000 } = {}) {
 
   try {
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('timeout')), timeoutMs)
+      setTimeout(() => reject(new Error('timeout')), timeoutMs),
     );
     const pipelinePromise = runPipeline(lc);
     const r = await Promise.race([pipelinePromise, timeoutPromise]);

@@ -1,4 +1,4 @@
-import { describe, expect, test } from '@jest/globals';
+import { describe, expect, test } from 'vite-plus/test';
 import {
   ARTIFACT_CONTENT_STORAGE_KEY,
   persistArtifactContent,
@@ -9,7 +9,7 @@ import {
 function memoryStorage() {
   const data = new Map();
   return {
-    getItem: key => data.has(key) ? data.get(key) : null,
+    getItem: (key) => (data.has(key) ? data.get(key) : null),
     setItem: (key, value) => data.set(key, String(value)),
   };
 }
@@ -17,10 +17,14 @@ function memoryStorage() {
 describe('generic artifact content persistence', () => {
   test('round-trips a workspace independently from the legacy text shell', () => {
     const storage = memoryStorage();
-    persistArtifactContent('opa', workspaceContent({
-      files: { 'policy.rego': 'package policy\n' },
-      activeFile: 'policy.rego',
-    }), storage);
+    persistArtifactContent(
+      'opa',
+      workspaceContent({
+        files: { 'policy.rego': 'package policy\n' },
+        activeFile: 'policy.rego',
+      }),
+      storage,
+    );
 
     expect(JSON.parse(storage.getItem(ARTIFACT_CONTENT_STORAGE_KEY)).version).toBe(1);
     expect(readArtifactContent('opa', storage)).toEqual({

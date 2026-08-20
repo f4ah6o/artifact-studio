@@ -33,7 +33,11 @@ async function reviewLayout(llmProvider, svg) {
       { responseFormat: { type: 'json_object' } },
     );
 
-    const parsed = JSON.parse(raw.trim().startsWith('{') ? raw : raw.match(/```json\s*\n([\s\S]*?)\n```/)?.[1] || '{"feedback":[]}');
+    const parsed = JSON.parse(
+      raw.trim().startsWith('{')
+        ? raw
+        : raw.match(/```json\s*\n([\s\S]*?)\n```/)?.[1] || '{"feedback":[]}',
+    );
     return parsed.feedback || [];
   } catch {
     return []; // Vision review failed — proceed without feedback
@@ -56,7 +60,7 @@ export async function layoutAgent(state) {
   if (state.options?.enableLayoutReview && state.options?.llmProvider) {
     const feedback = await reviewLayout(state.options.llmProvider, result.svg);
     update.layoutFeedback = feedback;
-    const structural = feedback.filter(f => f.requiresLogicCoreChange);
+    const structural = feedback.filter((f) => f.requiresLogicCoreChange);
     update.done = structural.length === 0;
   }
 

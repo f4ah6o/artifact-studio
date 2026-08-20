@@ -15,7 +15,11 @@ export function loadConfig(customPath) {
   const custom = JSON.parse(readFileSync(resolve(customPath), 'utf8'));
   const merged = { ...defaults };
   for (const key of Object.keys(custom)) {
-    if (typeof custom[key] === 'object' && !Array.isArray(custom[key]) && typeof defaults[key] === 'object') {
+    if (
+      typeof custom[key] === 'object' &&
+      !Array.isArray(custom[key]) &&
+      typeof defaults[key] === 'object'
+    ) {
       merged[key] = { ...defaults[key], ...custom[key] };
     } else {
       merged[key] = custom[key];
@@ -26,20 +30,23 @@ export function loadConfig(customPath) {
 
 export const CFG = loadConfig(process.env.BPMN_CONFIG);
 
-export const SHAPE          = CFG.shape;
-export const SW             = CFG.strokeWidth;
-export const CLR            = CFG.color;
-export const LANE_HEADER_W  = CFG.layout.laneHeaderWidth;
-export const LANE_PADDING   = CFG.layout.lanePadding;
+export const SHAPE = CFG.shape;
+export const SW = CFG.strokeWidth;
+export const CLR = CFG.color;
+export const LANE_HEADER_W = CFG.layout.laneHeaderWidth;
+export const LANE_PADDING = CFG.layout.lanePadding;
 export const LABEL_DISTANCE = CFG.layout.labelDistance;
-export const TASK_RX        = CFG.layout.taskBorderRadius;
+export const TASK_RX = CFG.layout.taskBorderRadius;
 export const INNER_OUTER_GAP = CFG.layout.innerOuterGap;
 export const EXTERNAL_LABEL_H = CFG.layout.externalLabelHeight;
-export const POOL_GAP       = CFG.layout.poolGap;
+export const POOL_GAP = CFG.layout.poolGap;
 
 export function esc(s) {
-  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
-                        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 export function rn(n) {
@@ -78,7 +85,10 @@ export function wrapText(text, maxChars) {
 
   for (const w of words) {
     if (w.length > maxChars) {
-      if (cur) { lines.push(cur); cur = ''; }
+      if (cur) {
+        lines.push(cur);
+        cur = '';
+      }
       const chunks = breakLongWord(w);
       for (let i = 0; i < chunks.length - 1; i++) lines.push(chunks[i]);
       cur = chunks[chunks.length - 1];

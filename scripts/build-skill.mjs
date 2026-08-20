@@ -20,11 +20,11 @@ const includes = [
     if (name.endsWith('.test.js')) return false;
     // Note: build-skill.mjs is intentionally excluded by the `.js`-only rule (not `.mjs`).
     return name.endsWith('.js') || name === 'config.json' || name === 'package.json';
-  }).map(f => relative(repoRoot, f)),
+  }).map((f) => relative(repoRoot, f)),
   ...walk(join(repoRoot, 'references'), (full, name) => {
     if (full.includes('/omg-spec/') || full.includes('/review-set/')) return false;
     return name.endsWith('.md') || name.endsWith('.json');
-  }).map(f => relative(repoRoot, f)),
+  }).map((f) => relative(repoRoot, f)),
 ];
 
 function walk(dir, filter, acc = []) {
@@ -38,7 +38,11 @@ function walk(dir, filter, acc = []) {
 }
 
 const args = ['-r', outPath, ...includes];
-try { unlinkSync(outPath); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+try {
+  unlinkSync(outPath);
+} catch (e) {
+  if (e.code !== 'ENOENT') throw e;
+}
 execFileSync('zip', args, { cwd: repoRoot, stdio: 'inherit' });
 console.log(`\nBuilt ${outName} (${includes.length} files).`);
 console.log(`Inspect: unzip -l ${outName}`);

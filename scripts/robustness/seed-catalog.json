@@ -8,8 +8,8 @@
     "order-fulfillment"
   ],
   "complexity": {
-    "simple":  { "minNodes": 5,  "maxNodes": 10, "gateways": 0 },
-    "medium":  { "minNodes": 10, "maxNodes": 25, "gateways": 2 },
+    "simple": { "minNodes": 5, "maxNodes": 10, "gateways": 0 },
+    "medium": { "minNodes": 10, "maxNodes": 25, "gateways": 2 },
     "complex": { "minNodes": 25, "maxNodes": 50, "gateways": 5 }
   },
   "patterns": [
@@ -20,11 +20,5 @@
     "pools-collaboration",
     "ad-hoc"
   ],
-  "stress_modes": [
-    "normal",
-    "deep-nesting",
-    "wide-parallelism",
-    "many-lanes",
-    "edge-label-density"
-  ]
+  "stress_modes": ["normal", "deep-nesting", "wide-parallelism", "many-lanes", "edge-label-density"]
 }

@@ -48,7 +48,12 @@ export async function orchestrate(input, options = {}) {
       state.logicCore = result.logicCore;
       state.history.push({ agent: 'modeler', phase: 'extract', ts: new Date().toISOString() });
     } catch (err) {
-      state.history.push({ agent: 'modeler', phase: 'extract', error: err.message, ts: new Date().toISOString() });
+      state.history.push({
+        agent: 'modeler',
+        phase: 'extract',
+        error: err.message,
+        ts: new Date().toISOString(),
+      });
       throw new Error(`Modeler agent failed: ${err.message}`);
     }
   }
@@ -62,8 +67,15 @@ export async function orchestrate(input, options = {}) {
   // not the pipeline's, and we want them caught at the boundary.
   const schemaCheck = validateLogicCoreSchema(state.logicCore);
   if (!schemaCheck.valid) {
-    state.history.push({ agent: 'schema-gate', phase: 'reject', errors: schemaCheck.errors, ts: new Date().toISOString() });
-    throw new Error(`Logic-Core failed schema validation: ${JSON.stringify(schemaCheck.errors.slice(0, 3))}`);
+    state.history.push({
+      agent: 'schema-gate',
+      phase: 'reject',
+      errors: schemaCheck.errors,
+      ts: new Date().toISOString(),
+    });
+    throw new Error(
+      `Logic-Core failed schema validation: ${JSON.stringify(schemaCheck.errors.slice(0, 3))}`,
+    );
   }
 
   // Phase 2: Review loop
@@ -73,7 +85,8 @@ export async function orchestrate(input, options = {}) {
       const review = await reviewerAgent(state);
       state.reviewIssues = review.reviewIssues;
       state.history.push({
-        agent: 'reviewer', iteration: i,
+        agent: 'reviewer',
+        iteration: i,
         isValid: review.isValid,
         issueCount: review.reviewIssues.length,
         ts: new Date().toISOString(),
@@ -81,7 +94,12 @@ export async function orchestrate(input, options = {}) {
 
       if (review.isValid) break;
     } catch (err) {
-      state.history.push({ agent: 'reviewer', iteration: i, error: err.message, ts: new Date().toISOString() });
+      state.history.push({
+        agent: 'reviewer',
+        iteration: i,
+        error: err.message,
+        ts: new Date().toISOString(),
+      });
       throw new Error(`Reviewer agent failed (iteration ${i}): ${err.message}`);
     }
 
@@ -93,9 +111,20 @@ export async function orchestrate(input, options = {}) {
       try {
         const fix = await modelerAgent(state);
         state.logicCore = fix.logicCore;
-        state.history.push({ agent: 'modeler', phase: 'refine', iteration: i, ts: new Date().toISOString() });
+        state.history.push({
+          agent: 'modeler',
+          phase: 'refine',
+          iteration: i,
+          ts: new Date().toISOString(),
+        });
       } catch (err) {
-        state.history.push({ agent: 'modeler', phase: 'refine', iteration: i, error: err.message, ts: new Date().toISOString() });
+        state.history.push({
+          agent: 'modeler',
+          phase: 'refine',
+          iteration: i,
+          error: err.message,
+          ts: new Date().toISOString(),
+        });
         break; // Cannot fix, proceed with current logicCore
       }
     } else {
@@ -113,19 +142,25 @@ export async function orchestrate(input, options = {}) {
       state.validation = layout.validation;
       state.layoutFeedback = layout.layoutFeedback || [];
       state.history.push({
-        agent: 'layout', iteration: i,
+        agent: 'layout',
+        iteration: i,
         feedbackCount: state.layoutFeedback.length,
         ts: new Date().toISOString(),
       });
 
       if (layout.done) break;
     } catch (err) {
-      state.history.push({ agent: 'layout', iteration: i, error: err.message, ts: new Date().toISOString() });
+      state.history.push({
+        agent: 'layout',
+        iteration: i,
+        error: err.message,
+        ts: new Date().toISOString(),
+      });
       throw new Error(`Layout agent failed (iteration ${i}): ${err.message}`);
     }
 
     // Structural layout feedback → amend via Modeler
-    const structural = state.layoutFeedback.filter(f => f.requiresLogicCoreChange);
+    const structural = state.layoutFeedback.filter((f) => f.requiresLogicCoreChange);
     if (structural.length === 0) break;
 
     if (options.llmProvider) {
@@ -134,9 +169,20 @@ export async function orchestrate(input, options = {}) {
         const amend = await modelerAgent(state);
         state.logicCore = amend.logicCore;
         state.layoutFeedback = []; // Reset after amendment
-        state.history.push({ agent: 'modeler', phase: 'amend', iteration: i, ts: new Date().toISOString() });
+        state.history.push({
+          agent: 'modeler',
+          phase: 'amend',
+          iteration: i,
+          ts: new Date().toISOString(),
+        });
       } catch (err) {
-        state.history.push({ agent: 'modeler', phase: 'amend', iteration: i, error: err.message, ts: new Date().toISOString() });
+        state.history.push({
+          agent: 'modeler',
+          phase: 'amend',
+          iteration: i,
+          error: err.message,
+          ts: new Date().toISOString(),
+        });
         break; // Cannot amend, proceed with current layout
       }
     } else {
@@ -155,7 +201,11 @@ export async function orchestrate(input, options = {}) {
     });
   } catch (err) {
     state.history.push({ agent: 'compliance', error: err.message, ts: new Date().toISOString() });
-    state.compliance = { isCompliant: false, errors: [`Compliance check failed: ${err.message}`], warnings: [] };
+    state.compliance = {
+      isCompliant: false,
+      errors: [`Compliance check failed: ${err.message}`],
+      warnings: [],
+    };
   }
 
   return {
@@ -174,7 +224,10 @@ const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].repla
 
 if (isMain) {
   const args = process.argv.slice(2);
-  const flag = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : null; };
+  const flag = (name) => {
+    const i = args.indexOf(name);
+    return i >= 0 ? args[i + 1] : null;
+  };
 
   const inputPath = flag('--input');
   const textInput = flag('--text');
@@ -186,7 +239,9 @@ if (isMain) {
 
   if (!inputPath && !textInput) {
     console.error('Usage: node orchestrator.js --input <logic-core.json> [--output <base>]');
-    console.error('       node orchestrator.js --text "..." --api-url URL --api-key KEY --model MODEL');
+    console.error(
+      '       node orchestrator.js --text "..." --api-url URL --api-key KEY --model MODEL',
+    );
     process.exit(1);
   }
 
@@ -212,20 +267,32 @@ if (isMain) {
 
     if (result.bpmnXml) writeFileSync(`${outputBase}.bpmn`, result.bpmnXml, 'utf8');
     if (result.svg) writeFileSync(`${outputBase}.svg`, result.svg, 'utf8');
-    writeFileSync(`${outputBase}.orchestration.json`, JSON.stringify({
-      compliance: result.compliance,
-      history: result.history,
-      iterations: result.iterations,
-    }, null, 2), 'utf8');
+    writeFileSync(
+      `${outputBase}.orchestration.json`,
+      JSON.stringify(
+        {
+          compliance: result.compliance,
+          history: result.history,
+          iterations: result.iterations,
+        },
+        null,
+        2,
+      ),
+      'utf8',
+    );
 
     const ok = result.compliance?.isCompliant ? 'COMPLIANT' : 'NON-COMPLIANT';
-    console.log(`\u2713 Orchestration complete (${result.iterations} iteration${result.iterations > 1 ? 's' : ''}) — ${ok}`);
+    console.log(
+      `\u2713 Orchestration complete (${result.iterations} iteration${result.iterations > 1 ? 's' : ''}) — ${ok}`,
+    );
     if (result.bpmnXml) console.log(`  BPMN \u2192 ${outputBase}.bpmn`);
     if (result.svg) console.log(`  SVG  \u2192 ${outputBase}.svg`);
     console.log(`  Log  \u2192 ${outputBase}.orchestration.json`);
 
     if (!result.compliance?.isCompliant) {
-      console.log(`\n  ${result.compliance.errors.length} error(s), ${result.compliance.warnings.length} warning(s)`);
+      console.log(
+        `\n  ${result.compliance.errors.length} error(s), ${result.compliance.warnings.length} warning(s)`,
+      );
       for (const e of result.compliance.errors) console.log(`  \u2717 ${e}`);
     }
   } catch (err) {

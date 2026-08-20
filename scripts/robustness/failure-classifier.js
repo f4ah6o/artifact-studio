@@ -43,12 +43,23 @@ export function classify(result) {
   if (failure.stage === 'pipeline') {
     let category;
     switch (failure.failedStep) {
-      case 'timeout':           category = 'timeout'; break;
-      case 'pipeline-throw':    category = inferThrowCategory(failure.error); break;
-      case 'elk-or-xml':        category = 'elk-error'; break;
-      case 'xml':               category = 'xml-malform'; break;
-      case 'svg':               category = 'svg-render-issue'; break;
-      default:                  category = 'unknown';
+      case 'timeout':
+        category = 'timeout';
+        break;
+      case 'pipeline-throw':
+        category = inferThrowCategory(failure.error);
+        break;
+      case 'elk-or-xml':
+        category = 'elk-error';
+        break;
+      case 'xml':
+        category = 'xml-malform';
+        break;
+      case 'svg':
+        category = 'svg-render-issue';
+        break;
+      default:
+        category = 'unknown';
     }
     return makeRecord(category, 'auto', failure, result);
   }

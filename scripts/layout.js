@@ -39,7 +39,7 @@ function resolveWrappingOpts(lc, opts) {
   if (mode === 'off') return {};
 
   const threshold = CFG.visualRefinement?.elkWrappingNodeThreshold ?? 20;
-  const allNodes = lc.nodes ?? (lc.pools ?? []).flatMap(p => p.nodes ?? []);
+  const allNodes = lc.nodes ?? (lc.pools ?? []).flatMap((p) => p.nodes ?? []);
   const nodeCount = allNodes.length;
 
   if (mode === 'auto' && nodeCount <= threshold) return {};
@@ -90,8 +90,9 @@ function buildSingleProcessElk(proc, wrappingOpts = {}, flowPortLayout = null) {
   return {
     id: 'root',
     properties: { ...elkDefaults(), ...wrappingOpts },
-    children: nodes.filter(n => !isBoundaryEvent(n) && !isArtifact(n.type))
-                   .map(n => buildElkNode(n, flowPortLayout)),
+    children: nodes
+      .filter((n) => !isBoundaryEvent(n) && !isArtifact(n.type))
+      .map((n) => buildElkNode(n, flowPortLayout)),
     edges: edges.map((e, i) => buildElkEdge(e, i, flowPortLayout)),
   };
 }
@@ -113,11 +114,13 @@ function buildLanedProcessElk(proc, wrappingOpts = {}, flowPortLayout = null) {
 
   // Build lane → partition index mapping (order lanes as given)
   const lanePartition = {};
-  lanes.forEach((lane, idx) => { lanePartition[lane.id] = idx; });
+  lanes.forEach((lane, idx) => {
+    lanePartition[lane.id] = idx;
+  });
 
   const flatChildren = nodes
-    .filter(n => !isBoundaryEvent(n) && !isArtifact(n.type))
-    .map(n => {
+    .filter((n) => !isBoundaryEvent(n) && !isArtifact(n.type))
+    .map((n) => {
       const elkNode = buildElkNode(n, flowPortLayout);
       // Assign partition based on lane
       const partIdx = lanePartition[n.lane];
@@ -137,9 +140,9 @@ function buildLanedProcessElk(proc, wrappingOpts = {}, flowPortLayout = null) {
     id: 'pool',
     properties: {
       ...CFG.elk.layered,
-      'elk.partitioning.activate': 'true',   // enable lane partitioning
+      'elk.partitioning.activate': 'true', // enable lane partitioning
       'elk.padding': `[top=${LANE_PADDING},left=${LANE_PADDING + LANE_HEADER_W},bottom=${LANE_PADDING},right=${LANE_PADDING}]`,
-      ...wrappingOpts,  // merge last so it wins on conflicts
+      ...wrappingOpts, // merge last so it wins on conflicts
     },
     children: flatChildren,
     edges: flatEdges,
@@ -168,10 +171,11 @@ function buildMultiPoolElk(lc, wrappingOpts = {}, flowPortLayout = null) {
         properties: {
           ...elkDefaults(),
           'elk.padding': `[top=${LANE_PADDING},left=${LANE_PADDING + LANE_HEADER_W},bottom=${LANE_PADDING},right=${LANE_PADDING}]`,
-          ...wrappingOpts,  // merge wrapping into laneless pool's layered layout
+          ...wrappingOpts, // merge wrapping into laneless pool's layered layout
         },
-        children: nodes.filter(n => !isBoundaryEvent(n) && !isArtifact(n.type))
-                       .map(n => buildElkNode(n, flowPortLayout)),
+        children: nodes
+          .filter((n) => !isBoundaryEvent(n) && !isArtifact(n.type))
+          .map((n) => buildElkNode(n, flowPortLayout)),
         edges: edges.map((e, i) => buildElkEdge(e, i, flowPortLayout)),
       });
     }
@@ -182,7 +186,7 @@ function buildMultiPoolElk(lc, wrappingOpts = {}, flowPortLayout = null) {
     poolElkChildren.push({
       id: cp.id,
       labels: [{ text: cp.name || cp.id }],
-      width:  SHAPE._collapsedPool.w,
+      width: SHAPE._collapsedPool.w,
       height: SHAPE._collapsedPool.h,
       properties: {},
     });
@@ -217,8 +221,9 @@ function buildElkNode(node, flowPortLayout = null) {
   // Expanded SubProcess: hierarchical compound node with children + edges
   if (node.isExpanded && node.nodes && node.nodes.length > 0) {
     const minSz = SHAPE._expandedSubProcess || { w: 350, h: 200 };
-    const childNodes = node.nodes.filter(n => !isBoundaryEvent(n) && !isArtifact(n.type))
-                                 .map(n => buildElkNode(n, flowPortLayout));
+    const childNodes = node.nodes
+      .filter((n) => !isBoundaryEvent(n) && !isArtifact(n.type))
+      .map((n) => buildElkNode(n, flowPortLayout));
     const childEdges = (node.edges || []).map((e, i) => buildElkEdge(e, i, flowPortLayout));
     return {
       id: node.id,
@@ -241,7 +246,7 @@ function buildElkNode(node, flowPortLayout = null) {
   const sz = SHAPE[node.type] || SHAPE.task;
   return {
     id: node.id,
-    width:  sz.w,
+    width: sz.w,
     height: sz.h + (needsExternalLabel ? EXTERNAL_LABEL_H : 0),
     labels: [{ text: node.name || node.id }],
     properties: props,
@@ -276,4 +281,15 @@ async function runElkLayout(elkGraph) {
   return await elk.layout(elkGraph);
 }
 
-export { runElkLayout, logicCoreToElk, buildSingleProcessElk, buildLanedProcessElk, buildMultiPoolElk, buildElkNode, buildElkEdge, buildFlowPorts, resolveFlowPortLayout, elkDefaults };
+export {
+  runElkLayout,
+  logicCoreToElk,
+  buildSingleProcessElk,
+  buildLanedProcessElk,
+  buildMultiPoolElk,
+  buildElkNode,
+  buildElkEdge,
+  buildFlowPorts,
+  resolveFlowPortLayout,
+  elkDefaults,
+};

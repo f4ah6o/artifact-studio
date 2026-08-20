@@ -11,11 +11,31 @@ import { BpmnModdle } from 'bpmn-moddle';
 const moddle = new BpmnModdle();
 
 const FLOW_NODE_TYPES = new Set([
-  'bpmn:StartEvent', 'bpmn:EndEvent', 'bpmn:IntermediateCatchEvent', 'bpmn:IntermediateThrowEvent', 'bpmn:BoundaryEvent',
-  'bpmn:Task', 'bpmn:UserTask', 'bpmn:ServiceTask', 'bpmn:ScriptTask', 'bpmn:SendTask', 'bpmn:ReceiveTask',
-  'bpmn:ManualTask', 'bpmn:BusinessRuleTask', 'bpmn:CallActivity', 'bpmn:SubProcess', 'bpmn:Transaction',
-  'bpmn:ExclusiveGateway', 'bpmn:ParallelGateway', 'bpmn:InclusiveGateway', 'bpmn:EventBasedGateway', 'bpmn:ComplexGateway',
-  'bpmn:DataObjectReference', 'bpmn:DataStoreReference', 'bpmn:TextAnnotation', 'bpmn:Group',
+  'bpmn:StartEvent',
+  'bpmn:EndEvent',
+  'bpmn:IntermediateCatchEvent',
+  'bpmn:IntermediateThrowEvent',
+  'bpmn:BoundaryEvent',
+  'bpmn:Task',
+  'bpmn:UserTask',
+  'bpmn:ServiceTask',
+  'bpmn:ScriptTask',
+  'bpmn:SendTask',
+  'bpmn:ReceiveTask',
+  'bpmn:ManualTask',
+  'bpmn:BusinessRuleTask',
+  'bpmn:CallActivity',
+  'bpmn:SubProcess',
+  'bpmn:Transaction',
+  'bpmn:ExclusiveGateway',
+  'bpmn:ParallelGateway',
+  'bpmn:InclusiveGateway',
+  'bpmn:EventBasedGateway',
+  'bpmn:ComplexGateway',
+  'bpmn:DataObjectReference',
+  'bpmn:DataStoreReference',
+  'bpmn:TextAnnotation',
+  'bpmn:Group',
 ]);
 
 const EVENT_DEF_MAP = {
@@ -38,7 +58,7 @@ const EVENT_DEF_MAP = {
  */
 async function moddleParse(xml) {
   const { rootElement, warnings } = await moddle.fromXML(xml);
-  return { rootElement, warnings: warnings.map(w => w.message || String(w)) };
+  return { rootElement, warnings: warnings.map((w) => w.message || String(w)) };
 }
 
 /**
@@ -47,8 +67,8 @@ async function moddleParse(xml) {
  * @returns {object} Logic-Core JSON
  */
 function moddleToLogicCore(definitions) {
-  const collaboration = definitions.rootElements?.find(e => e.$type === 'bpmn:Collaboration');
-  const processes = definitions.rootElements?.filter(e => e.$type === 'bpmn:Process') || [];
+  const collaboration = definitions.rootElements?.find((e) => e.$type === 'bpmn:Collaboration');
+  const processes = definitions.rootElements?.filter((e) => e.$type === 'bpmn:Process') || [];
 
   // Build participant → process mapping
   const participants = collaboration?.participants || [];
@@ -62,22 +82,24 @@ function moddleToLogicCore(definitions) {
   }
 
   // Identify collapsed/expanded pools
-  const processIds = new Set(processes.map(p => p.id));
-  const expandedParts = participants.filter(p => p.processRef && processIds.has(p.processRef.id));
-  const collapsedParts = participants.filter(p => !p.processRef || !processIds.has(p.processRef.id));
+  const processIds = new Set(processes.map((p) => p.id));
+  const expandedParts = participants.filter((p) => p.processRef && processIds.has(p.processRef.id));
+  const collapsedParts = participants.filter(
+    (p) => !p.processRef || !processIds.has(p.processRef.id),
+  );
   const isMultiPool = expandedParts.length > 1 || collapsedParts.length > 0;
 
   // Convert each process
-  const pools = processes.map(proc => convertProcess(proc, partMap));
+  const pools = processes.map((proc) => convertProcess(proc, partMap));
 
   // Collapsed pools
-  const collapsedPools = collapsedParts.map(p => ({
+  const collapsedPools = collapsedParts.map((p) => ({
     id: p.processRef?.id || p.id.replace('Participant_', ''),
     name: p.name || '',
   }));
 
   // Message flows
-  const messageFlows = (collaboration?.messageFlows || []).map(mf => ({
+  const messageFlows = (collaboration?.messageFlows || []).map((mf) => ({
     id: mf.id,
     name: mf.name || '',
     source: resolveParticipantRef(mf.sourceRef?.id, partMap),
@@ -128,7 +150,7 @@ function moddleToLogicCore(definitions) {
         const biocFill = diElement.$attrs?.['bioc:fill'];
         if (bpmnElement && (biocStroke || biocFill)) {
           for (const pool of pools) {
-            const node = (pool.nodes || []).find(n => n.id === bpmnElement);
+            const node = (pool.nodes || []).find((n) => n.id === bpmnElement);
             if (node) {
               node.color = {};
               if (biocStroke) node.color.stroke = biocStroke;
@@ -174,11 +196,31 @@ function convertProcess(proc, partMap) {
   // Flow nodes
   const nodes = [];
   const flowNodeTags = new Set([
-    'startEvent', 'endEvent', 'intermediateCatchEvent', 'intermediateThrowEvent', 'boundaryEvent',
-    'task', 'userTask', 'serviceTask', 'scriptTask', 'sendTask', 'receiveTask',
-    'manualTask', 'businessRuleTask', 'callActivity', 'subProcess', 'transaction',
-    'exclusiveGateway', 'parallelGateway', 'inclusiveGateway', 'eventBasedGateway', 'complexGateway',
-    'dataObjectReference', 'dataStoreReference', 'textAnnotation', 'group',
+    'startEvent',
+    'endEvent',
+    'intermediateCatchEvent',
+    'intermediateThrowEvent',
+    'boundaryEvent',
+    'task',
+    'userTask',
+    'serviceTask',
+    'scriptTask',
+    'sendTask',
+    'receiveTask',
+    'manualTask',
+    'businessRuleTask',
+    'callActivity',
+    'subProcess',
+    'transaction',
+    'exclusiveGateway',
+    'parallelGateway',
+    'inclusiveGateway',
+    'eventBasedGateway',
+    'complexGateway',
+    'dataObjectReference',
+    'dataStoreReference',
+    'textAnnotation',
+    'group',
   ]);
 
   for (const el of proc.flowElements || []) {
@@ -225,13 +267,18 @@ function convertProcess(proc, partMap) {
     }
 
     // Implementation (skip defaults)
-    if (el.implementation && el.implementation !== '##WebService' && el.implementation !== '##unspecified') {
+    if (
+      el.implementation &&
+      el.implementation !== '##WebService' &&
+      el.implementation !== '##unspecified'
+    ) {
       node.implementation = el.implementation;
     }
 
     // EventBasedGateway
     if (type === 'eventBasedGateway') {
-      if (el.eventGatewayType && el.eventGatewayType !== 'Exclusive') node.eventGatewayType = el.eventGatewayType;
+      if (el.eventGatewayType && el.eventGatewayType !== 'Exclusive')
+        node.eventGatewayType = el.eventGatewayType;
       if (el.instantiate === true) node.instantiate = true;
     }
 
@@ -267,18 +314,22 @@ function convertProcess(proc, partMap) {
 
     // Expanded SubProcess
     if ((type === 'subProcess' || type === 'transaction') && el.flowElements?.length) {
-      const subFlowNodes = el.flowElements.filter(c => flowNodeTags.has(shortType(c.$type)));
-      const subSeqFlows = el.flowElements.filter(c => c.$type === 'bpmn:SequenceFlow');
+      const subFlowNodes = el.flowElements.filter((c) => flowNodeTags.has(shortType(c.$type)));
+      const subSeqFlows = el.flowElements.filter((c) => c.$type === 'bpmn:SequenceFlow');
       if (subFlowNodes.length > 0) {
         node.isExpanded = true;
-        node.nodes = subFlowNodes.map(c => {
+        node.nodes = subFlowNodes.map((c) => {
           const sn = { id: c.id, type: shortType(c.$type), name: c.name || '' };
           const sm = detectEventMarkerModdle(c);
           if (sm.marker) sn.marker = sm.marker;
           return sn;
         });
-        node.edges = subSeqFlows.map(sf => {
-          const se = { id: sf.id, source: sf.sourceRef?.id || sf.sourceRef, target: sf.targetRef?.id || sf.targetRef };
+        node.edges = subSeqFlows.map((sf) => {
+          const se = {
+            id: sf.id,
+            source: sf.sourceRef?.id || sf.sourceRef,
+            target: sf.targetRef?.id || sf.targetRef,
+          };
           if (sf.name) se.label = sf.name;
           return se;
         });
@@ -364,8 +415,10 @@ function detectEventMarkerModdle(element) {
   // Timer event: extract time expression
   if (def.$type === 'bpmn:TimerEventDefinition') {
     if (def.timeDate?.body) result.timerExpression = { type: 'date', value: def.timeDate.body };
-    else if (def.timeDuration?.body) result.timerExpression = { type: 'duration', value: def.timeDuration.body };
-    else if (def.timeCycle?.body) result.timerExpression = { type: 'cycle', value: def.timeCycle.body };
+    else if (def.timeDuration?.body)
+      result.timerExpression = { type: 'duration', value: def.timeDuration.body };
+    else if (def.timeCycle?.body)
+      result.timerExpression = { type: 'cycle', value: def.timeCycle.body };
   }
 
   return result;

@@ -30,7 +30,7 @@ export function estimateTextWidth(text, fontSize = 11) {
 }
 
 const FONT_SIZE = 11;
-const LINE_GAP  = 3;     // additional spacing between wrapped lines
+const LINE_GAP = 3; // additional spacing between wrapped lines
 const STRIP_PADDING = 8; // 4px each side inside header strip
 
 /**
@@ -122,9 +122,13 @@ function dedupeOrthogonalPoints(points) {
     out.push({ x: p.x, y: p.y });
   }
   for (let i = out.length - 2; i > 0; i--) {
-    const a = out[i - 1], b = out[i], c = out[i + 1];
-    if ((Math.abs(a.x - b.x) < 0.1 && Math.abs(b.x - c.x) < 0.1) ||
-        (Math.abs(a.y - b.y) < 0.1 && Math.abs(b.y - c.y) < 0.1)) {
+    const a = out[i - 1],
+      b = out[i],
+      c = out[i + 1];
+    if (
+      (Math.abs(a.x - b.x) < 0.1 && Math.abs(b.x - c.x) < 0.1) ||
+      (Math.abs(a.y - b.y) < 0.1 && Math.abs(b.y - c.y) < 0.1)
+    ) {
       out.splice(i, 1);
     }
   }
@@ -146,22 +150,12 @@ function routeBetweenCardinalPorts(start, startSide, end, endSide) {
   if (startHorizontal && endHorizontal) {
     if (Math.abs(start.y - end.y) < 0.1) return [start, end];
     const midX = (start.x + end.x) / 2;
-    return dedupeOrthogonalPoints([
-      start,
-      { x: midX, y: start.y },
-      { x: midX, y: end.y },
-      end,
-    ]);
+    return dedupeOrthogonalPoints([start, { x: midX, y: start.y }, { x: midX, y: end.y }, end]);
   }
   if (!startHorizontal && !endHorizontal) {
     if (Math.abs(start.x - end.x) < 0.1) return [start, end];
     const midY = (start.y + end.y) / 2;
-    return dedupeOrthogonalPoints([
-      start,
-      { x: start.x, y: midY },
-      { x: end.x, y: midY },
-      end,
-    ]);
+    return dedupeOrthogonalPoints([start, { x: start.x, y: midY }, { x: end.x, y: midY }, end]);
   }
   if (!startHorizontal && endHorizontal) {
     return dedupeOrthogonalPoints([start, { x: start.x, y: end.y }, end]);
@@ -180,8 +174,8 @@ function routeBetweenCardinalPorts(start, startSide, end, endSide) {
 export function routeGatewayFlowsToCardinalPorts(coordMap, process, direction = 'RIGHT') {
   const pools = process.pools ?? [process];
   for (const pool of pools) {
-    const nodeById = new Map((pool.nodes ?? []).map(n => [n.id, n]));
-    for (const edge of (pool.edges ?? [])) {
+    const nodeById = new Map((pool.nodes ?? []).map((n) => [n.id, n]));
+    for (const edge of pool.edges ?? []) {
       const srcNode = nodeById.get(edge.source);
       const tgtNode = nodeById.get(edge.target);
       const srcIsGateway = isGateway(srcNode?.type);
@@ -228,17 +222,18 @@ export function routeCrossLaneFlowsByDirection(coordMap, process, direction = 'R
 
   const pools = process.pools ?? [process];
   for (const pool of pools) {
-    const laneByNode = new Map((pool.nodes ?? []).map(n => [n.id, n.lane]));
-    const nodeById = new Map((pool.nodes ?? []).map(n => [n.id, n]));
+    const laneByNode = new Map((pool.nodes ?? []).map((n) => [n.id, n.lane]));
+    const nodeById = new Map((pool.nodes ?? []).map((n) => [n.id, n]));
 
-    for (const edge of (pool.edges ?? [])) {
+    for (const edge of pool.edges ?? []) {
       const srcLane = laneByNode.get(edge.source);
       const tgtLane = laneByNode.get(edge.target);
       if (!srcLane || !tgtLane || srcLane === tgtLane) continue;
       // Gateways are explicit routing hubs and may use any of their four tips.
       // Preserve ELK's chosen gateway side; only activities/events are forced to
       // the diagram's primary LR/TB sides by this cross-lane pass.
-      if (isGateway(nodeById.get(edge.source)?.type) || isGateway(nodeById.get(edge.target)?.type)) continue;
+      if (isGateway(nodeById.get(edge.source)?.type) || isGateway(nodeById.get(edge.target)?.type))
+        continue;
 
       const src = coordMap.coords?.[edge.source];
       const tgt = coordMap.coords?.[edge.target];
@@ -268,9 +263,10 @@ export function routeCrossLaneFlowsByDirection(coordMap, process, direction = 'R
             }
           }
           const trunkX = verticalXs[0] ?? (start.x + end.x) / 2;
-          coordMap.edgeCoords[id] = Math.abs(start.y - end.y) < 1
-            ? [start, end]
-            : [start, { x: trunkX, y: start.y }, { x: trunkX, y: end.y }, end];
+          coordMap.edgeCoords[id] =
+            Math.abs(start.y - end.y) < 1
+              ? [start, end]
+              : [start, { x: trunkX, y: start.y }, { x: trunkX, y: end.y }, end];
         } else {
           const sourceStubX = start.x + (rightward ? 20 : -20);
           const targetStubX = end.x + (rightward ? -20 : 20);
@@ -306,9 +302,10 @@ export function routeCrossLaneFlowsByDirection(coordMap, process, direction = 'R
           }
         }
         const trunkY = horizontalYs[0] ?? (start.y + end.y) / 2;
-        coordMap.edgeCoords[id] = Math.abs(start.x - end.x) < 1
-          ? [start, end]
-          : [start, { x: start.x, y: trunkY }, { x: end.x, y: trunkY }, end];
+        coordMap.edgeCoords[id] =
+          Math.abs(start.x - end.x) < 1
+            ? [start, end]
+            : [start, { x: start.x, y: trunkY }, { x: end.x, y: trunkY }, end];
       } else {
         const sourceStubY = start.y + (downward ? 20 : -20);
         const targetStubY = end.y + (downward ? -20 : 20);
@@ -345,14 +342,19 @@ export function routeSameLaneBackwardFlows(coordMap, process, direction = 'RIGHT
 
   const pools = process.pools ?? [process];
   for (const pool of pools) {
-    const laneByNode = new Map((pool.nodes ?? []).map(n => [n.id, n.lane]));
-    const nodeById = new Map((pool.nodes ?? []).map(n => [n.id, n]));
-    for (const edge of (pool.edges ?? [])) {
-      if (isGateway(nodeById.get(edge.source)?.type) || isGateway(nodeById.get(edge.target)?.type)) continue;
+    const laneByNode = new Map((pool.nodes ?? []).map((n) => [n.id, n.lane]));
+    const nodeById = new Map((pool.nodes ?? []).map((n) => [n.id, n]));
+    for (const edge of pool.edges ?? []) {
+      if (isGateway(nodeById.get(edge.source)?.type) || isGateway(nodeById.get(edge.target)?.type))
+        continue;
       const src = coordMap.coords?.[edge.source];
       const tgt = coordMap.coords?.[edge.target];
       if (!src || !tgt) continue;
-      if (!laneByNode.get(edge.source) || laneByNode.get(edge.source) !== laneByNode.get(edge.target)) continue;
+      if (
+        !laneByNode.get(edge.source) ||
+        laneByNode.get(edge.source) !== laneByNode.get(edge.target)
+      )
+        continue;
 
       const srcCx = src.x + src.w / 2;
       const srcCy = src.y + src.h / 2;
@@ -402,8 +404,7 @@ export function estimateTextBBox(text, x, y, fontSize = 11) {
  * Fully-contained bboxes return true.
  */
 export function bboxOverlaps(a, b) {
-  return !(a.x + a.w <= b.x || b.x + b.w <= a.x ||
-           a.y + a.h <= b.y || b.y + b.h <= a.y);
+  return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
 }
 
 /**
@@ -420,8 +421,11 @@ export function bboxOverlaps(a, b) {
 export function anchorEdgeLabelsToRoutes(coordMap) {
   const labels = coordMap.edgeLabels ?? {};
   const edgeCoords = coordMap.edgeCoords ?? {};
-  const nodeBboxes = Object.values(coordMap.coords ?? {}).map(c => ({
-    x: c.x, y: c.y, w: c.w, h: c.h
+  const nodeBboxes = Object.values(coordMap.coords ?? {}).map((c) => ({
+    x: c.x,
+    y: c.y,
+    w: c.w,
+    h: c.h,
   }));
 
   for (const [id, label] of Object.entries(labels)) {
@@ -430,7 +434,8 @@ export function anchorEdgeLabelsToRoutes(coordMap) {
 
     const candidates = [];
     for (let i = 0; i < pts.length - 1; i++) {
-      const a = pts[i], b = pts[i + 1];
+      const a = pts[i],
+        b = pts[i + 1];
       const horizontal = Math.abs(a.y - b.y) < 1;
       if (!horizontal) continue;
       const length = Math.abs(b.x - a.x);
@@ -438,14 +443,14 @@ export function anchorEdgeLabelsToRoutes(coordMap) {
       const x = (a.x + b.x) / 2;
       const y = a.y;
       const bb = estimateTextBBox(label.text ?? '', x, y, 11);
-      const nodeOverlap = nodeBboxes.some(node => bboxOverlaps(bb, node));
+      const nodeOverlap = nodeBboxes.some((node) => bboxOverlaps(bb, node));
       candidates.push({ x, y, length, nodeOverlap });
     }
 
     if (candidates.length) {
       // Prefer a segment clear of nodes, then the longest available segment.
-      candidates.sort((a, b) =>
-        Number(a.nodeOverlap) - Number(b.nodeOverlap) || b.length - a.length
+      candidates.sort(
+        (a, b) => Number(a.nodeOverlap) - Number(b.nodeOverlap) || b.length - a.length,
       );
       label.x = candidates[0].x;
       label.y = candidates[0].y;
@@ -456,7 +461,8 @@ export function anchorEdgeLabelsToRoutes(coordMap) {
     // offset the label to the right so text does not sit on top of the line.
     let longest = null;
     for (let i = 0; i < pts.length - 1; i++) {
-      const a = pts[i], b = pts[i + 1];
+      const a = pts[i],
+        b = pts[i + 1];
       const length = Math.abs(b.y - a.y) + Math.abs(b.x - a.x);
       if (!longest || length > longest.length) longest = { a, b, length };
     }
@@ -490,8 +496,11 @@ export function repairEdgeLabels(coordMap, opts = {}) {
   if (labelIds.length === 0) return coordMap;
 
   // Static obstacle bboxes (just nodes for now — lane/pool headers could be added in a later pass)
-  const nodeBboxes = Object.values(coordMap.coords ?? {}).map(c => ({
-    x: c.x, y: c.y, w: c.w, h: c.h
+  const nodeBboxes = Object.values(coordMap.coords ?? {}).map((c) => ({
+    x: c.x,
+    y: c.y,
+    w: c.w,
+    h: c.h,
   }));
 
   const labelBboxOf = (id) => {
@@ -501,18 +510,18 @@ export function repairEdgeLabels(coordMap, opts = {}) {
 
   const distances = [15, 25, maxShift].filter((d, i, arr) => arr.indexOf(d) === i && d > 0);
   const directions = [
-    { dx:  0, dy: -1 },  // up
-    { dx:  0, dy:  1 },  // down
-    { dx: -1, dy:  0 },  // left
-    { dx:  1, dy:  0 },  // right
+    { dx: 0, dy: -1 }, // up
+    { dx: 0, dy: 1 }, // down
+    { dx: -1, dy: 0 }, // left
+    { dx: 1, dy: 0 }, // right
   ];
 
   for (const id of labelIds) {
     const origBB = labelBboxOf(id);
-    const otherBboxes = labelIds.filter(o => o !== id).map(labelBboxOf);
+    const otherBboxes = labelIds.filter((o) => o !== id).map(labelBboxOf);
     const obstacles = [...nodeBboxes, ...otherBboxes];
 
-    const collides = (bb) => obstacles.some(o => bboxOverlaps(bb, o));
+    const collides = (bb) => obstacles.some((o) => bboxOverlaps(bb, o));
     if (!collides(origBB)) continue;
 
     let fixed = false;
@@ -521,7 +530,7 @@ export function repairEdgeLabels(coordMap, opts = {}) {
         const tryBB = {
           ...origBB,
           x: origBB.x + dir.dx * d,
-          y: origBB.y + dir.dy * d
+          y: origBB.y + dir.dy * d,
         };
         if (!collides(tryBB)) {
           labels[id].x += dir.dx * d;
@@ -554,31 +563,32 @@ const LANE_COMPACT_PADDING = 20;
  */
 export function compactLanes(coordMap, process, opts = {}) {
   const minH = opts.minLaneHeight ?? 80;
-  const pad  = opts.padding ?? LANE_COMPACT_PADDING;
+  const pad = opts.padding ?? LANE_COMPACT_PADDING;
 
   const pools = process.pools ?? [process];
-  const allNodes = pools.flatMap(p => p.nodes ?? []);
+  const allNodes = pools.flatMap((p) => p.nodes ?? []);
 
   for (const pool of pools) {
     const pc = coordMap.poolCoords[pool.id] ?? coordMap.poolCoords['_singlePool'];
     if (!pc) continue;
-    const lanes = (pool.lanes ?? []).map(l => l.id).filter(id => coordMap.laneCoords[id]);
+    const lanes = (pool.lanes ?? []).map((l) => l.id).filter((id) => coordMap.laneCoords[id]);
     lanes.sort((a, b) => coordMap.laneCoords[a].y - coordMap.laneCoords[b].y);
 
     for (const laneId of lanes) {
       const lc = coordMap.laneCoords[laneId];
 
-      const laneNodes = allNodes.filter(n => n.lane === laneId)
-                                .map(n => coordMap.coords[n.id])
-                                .filter(Boolean);
+      const laneNodes = allNodes
+        .filter((n) => n.lane === laneId)
+        .map((n) => coordMap.coords[n.id])
+        .filter(Boolean);
 
       let newH;
       if (laneNodes.length === 0) {
         newH = minH;
       } else {
-        const topY    = Math.min(...laneNodes.map(c => c.y));
-        const botY    = Math.max(...laneNodes.map(c => c.y + c.h));
-        newH = Math.max(minH, (botY - topY) + 2 * pad);
+        const topY = Math.min(...laneNodes.map((c) => c.y));
+        const botY = Math.max(...laneNodes.map((c) => c.y + c.h));
+        newH = Math.max(minH, botY - topY + 2 * pad);
       }
 
       const delta = lc.h - newH;
@@ -593,7 +603,7 @@ export function compactLanes(coordMap, process, opts = {}) {
           if (coordMap.laneCoords[other].y <= lc.y) continue; // lanes above — already processed
           const otherLane = coordMap.laneCoords[other];
           otherLane.y -= delta;
-          const nodesInOther = allNodes.filter(n => n.lane === other);
+          const nodesInOther = allNodes.filter((n) => n.lane === other);
           for (const n of nodesInOther) {
             if (coordMap.coords[n.id]) coordMap.coords[n.id].y -= delta;
           }
@@ -614,10 +624,10 @@ export function compactLanes(coordMap, process, opts = {}) {
     }
 
     // Recompute pool bounds
-    const lanesList = lanes.map(id => coordMap.laneCoords[id]);
+    const lanesList = lanes.map((id) => coordMap.laneCoords[id]);
     if (lanesList.length > 0) {
-      pc.y = Math.min(...lanesList.map(l => l.y));
-      pc.h = Math.max(...lanesList.map(l => l.y + l.h)) - pc.y;
+      pc.y = Math.min(...lanesList.map((l) => l.y));
+      pc.h = Math.max(...lanesList.map((l) => l.y + l.h)) - pc.y;
     }
   }
 

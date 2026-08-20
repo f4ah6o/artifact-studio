@@ -22,7 +22,10 @@ import { moddleParse, moddleToLogicCore } from './moddle-import.js';
 
 function parseXml(xml) {
   // Strip XML declaration and comments
-  xml = xml.replace(/<\?xml[^?]*\?>/g, '').replace(/<!--[\s\S]*?-->/g, '').trim();
+  xml = xml
+    .replace(/<\?xml[^?]*\?>/g, '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .trim();
   return parseElement(xml, 0).element;
 }
 
@@ -35,27 +38,37 @@ function parseElement(xml, pos) {
   const tagStart = pos;
   pos++; // skip <
   let tagName = '';
-  while (pos < xml.length && !/[\s/>]/.test(xml[pos])) { tagName += xml[pos]; pos++; }
+  while (pos < xml.length && !/[\s/>]/.test(xml[pos])) {
+    tagName += xml[pos];
+    pos++;
+  }
 
   // Parse attributes
   const attrs = {};
-  while (pos < xml.length && xml[pos] !== '>' && !(xml[pos] === '/' && xml[pos+1] === '>')) {
+  while (pos < xml.length && xml[pos] !== '>' && !(xml[pos] === '/' && xml[pos + 1] === '>')) {
     while (pos < xml.length && /\s/.test(xml[pos])) pos++;
-    if (xml[pos] === '>' || (xml[pos] === '/' && xml[pos+1] === '>')) break;
+    if (xml[pos] === '>' || (xml[pos] === '/' && xml[pos + 1] === '>')) break;
     let attrName = '';
-    while (pos < xml.length && xml[pos] !== '=' && !/[\s/>]/.test(xml[pos])) { attrName += xml[pos]; pos++; }
+    while (pos < xml.length && xml[pos] !== '=' && !/[\s/>]/.test(xml[pos])) {
+      attrName += xml[pos];
+      pos++;
+    }
     if (xml[pos] === '=') {
       pos++; // skip =
-      const quote = xml[pos]; pos++; // skip quote
+      const quote = xml[pos];
+      pos++; // skip quote
       let attrVal = '';
-      while (pos < xml.length && xml[pos] !== quote) { attrVal += xml[pos]; pos++; }
+      while (pos < xml.length && xml[pos] !== quote) {
+        attrVal += xml[pos];
+        pos++;
+      }
       pos++; // skip closing quote
       attrs[attrName] = unescXml(attrVal);
     }
   }
 
   // Self-closing?
-  if (xml[pos] === '/' && xml[pos+1] === '>') {
+  if (xml[pos] === '/' && xml[pos + 1] === '>') {
     return { element: { tag: tagName, attrs, children: [], text: '' }, pos: pos + 2 };
   }
   pos++; // skip >
@@ -65,7 +78,7 @@ function parseElement(xml, pos) {
   let text = '';
   while (pos < xml.length) {
     // Check for closing tag
-    if (xml[pos] === '<' && xml[pos+1] === '/') {
+    if (xml[pos] === '<' && xml[pos + 1] === '/') {
       // Skip closing tag
       while (pos < xml.length && xml[pos] !== '>') pos++;
       pos++; // skip >
@@ -85,7 +98,12 @@ function parseElement(xml, pos) {
 }
 
 function unescXml(s) {
-  return s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'");
+  return s
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'");
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -129,9 +147,13 @@ function bpmnToLogicCoreLegacy(xml) {
   }
 
   // Identify collapsed pools (participants without processRef or without matching process)
-  const processIds = new Set(processes.map(p => p.attrs.id));
-  const expandedParts = participants.filter(p => p.attrs.processRef && processIds.has(p.attrs.processRef));
-  const collapsedParts = participants.filter(p => !p.attrs.processRef || !processIds.has(p.attrs.processRef));
+  const processIds = new Set(processes.map((p) => p.attrs.id));
+  const expandedParts = participants.filter(
+    (p) => p.attrs.processRef && processIds.has(p.attrs.processRef),
+  );
+  const collapsedParts = participants.filter(
+    (p) => !p.attrs.processRef || !processIds.has(p.attrs.processRef),
+  );
 
   const isMultiPool = expandedParts.length > 1 || collapsedParts.length > 0;
 
@@ -143,13 +165,13 @@ function bpmnToLogicCoreLegacy(xml) {
   }
 
   // Build collapsed pools
-  const collapsedPools = collapsedParts.map(p => ({
+  const collapsedPools = collapsedParts.map((p) => ({
     id: p.attrs.processRef || p.attrs.id.replace('Participant_', ''),
     name: p.attrs.name || '',
   }));
 
   // Build message flows
-  const messageFlows = xmlMessageFlows.map(mf => ({
+  const messageFlows = xmlMessageFlows.map((mf) => ({
     id: mf.attrs.id,
     name: mf.attrs.name || '',
     source: resolveParticipantRef(mf.attrs.sourceRef, partMap),
@@ -158,13 +180,19 @@ function bpmnToLogicCoreLegacy(xml) {
 
   // Extract top-level definitions (error, message, signal, escalation) — OMG spec §8.4
   const topLevelDefs = [];
-  const defTags = { 'error': 'error', 'message': 'message', 'signal': 'signal', 'escalation': 'escalation' };
+  const defTags = {
+    error: 'error',
+    message: 'message',
+    signal: 'signal',
+    escalation: 'escalation',
+  };
   for (const child of defs.children) {
     const tag = stripNs(child.tag);
     if (defTags[tag]) {
       const def = { type: tag, id: child.attrs.id, name: child.attrs.name || '' };
       if (tag === 'error' && child.attrs.errorCode) def.errorCode = child.attrs.errorCode;
-      if (tag === 'escalation' && child.attrs.escalationCode) def.escalationCode = child.attrs.escalationCode;
+      if (tag === 'escalation' && child.attrs.escalationCode)
+        def.escalationCode = child.attrs.escalationCode;
       topLevelDefs.push(def);
     }
   }
@@ -192,7 +220,7 @@ function bpmnToLogicCoreLegacy(xml) {
       const biocFill = shape.attrs['bioc:fill'];
       if (bpmnElement && (biocStroke || biocFill)) {
         for (const pool of pools) {
-          const node = (pool.nodes || []).find(n => n.id === bpmnElement);
+          const node = (pool.nodes || []).find((n) => n.id === bpmnElement);
           if (node) {
             node.color = {};
             if (biocStroke) node.color.stroke = biocStroke;
@@ -240,11 +268,31 @@ function convertProcess(proc, partMap) {
   // Flow nodes
   const nodes = [];
   const flowNodeTags = new Set([
-    'startEvent', 'endEvent', 'intermediateCatchEvent', 'intermediateThrowEvent', 'boundaryEvent',
-    'task', 'userTask', 'serviceTask', 'scriptTask', 'sendTask', 'receiveTask',
-    'manualTask', 'businessRuleTask', 'callActivity', 'subProcess', 'transaction',
-    'exclusiveGateway', 'parallelGateway', 'inclusiveGateway', 'eventBasedGateway', 'complexGateway',
-    'dataObjectReference', 'dataStoreReference', 'textAnnotation', 'group',
+    'startEvent',
+    'endEvent',
+    'intermediateCatchEvent',
+    'intermediateThrowEvent',
+    'boundaryEvent',
+    'task',
+    'userTask',
+    'serviceTask',
+    'scriptTask',
+    'sendTask',
+    'receiveTask',
+    'manualTask',
+    'businessRuleTask',
+    'callActivity',
+    'subProcess',
+    'transaction',
+    'exclusiveGateway',
+    'parallelGateway',
+    'inclusiveGateway',
+    'eventBasedGateway',
+    'complexGateway',
+    'dataObjectReference',
+    'dataStoreReference',
+    'textAnnotation',
+    'group',
   ]);
 
   for (const child of proc.children) {
@@ -287,7 +335,8 @@ function convertProcess(proc, partMap) {
     if (child.attrs.isCollection === 'true') node.isCollection = true;
 
     // CallActivity: calledElement (OMG spec §10.2.3)
-    if (tag === 'callActivity' && child.attrs.calledElement) node.calledElement = child.attrs.calledElement;
+    if (tag === 'callActivity' && child.attrs.calledElement)
+      node.calledElement = child.attrs.calledElement;
 
     // ScriptTask: scriptFormat + script body (OMG spec §10.2.5)
     if (tag === 'scriptTask') {
@@ -297,18 +346,24 @@ function convertProcess(proc, partMap) {
     }
 
     // ServiceTask/SendTask/ReceiveTask: implementation, messageRef (OMG spec §10.2.5)
-    if (child.attrs.implementation && child.attrs.implementation !== '##WebService' && child.attrs.implementation !== '##unspecified') {
+    if (
+      child.attrs.implementation &&
+      child.attrs.implementation !== '##WebService' &&
+      child.attrs.implementation !== '##unspecified'
+    ) {
       node.implementation = child.attrs.implementation;
     }
 
     // EventBasedGateway: eventGatewayType, instantiate (OMG spec §10.5.6)
     if (tag === 'eventBasedGateway') {
-      if (child.attrs.eventGatewayType && child.attrs.eventGatewayType !== 'Exclusive') node.eventGatewayType = child.attrs.eventGatewayType;
+      if (child.attrs.eventGatewayType && child.attrs.eventGatewayType !== 'Exclusive')
+        node.eventGatewayType = child.attrs.eventGatewayType;
       if (child.attrs.instantiate === 'true') node.instantiate = true;
     }
 
     // Event SubProcess: triggeredByEvent (OMG spec §10.2.4)
-    if (tag === 'subProcess' && child.attrs.triggeredByEvent === 'true') node.isEventSubProcess = true;
+    if (tag === 'subProcess' && child.attrs.triggeredByEvent === 'true')
+      node.isEventSubProcess = true;
 
     // Loop / Multi-instance with details
     const slc = findChild(child, 'standardLoopCharacteristics');
@@ -338,18 +393,22 @@ function convertProcess(proc, partMap) {
     }
 
     // Expanded SubProcess: parse child flow elements + sequence flows
-    if ((tag === 'subProcess' || tag === 'transaction') && child.children && child.children.length > 0) {
-      const subFlowNodes = child.children.filter(c => flowNodeTags.has(stripNs(c.tag)));
+    if (
+      (tag === 'subProcess' || tag === 'transaction') &&
+      child.children &&
+      child.children.length > 0
+    ) {
+      const subFlowNodes = child.children.filter((c) => flowNodeTags.has(stripNs(c.tag)));
       const subSeqFlows = findChildren(child, 'sequenceFlow');
       if (subFlowNodes.length > 0) {
         node.isExpanded = true;
-        node.nodes = subFlowNodes.map(c => {
+        node.nodes = subFlowNodes.map((c) => {
           const sn = { id: c.attrs.id, type: stripNs(c.tag), name: c.attrs.name || '' };
           const sm = detectEventMarker(c);
           if (sm) sn.marker = sm;
           return sn;
         });
-        node.edges = subSeqFlows.map(sf => {
+        node.edges = subSeqFlows.map((sf) => {
           const se = { id: sf.attrs.id, source: sf.attrs.sourceRef, target: sf.attrs.targetRef };
           if (sf.attrs.name) se.label = sf.attrs.name;
           return se;
@@ -409,16 +468,16 @@ function parseLanes(laneSet, lanes, nodeLaneMap) {
 
 function detectEventMarkerFull(element) {
   const markerMap = {
-    'messageEventDefinition': 'message',
-    'timerEventDefinition': 'timer',
-    'errorEventDefinition': 'error',
-    'signalEventDefinition': 'signal',
-    'escalationEventDefinition': 'escalation',
-    'compensateEventDefinition': 'compensation',
-    'conditionalEventDefinition': 'conditional',
-    'linkEventDefinition': 'link',
-    'cancelEventDefinition': 'cancel',
-    'terminateEventDefinition': 'terminate',
+    messageEventDefinition: 'message',
+    timerEventDefinition: 'timer',
+    errorEventDefinition: 'error',
+    signalEventDefinition: 'signal',
+    escalationEventDefinition: 'escalation',
+    compensateEventDefinition: 'compensation',
+    conditionalEventDefinition: 'conditional',
+    linkEventDefinition: 'link',
+    cancelEventDefinition: 'cancel',
+    terminateEventDefinition: 'terminate',
   };
 
   const result = { marker: null };
@@ -445,7 +504,8 @@ function detectEventMarkerFull(element) {
       const timeDuration = findChild(child, 'timeDuration');
       const timeCycle = findChild(child, 'timeCycle');
       if (timeDate?.text) result.timerExpression = { type: 'date', value: timeDate.text };
-      else if (timeDuration?.text) result.timerExpression = { type: 'duration', value: timeDuration.text };
+      else if (timeDuration?.text)
+        result.timerExpression = { type: 'duration', value: timeDuration.text };
       else if (timeCycle?.text) result.timerExpression = { type: 'cycle', value: timeCycle.text };
     }
 
@@ -483,12 +543,12 @@ function stripNs(tag) {
 
 function findChild(element, localName) {
   if (!element?.children) return null;
-  return element.children.find(c => stripNs(c.tag) === localName) || null;
+  return element.children.find((c) => stripNs(c.tag) === localName) || null;
 }
 
 function findChildren(element, localName) {
   if (!element?.children) return [];
-  return element.children.filter(c => stripNs(c.tag) === localName);
+  return element.children.filter((c) => stripNs(c.tag) === localName);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -496,8 +556,8 @@ function findChildren(element, localName) {
 // ═══════════════════════════════════════════════════════════════
 
 async function main() {
-  const args       = process.argv.slice(2);
-  const inputArg   = args[0];
+  const args = process.argv.slice(2);
+  const inputArg = args[0];
   const outputPath = args[1] || null;
 
   if (!inputArg) {
@@ -534,7 +594,8 @@ async function main() {
   const totalEdges = procs.reduce((s, p) => s + (p.edges || []).length, 0);
   console.log(`\n📊 Import summary:`);
   console.log(`  Processes:  ${procs.length}`);
-  if (logicCore.collapsedPools?.length) console.log(`  Black-Box:  ${logicCore.collapsedPools.length}`);
+  if (logicCore.collapsedPools?.length)
+    console.log(`  Black-Box:  ${logicCore.collapsedPools.length}`);
   console.log(`  Nodes:      ${totalNodes}`);
   console.log(`  Edges:      ${totalEdges}`);
 }
@@ -545,5 +606,8 @@ export { bpmnToLogicCore, bpmnToLogicCoreLegacy, parseXml };
 const __filename = fileURLToPath(import.meta.url);
 const isDirectRun = process.argv[1] && resolve(process.argv[1]) === resolve(__filename);
 if (isDirectRun) {
-  main().catch(err => { console.error('Import error:', err); process.exit(1); });
+  main().catch((err) => {
+    console.error('Import error:', err);
+    process.exit(1);
+  });
 }

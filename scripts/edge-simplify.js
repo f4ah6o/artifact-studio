@@ -16,7 +16,7 @@
  * or single-bend (3 waypoints).
  */
 
-const NODE_PADDING = 4;  // px buffer around each node bbox for clearance
+const NODE_PADDING = 4; // px buffer around each node bbox for clearance
 
 function segmentClearOfBox(p1, p2, box) {
   // box: { x, y, w, h }
@@ -28,7 +28,7 @@ function segmentClearOfBox(p1, p2, box) {
   // Horizontal segment: y constant
   if (p1.y === p2.y) {
     const y = p1.y;
-    if (y < by1 || y > by2) return true;  // segment's y outside box's y range
+    if (y < by1 || y > by2) return true; // segment's y outside box's y range
     const xMin = Math.min(p1.x, p2.x);
     const xMax = Math.max(p1.x, p2.x);
     // Segment's x range must not overlap box's x range
@@ -72,18 +72,18 @@ function pathLength(waypoints) {
  * non-endpoint nodes, otherwise returns the original waypoints unchanged.
  */
 export function simplifyEdge(waypoints, boxes, sourceId, targetId) {
-  if (!waypoints || waypoints.length <= 3) return waypoints;  // already minimal
+  if (!waypoints || waypoints.length <= 3) return waypoints; // already minimal
   const start = waypoints[0];
   const end = waypoints[waypoints.length - 1];
-  if (start.x === end.x || start.y === end.y) return waypoints;  // would be 2-pt straight
+  if (start.x === end.x || start.y === end.y) return waypoints; // would be 2-pt straight
 
   // Two candidate L-shapes: bend at (end.x, start.y) or (start.x, end.y)
   const candidates = [
-    [start, { x: end.x, y: start.y }, end],  // horizontal-first
-    [start, { x: start.x, y: end.y }, end],  // vertical-first
+    [start, { x: end.x, y: start.y }, end], // horizontal-first
+    [start, { x: start.x, y: end.y }, end], // vertical-first
   ];
 
-  const valid = candidates.filter(c => pathClearOfBoxes(c, boxes, sourceId, targetId));
+  const valid = candidates.filter((c) => pathClearOfBoxes(c, boxes, sourceId, targetId));
   if (valid.length === 0) return waypoints;
   // Prefer the shorter (and if tied, the one that matches the original's first-segment direction)
   valid.sort((a, b) => pathLength(a) - pathLength(b));

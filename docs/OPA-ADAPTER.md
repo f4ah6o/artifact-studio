@@ -61,7 +61,7 @@ The adapter enforces:
 
 ## Development
 
-`npm run demo` starts three local processes:
+`vp run demo` starts three local processes:
 
 1. the existing Artifact Studio API
 2. the OPA adapter API on `127.0.0.1:3001` by default

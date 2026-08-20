@@ -18,7 +18,10 @@ const OUT_DIR = resolve(__dirname, '../../tests/fixtures/mad-subset');
 
 function parseArgs() {
   const args = process.argv.slice(2);
-  const flag = (n) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null; };
+  const flag = (n) => {
+    const i = args.indexOf(n);
+    return i >= 0 ? args[i + 1] : null;
+  };
   return { src: flag('--src'), n: parseInt(flag('--n') || '200', 10) };
 }
 
@@ -36,9 +39,17 @@ if (!existsSync(src)) {
   process.exit(2);
 }
 
-const entries = readFileSync(src, 'utf8').trim().split('\n').map(line => {
-  try { return JSON.parse(line); } catch { return null; }
-}).filter(Boolean);
+const entries = readFileSync(src, 'utf8')
+  .trim()
+  .split('\n')
+  .map((line) => {
+    try {
+      return JSON.parse(line);
+    } catch {
+      return null;
+    }
+  })
+  .filter(Boolean);
 
 if (entries.length === 0) {
   console.error('No valid JSONL entries in source file.');
@@ -61,13 +72,17 @@ for (const domain of domainNames) {
   for (const c of candidates) {
     if (kept >= n) break;
     if (!c.dot) continue;
-    try { dotToLogicCore(c.dot); } catch { continue; }  // skip parser failures
+    try {
+      dotToLogicCore(c.dot);
+    } catch {
+      continue;
+    } // skip parser failures
     const fname = `${domain}-${String(kept).padStart(3, '0')}.dot`;
     writeFileSync(join(OUT_DIR, fname), c.dot, 'utf8');
     index.push({
       file: fname,
       domain,
-      sourceDescription: (c.description || '').slice(0, 100)
+      sourceDescription: (c.description || '').slice(0, 100),
     });
     kept++;
   }

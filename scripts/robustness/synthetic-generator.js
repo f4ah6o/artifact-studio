@@ -36,15 +36,21 @@ Constraints:
 }
 
 export function extractJson(text) {
-  try { return JSON.parse(text); } catch {}
+  try {
+    return JSON.parse(text);
+  } catch {}
   const fenced = text.match(/```(?:json)?\s*\n([\s\S]*?)\n```/);
   if (fenced) {
-    try { return JSON.parse(fenced[1]); } catch {}
+    try {
+      return JSON.parse(fenced[1]);
+    } catch {}
   }
   const start = text.indexOf('{');
   const end = text.lastIndexOf('}');
   if (start >= 0 && end > start) {
-    try { return JSON.parse(text.slice(start, end + 1)); } catch {}
+    try {
+      return JSON.parse(text.slice(start, end + 1));
+    } catch {}
   }
   return null;
 }
@@ -52,7 +58,7 @@ export function extractJson(text) {
 function mulberry32(seed) {
   let s = seed >>> 0;
   return () => {
-    s = (s + 0x6D2B79F5) >>> 0;
+    s = (s + 0x6d2b79f5) >>> 0;
     let t = s;
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
@@ -60,7 +66,10 @@ function mulberry32(seed) {
   };
 }
 
-export function sampleCells(cells, { n, strategy = 'uniform', seed = Date.now(), filter = null } = {}) {
+export function sampleCells(
+  cells,
+  { n, strategy = 'uniform', seed = Date.now(), filter = null } = {},
+) {
   const pool = filter ? cells.filter(filter) : cells.slice();
   if (n >= pool.length) return pool;
 
@@ -128,17 +137,23 @@ export async function generateSamples({
     // Step 1: description
     const { system: sysA, user: userA } = buildDescriptionPrompt(cell, complexitySpec);
     let description;
-    try { description = (await llm(sysA, userA, {})).trim(); }
-    catch (e) { continue; }
+    try {
+      description = (await llm(sysA, userA, {})).trim();
+    } catch (e) {
+      continue;
+    }
 
     // Step 2: structure (LC-JSON path; DOT path)
     if (target === 'lc-json') {
       const { system: sysB, user: userB } = buildLcJsonPrompt(description);
       let rawOutput;
-      try { rawOutput = await llm(sysB, userB, {}); }
-      catch (e) { continue; }
+      try {
+        rawOutput = await llm(sysB, userB, {});
+      } catch (e) {
+        continue;
+      }
       const lcJson = extractJson(rawOutput);
-      if (!lcJson) continue;  // unparseable — skip silently
+      if (!lcJson) continue; // unparseable — skip silently
       samples.push(buildSample({ cell, seq, description, lcJson, target, model }));
     }
 
@@ -146,13 +161,19 @@ export async function generateSamples({
       const { dotToLogicCore } = await import('../dot.js');
       const { system: sysB, user: userB } = buildDotPrompt(description);
       let rawOutput;
-      try { rawOutput = await llm(sysB, userB, {}); }
-      catch (e) { continue; }
+      try {
+        rawOutput = await llm(sysB, userB, {});
+      } catch (e) {
+        continue;
+      }
       const rawDot = extractDot(rawOutput);
       if (!rawDot) continue;
       let lcJson;
-      try { lcJson = dotToLogicCore(rawDot); }
-      catch (e) { continue; }
+      try {
+        lcJson = dotToLogicCore(rawDot);
+      } catch (e) {
+        continue;
+      }
       samples.push(buildSample({ cell, seq, description, lcJson, rawDot, target, model }));
     }
   }
@@ -207,6 +228,6 @@ export function buildSample({ cell, seq, description, lcJson, rawDot = null, tar
       target,
       model,
       generated_at: new Date().toISOString(),
-    }
+    },
   };
 }

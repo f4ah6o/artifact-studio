@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from '@jest/globals';
+import { afterAll, beforeAll, describe, expect, test } from 'vite-plus/test';
 import { createOpaHttpServer } from './opa-http-server.js';
 
 let server;
@@ -6,12 +6,12 @@ let baseUrl;
 
 beforeAll(async () => {
   server = createOpaHttpServer();
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   baseUrl = `http://127.0.0.1:${server.address().port}`;
 });
 
 afterAll(async () => {
-  await new Promise(resolve => server.close(resolve));
+  await new Promise((resolve) => server.close(resolve));
 });
 
 describe('OPA adapter HTTP API', () => {

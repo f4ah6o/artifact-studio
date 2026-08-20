@@ -10,8 +10,8 @@ export async function reviewerAgent(state) {
   const { errors, warnings } = validateLogicCore(state.logicCore);
 
   const issues = [
-    ...errors.map(msg => ({ severity: 'ERROR', problem: msg })),
-    ...warnings.map(msg => ({ severity: 'WARNING', problem: msg })),
+    ...errors.map((msg) => ({ severity: 'ERROR', problem: msg })),
+    ...warnings.map((msg) => ({ severity: 'WARNING', problem: msg })),
   ];
 
   return {

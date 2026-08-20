@@ -24,7 +24,11 @@ function writeFixtureFiles(dir, fingerprint, category, lcJson, meta) {
 
 function readMetaIfExists(metaPath) {
   if (!existsSync(metaPath)) return null;
-  try { return JSON.parse(readFileSync(metaPath, 'utf8')); } catch { return null; }
+  try {
+    return JSON.parse(readFileSync(metaPath, 'utf8'));
+  } catch {
+    return null;
+  }
 }
 
 export async function persistFailure(record, sample, opts = {}) {

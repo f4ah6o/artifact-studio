@@ -56,7 +56,7 @@ export class CodexAppServerClient {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
 
-      this.proc.on('error', error => this.#failAll(error));
+      this.proc.on('error', (error) => this.#failAll(error));
       this.proc.on('exit', (code, signal) => {
         if (this.started || code !== 0) {
           const suffix = this.stderr.length ? `: ${this.stderr.slice(-3).join(' | ')}` : '';
@@ -67,7 +67,7 @@ export class CodexAppServerClient {
       });
 
       this.proc.stderr.setEncoding('utf8');
-      this.proc.stderr.on('data', chunk => {
+      this.proc.stderr.on('data', (chunk) => {
         for (const line of chunk.split(/\r?\n/).filter(Boolean)) {
           this.stderr.push(line);
           if (this.stderr.length > 50) this.stderr.shift();
@@ -75,7 +75,7 @@ export class CodexAppServerClient {
       });
 
       this.rl = readline.createInterface({ input: this.proc.stdout });
-      this.rl.on('line', line => {
+      this.rl.on('line', (line) => {
         try {
           this.#handleMessage(JSON.parse(line));
         } catch (error) {
@@ -92,7 +92,7 @@ export class CodexAppServerClient {
       });
       this.#notify('initialized', {});
       this.started = true;
-    })().catch(error => {
+    })().catch((error) => {
       this.started = false;
       this.startPromise = null;
       if (this.proc && !this.proc.killed) this.proc.kill();
@@ -123,12 +123,10 @@ export class CodexAppServerClient {
     return this.request('account/logout', {});
   }
 
-  async runTurn(text, {
-    model = this.model,
-    effort = this.effort,
-    outputSchema = null,
-    timeout = this.timeout,
-  } = {}) {
+  async runTurn(
+    text,
+    { model = this.model, effort = this.effort, outputSchema = null, timeout = this.timeout } = {},
+  ) {
     await this.start();
 
     const threadParams = {
@@ -191,8 +189,14 @@ export class CodexAppServerClient {
       }, this.timeout);
 
       this.pending.set(id, {
-        resolve: result => { clearTimeout(timer); resolve(result); },
-        reject: error => { clearTimeout(timer); reject(error); },
+        resolve: (result) => {
+          clearTimeout(timer);
+          resolve(result);
+        },
+        reject: (error) => {
+          clearTimeout(timer);
+          reject(error);
+        },
       });
 
       try {
@@ -216,7 +220,11 @@ export class CodexAppServerClient {
       if (!pending) return;
       this.pending.delete(message.id);
       if (message.error) {
-        pending.reject(new Error(`Codex app-server ${message.error.code ?? ''}: ${message.error.message || 'request failed'}`));
+        pending.reject(
+          new Error(
+            `Codex app-server ${message.error.code ?? ''}: ${message.error.message || 'request failed'}`,
+          ),
+        );
       } else {
         pending.resolve(message.result);
       }
@@ -256,7 +264,10 @@ export class CodexAppServerClient {
   #handleServerRequest(message) {
     const { id, method } = message;
 
-    if (method === 'item/commandExecution/requestApproval' || method === 'item/fileChange/requestApproval') {
+    if (
+      method === 'item/commandExecution/requestApproval' ||
+      method === 'item/fileChange/requestApproval'
+    ) {
       this.#write({ id, result: { decision: 'decline' } });
       return;
     }
@@ -281,12 +292,18 @@ export class CodexAppServerClient {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         const current = this.#getTurn(turnId);
-        current.waiters = current.waiters.filter(w => w.resolve !== resolve);
+        current.waiters = current.waiters.filter((w) => w.resolve !== resolve);
         reject(new Error(`Codex turn timed out: ${turnId}`));
       }, timeout);
       state.waiters.push({
-        resolve: value => { clearTimeout(timer); resolve(value); },
-        reject: error => { clearTimeout(timer); reject(error); },
+        resolve: (value) => {
+          clearTimeout(timer);
+          resolve(value);
+        },
+        reject: (error) => {
+          clearTimeout(timer);
+          reject(error);
+        },
       });
     });
   }
@@ -301,8 +318,9 @@ export class CodexAppServerClient {
       throw new Error(message);
     }
 
-    const finalMessage = [...state.messages].reverse().find(m => m.phase === 'final_answer')
-      || state.messages[state.messages.length - 1];
+    const finalMessage =
+      [...state.messages].reverse().find((m) => m.phase === 'final_answer') ||
+      state.messages[state.messages.length - 1];
     const text = finalMessage?.text || state.delta;
     if (!text) throw new Error('Codex turn completed without an agent message');
     return text;
@@ -312,8 +330,11 @@ export class CodexAppServerClient {
     const state = this.#getTurn(turnId);
     let value;
     let error;
-    try { value = this.#turnResult(turnId); }
-    catch (err) { error = err; }
+    try {
+      value = this.#turnResult(turnId);
+    } catch (err) {
+      error = err;
+    }
 
     for (const waiter of state.waiters.splice(0)) {
       if (error) waiter.reject(error);
@@ -349,8 +370,8 @@ function normalizeMessages(systemOrMessages, userPromptOrOptions, maybeOptions) 
 
 function messagesToText(messages) {
   return messages
-    .filter(message => message && typeof message.content === 'string')
-    .map(message => `${String(message.role || 'user').toUpperCase()}:\n${message.content}`)
+    .filter((message) => message && typeof message.content === 'string')
+    .map((message) => `${String(message.role || 'user').toUpperCase()}:\n${message.content}`)
     .join('\n\n');
 }
 
@@ -360,7 +381,11 @@ export function createCodexAppServerProvider({
   effort = process.env.CODEX_EFFORT || 'medium',
 } = {}) {
   return async function callCodex(systemOrMessages, userPromptOrOptions, maybeOptions) {
-    const { messages, options } = normalizeMessages(systemOrMessages, userPromptOrOptions, maybeOptions);
+    const { messages, options } = normalizeMessages(
+      systemOrMessages,
+      userPromptOrOptions,
+      maybeOptions,
+    );
     // `json_object` means "return JSON", not "apply this Structured Output schema".
     // Passing a generic { type: 'object' } to Codex app-server is invalid under
     // strict Structured Outputs (object schemas require additionalProperties: false)

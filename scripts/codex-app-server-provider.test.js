@@ -1,9 +1,9 @@
-import { describe, test, expect, jest } from '@jest/globals';
+import { describe, test, expect, vi } from 'vite-plus/test';
 import { createCodexAppServerProvider } from './agents/codex-app-server-provider.js';
 
 describe('createCodexAppServerProvider', () => {
   test('adapts system/user prompts to one Codex turn', async () => {
-    const runTurn = jest.fn(async () => ({ text: '{"ok":true}' }));
+    const runTurn = vi.fn(async () => ({ text: '{"ok":true}' }));
     const provider = createCodexAppServerProvider({
       client: { runTurn },
       model: 'test-model',
@@ -26,7 +26,7 @@ describe('createCodexAppServerProvider', () => {
   });
 
   test('adapts multi-turn chat history without requiring Codex binary', async () => {
-    const runTurn = jest.fn(async () => ({ text: 'done' }));
+    const runTurn = vi.fn(async () => ({ text: 'done' }));
     const provider = createCodexAppServerProvider({
       client: { runTurn },
       model: null,

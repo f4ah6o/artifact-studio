@@ -50,16 +50,16 @@ function bpmnToPN(proc) {
   const nodes = proc.nodes || [];
   const edges = proc.edges || [];
 
-  const places = new Map();     // placeId → { id, label }
+  const places = new Map(); // placeId → { id, label }
   const transitions = new Map(); // transId → { id, label, bpmnNodeId }
-  const arcs = [];               // { from, to, type: 'P→T' | 'T→P' }
+  const arcs = []; // { from, to, type: 'P→T' | 'T→P' }
   const orGateways = [];
   const skipped = [];
 
   // Flatten expanded subprocesses
   const flatNodes = flattenNodes(nodes);
   const flatEdges = flattenEdges(nodes, edges);
-  const nodeMap = new Map(flatNodes.map(n => [n.id, n]));
+  const nodeMap = new Map(flatNodes.map((n) => [n.id, n]));
 
   // Create places for each edge (flow)
   for (const edge of flatEdges) {
@@ -68,8 +68,8 @@ function bpmnToPN(proc) {
   }
 
   // Source place (before start event)
-  const startNodes = flatNodes.filter(n => n.type === 'startEvent');
-  const endNodes = flatNodes.filter(n => n.type === 'endEvent');
+  const startNodes = flatNodes.filter((n) => n.type === 'startEvent');
+  const endNodes = flatNodes.filter((n) => n.type === 'endEvent');
 
   // Create a global source place and sink place
   const sourcePlace = 'p_source';
@@ -80,8 +80,12 @@ function bpmnToPN(proc) {
   // Process each node
   for (const node of flatNodes) {
     // Skip elements that don't participate in control flow
-    if (node.type === 'dataObjectReference' || node.type === 'dataStoreReference' ||
-        node.type === 'textAnnotation' || node.type === 'group') {
+    if (
+      node.type === 'dataObjectReference' ||
+      node.type === 'dataStoreReference' ||
+      node.type === 'textAnnotation' ||
+      node.type === 'group'
+    ) {
       skipped.push({ id: node.id, reason: 'artifact' });
       continue;
     }
@@ -103,14 +107,18 @@ function bpmnToPN(proc) {
 
     // XOR-Gateway split: model as N separate transitions (non-deterministic choice)
     if (node.type === 'exclusiveGateway') {
-      const outEdges = flatEdges.filter(e => e.source === node.id);
-      const inEdges = flatEdges.filter(e => e.target === node.id);
+      const outEdges = flatEdges.filter((e) => e.source === node.id);
+      const inEdges = flatEdges.filter((e) => e.target === node.id);
 
       if (outEdges.length > 1) {
         // XOR split: one transition per outgoing edge
         for (let i = 0; i < outEdges.length; i++) {
           const tId = `t_${node.id}_choice_${i}`;
-          transitions.set(tId, { id: tId, label: `${node.name || node.id}[${i}]`, bpmnNodeId: node.id });
+          transitions.set(tId, {
+            id: tId,
+            label: `${node.name || node.id}[${i}]`,
+            bpmnNodeId: node.id,
+          });
 
           // All incoming places → this transition
           for (const ie of inEdges) {
@@ -129,14 +137,18 @@ function bpmnToPN(proc) {
     // In BPMN, a task with 2+ incoming flows acts as implicit XOR merge (any one activates it)
     // In Petri-Nets, a transition with 2+ input places requires ALL tokens (AND semantics)
     // Fix: create one transition per incoming edge for implicit merges
-    const inEdges = flatEdges.filter(e => e.target === node.id);
-    const outEdges = flatEdges.filter(e => e.source === node.id);
+    const inEdges = flatEdges.filter((e) => e.target === node.id);
+    const outEdges = flatEdges.filter((e) => e.source === node.id);
     const isImplicitMerge = !isGateway(node.type) && inEdges.length > 1;
 
     if (isImplicitMerge) {
       for (let i = 0; i < inEdges.length; i++) {
         const tId = `t_${node.id}_merge_${i}`;
-        transitions.set(tId, { id: tId, label: `${node.name || node.id}[m${i}]`, bpmnNodeId: node.id });
+        transitions.set(tId, {
+          id: tId,
+          label: `${node.name || node.id}[m${i}]`,
+          bpmnNodeId: node.id,
+        });
 
         // Only this specific incoming place → transition
         const inPlace = `p_${inEdges[i].source}_${inEdges[i].target}`;
@@ -193,8 +205,8 @@ function bpmnToPN(proc) {
 }
 
 function connectTransition(tId, nodeId, edges, places, arcs) {
-  const inEdges = edges.filter(e => e.target === nodeId);
-  const outEdges = edges.filter(e => e.source === nodeId);
+  const inEdges = edges.filter((e) => e.target === nodeId);
+  const outEdges = edges.filter((e) => e.source === nodeId);
 
   for (const ie of inEdges) {
     const placeId = `p_${ie.source}_${ie.target}`;
@@ -260,8 +272,9 @@ function encodeMarking(marking) {
 function getEnabledTransitions(marking, transitions, arcs) {
   const enabled = [];
   for (const [tId] of transitions) {
-    const inputArcs = arcs.filter(a => a.to === tId && a.type === 'P→T');
-    const isEnabled = inputArcs.length > 0 && inputArcs.every(a => (marking.get(a.from) || 0) >= 1);
+    const inputArcs = arcs.filter((a) => a.to === tId && a.type === 'P→T');
+    const isEnabled =
+      inputArcs.length > 0 && inputArcs.every((a) => (marking.get(a.from) || 0) >= 1);
     if (isEnabled) enabled.push(tId);
   }
   return enabled;
@@ -361,7 +374,8 @@ function checkSoundness(pn, options = {}) {
         for (const [pid, tokens] of marking) {
           if (tokens > 0) state.push(`${pid}=${tokens}`);
         }
-        if (deadlockStates.length < 3) { // Limit reported deadlocks
+        if (deadlockStates.length < 3) {
+          // Limit reported deadlocks
           deadlockStates.push(state.join(', '));
         }
       }
@@ -390,7 +404,10 @@ function checkSoundness(pn, options = {}) {
     }
   }
   if (deadTransitions.length > 0) {
-    const names = deadTransitions.slice(0, 5).map(t => `"${t.label}" (${t.bpmnNodeId})`).join(', ');
+    const names = deadTransitions
+      .slice(0, 5)
+      .map((t) => `"${t.label}" (${t.bpmnNodeId})`)
+      .join(', ');
     issues.push({
       rule: 'WF01',
       severity: 'WARNING',
@@ -432,7 +449,7 @@ function checkSoundness(pn, options = {}) {
     issues.push({
       rule: 'WF_OR',
       severity: 'INFO',
-      message: `OR-Gateway(s) ${orGateways.map(id => `"${id}"`).join(', ')} not formally verifiable in WF-Net analysis. Results may be incomplete.`,
+      message: `OR-Gateway(s) ${orGateways.map((id) => `"${id}"`).join(', ')} not formally verifiable in WF-Net analysis. Results may be incomplete.`,
     });
   }
 

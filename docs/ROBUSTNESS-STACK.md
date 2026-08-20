@@ -544,7 +544,7 @@ node scripts/robustness/cli.js triage
 
 ```bash
 # After implementing a fix:
-cd scripts && npm test
+cd scripts && vp test --run
 # Robustness Regression test names become green one by one as you fix bugs.
 ```
 
@@ -598,7 +598,7 @@ Implementation deferred. When picked up, expected ~120 new hermetic tests + 1 op
 ## 11 Test Inventory (Final)
 
 ```
-$ cd scripts && npm test
+$ cd scripts && vp test --run
 ```
 
 | Suite | Tests | Notes |
@@ -621,7 +621,7 @@ Recommended sequence:
 2. **First real run: `node scripts/robustness/cli.js run --n=10`** for a quick smoke
 3. **Review the report** under `tests/robustness-reports/`
 4. **Triage the first batch of findings** — most early findings will be real bugs that escaped the hand-written test suite
-5. **Fix the bugs**, watch `npm test` go from "1 skipped" to "X passed, 1 skipped" as fixtures resolve
+5. **Fix the bugs**, watch `vp test --run` go from "1 skipped" to "X passed, 1 skipped" as fixtures resolve
 6. **Larger run: `node scripts/robustness/cli.js run --n=100`** once the obvious bugs are fixed
 7. **Implement the Layout Reviewer Agent** (separate spec, separate branch) once robustness is stable
 8. **Acquire and curate the MaD subset** for external validation against published metrics
