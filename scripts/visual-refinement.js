@@ -113,6 +113,70 @@ export function bboxOverlaps(a, b) {
 }
 
 /**
+ * Re-anchor sequence-flow labels to the FINAL routed edge geometry.
+ *
+ * buildCoordinateMap() initially derives label positions from ELK's raw route,
+ * but later passes simplify/re-route edge waypoints. Keeping the old label
+ * coordinates makes labels bunch around gateways or float away from their line.
+ * Prefer the longest horizontal segment of the final route; this naturally
+ * spreads fan-out labels across their respective branches.
+ *
+ * Message-flow labels (which do not have edgeCoords entries) are left alone.
+ */
+export function anchorEdgeLabelsToRoutes(coordMap) {
+  const labels = coordMap.edgeLabels ?? {};
+  const edgeCoords = coordMap.edgeCoords ?? {};
+  const nodeBboxes = Object.values(coordMap.coords ?? {}).map(c => ({
+    x: c.x, y: c.y, w: c.w, h: c.h
+  }));
+
+  for (const [id, label] of Object.entries(labels)) {
+    const pts = edgeCoords[id];
+    if (!pts || pts.length < 2) continue;
+
+    const candidates = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      const horizontal = Math.abs(a.y - b.y) < 1;
+      if (!horizontal) continue;
+      const length = Math.abs(b.x - a.x);
+      if (length < 2) continue;
+      const x = (a.x + b.x) / 2;
+      const y = a.y;
+      const bb = estimateTextBBox(label.text ?? '', x, y, 11);
+      const nodeOverlap = nodeBboxes.some(node => bboxOverlaps(bb, node));
+      candidates.push({ x, y, length, nodeOverlap });
+    }
+
+    if (candidates.length) {
+      // Prefer a segment clear of nodes, then the longest available segment.
+      candidates.sort((a, b) =>
+        Number(a.nodeOverlap) - Number(b.nodeOverlap) || b.length - a.length
+      );
+      label.x = candidates[0].x;
+      label.y = candidates[0].y;
+      continue;
+    }
+
+    // Vertical-only route: anchor at the midpoint of its longest segment and
+    // offset the label to the right so text does not sit on top of the line.
+    let longest = null;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      const length = Math.abs(b.y - a.y) + Math.abs(b.x - a.x);
+      if (!longest || length > longest.length) longest = { a, b, length };
+    }
+    if (longest) {
+      const w = estimateTextWidth(label.text ?? '', 11);
+      label.x = (longest.a.x + longest.b.x) / 2 + w / 2 + 8;
+      label.y = (longest.a.y + longest.b.y) / 2;
+    }
+  }
+
+  return coordMap;
+}
+
+/**
  * Nudge edge labels that overlap with nodes or other labels.
  * Tries distances [15, 25, maxShift] × directions [up, down, left, right].
  * If no collision-free slot is found within maxShift, the label stays at

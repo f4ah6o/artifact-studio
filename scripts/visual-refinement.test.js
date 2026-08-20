@@ -1,7 +1,7 @@
 /**
  * Visual Refinement — unit tests
  */
-import { estimateTextWidth, computeDynamicLaneHeaders, estimateTextBBox, bboxOverlaps, repairEdgeLabels, compactLanes } from './visual-refinement.js';
+import { estimateTextWidth, computeDynamicLaneHeaders, estimateTextBBox, bboxOverlaps, anchorEdgeLabelsToRoutes, repairEdgeLabels, compactLanes } from './visual-refinement.js';
 
 describe('estimateTextWidth', () => {
   test('returns 0 for empty string', () => {
@@ -173,6 +173,44 @@ describe('bboxOverlaps', () => {
     const a = { x: 0, y: 0, w: 10, h: 10 };
     const b = { x: 5, y: 5, w: 10, h: 10 };
     expect(bboxOverlaps(a, b)).toBe(bboxOverlaps(b, a));
+  });
+});
+
+describe('anchorEdgeLabelsToRoutes', () => {
+  test('re-anchors a stale label to the longest horizontal segment of the final route', () => {
+    const cm = {
+      coords: {},
+      edgeCoords: { e1: [
+        { x: 20, y: 100 }, { x: 20, y: 20 }, { x: 220, y: 20 }
+      ] },
+      edgeLabels: { e1: { text: 'Option A', x: 35, y: 95 } },
+    };
+    anchorEdgeLabelsToRoutes(cm);
+    expect(cm.edgeLabels.e1.x).toBe(120);
+    expect(cm.edgeLabels.e1.y).toBe(20);
+  });
+
+  test('prefers a shorter horizontal segment when the longest one crosses a node', () => {
+    const cm = {
+      coords: { n1: { x: 80, y: 10, w: 80, h: 30 } },
+      edgeCoords: { e1: [
+        { x: 0, y: 25 }, { x: 200, y: 25 },
+        { x: 200, y: 100 }, { x: 260, y: 100 }
+      ] },
+      edgeLabels: { e1: { text: 'Yes', x: 5, y: 5 } },
+    };
+    anchorEdgeLabelsToRoutes(cm);
+    expect(cm.edgeLabels.e1.x).toBe(230);
+    expect(cm.edgeLabels.e1.y).toBe(100);
+  });
+
+  test('leaves labels without routed edge geometry unchanged', () => {
+    const cm = {
+      coords: {}, edgeCoords: {},
+      edgeLabels: { message1: { text: 'Request', x: 10, y: 20 } },
+    };
+    anchorEdgeLabelsToRoutes(cm);
+    expect(cm.edgeLabels.message1).toEqual({ text: 'Request', x: 10, y: 20 });
   });
 });
 

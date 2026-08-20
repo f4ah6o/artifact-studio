@@ -35,7 +35,7 @@ import { simplifyAllEdges } from './edge-simplify.js';
 import { generateBpmnXml, validateBpmnXml } from './bpmn-xml.js';
 import { generateSvg } from './svg.js';
 import { logicCoreToDot, dotToLogicCore } from './dot.js';
-import { computeDynamicLaneHeaders, compactLanes, repairEdgeLabels } from './visual-refinement.js';
+import { computeDynamicLaneHeaders, compactLanes, anchorEdgeLabelsToRoutes, repairEdgeLabels } from './visual-refinement.js';
 
 // ═══════════════════════════════════════════════════════════════════════
 // PUBLIC API — programmatic usage via import
@@ -89,6 +89,10 @@ async function runPipeline(logicCore, opts = {}) {
         minLaneHeight: CFG.visualRefinement?.minLaneHeight ?? 80,
       });
     }
+    // Edge routes have already been simplified (and may have been moved by
+    // optional lane transforms). Re-anchor labels to that FINAL geometry before
+    // collision repair; otherwise labels still point at ELK's pre-format route.
+    anchorEdgeLabelsToRoutes(coordMap);
     if (CFG.visualRefinement?.edgeLabelCollisionRepair !== false) {
       repairEdgeLabels(coordMap, {
         maxShift: CFG.visualRefinement?.edgeLabelMaxShift ?? 25,
