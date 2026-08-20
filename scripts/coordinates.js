@@ -7,7 +7,7 @@ import { isEvent, isGateway } from './types.js';
 import { SHAPE, LANE_HEADER_W, LANE_PADDING, EXTERNAL_LABEL_H, CFG } from './utils.js';
 import { identifyHappyPathNodes } from './topology.js';
 
-function buildCoordinateMap(elkResult, lc) {
+function buildCoordinateMap(elkResult, lc, opts = {}) {
   const coords     = {};
   const laneCoords = {};
   const poolCoords = {};
@@ -288,6 +288,23 @@ function buildCoordinateMap(elkResult, lc) {
         for (const id of succs) coords[id].x = maxSX;
       }
     }
+  }
+
+  // §5.0d2 Cross-axis alignment for linear flow segments.
+  //         ELK can leave a few pixels (or more around gateways) of cross-axis
+  //         drift even with straightness priorities. For formatter-like output,
+  //         align only unambiguous same-lane forward-flow chains:
+  //         - source has exactly one forward outgoing edge
+  //         - target has exactly one forward incoming edge
+  //         Split branches, join branches, loop-backs and cross-lane edges are
+  //         intentionally excluded so branch geometry remains readable.
+  if (opts.crossAxisAlignment) {
+    alignLinearFlowCrossAxis(
+      coords,
+      allProcesses,
+      opts.direction ?? CFG.elk?.layered?.['elk.direction'] ?? 'RIGHT',
+      edgeCoords,
+    );
   }
 
   // §5.0e  Edge route compaction: replace extreme ELK detour routes.
@@ -799,4 +816,208 @@ export function messageFlowPorts(srcCoord, tgtCoord) {
   };
 }
 
-export { buildCoordinateMap, enforceOrthogonal, findNodeInAllProcesses, clipOrthogonal };
+
+/**
+ * Align the cross-axis centers of unambiguous same-lane forward-flow chains.
+ * RIGHT/LEFT layouts align Y centers; DOWN/UP layouts align X centers.
+ *
+ * The first node of each qualifying chain is the anchor. This preserves the
+ * established row/column chosen by ELK while removing cross-axis drift from
+ * downstream nodes. Components without a unique root fall back to their median
+ * center, which avoids large jumps for unusual cyclic-but-forward structures.
+ *
+ * @param {Object<string,{x:number,y:number,w:number,h:number}>} coords MUTATED
+ * @param {Array<Object>} processes Logic-Core processes
+ * @param {string} direction ELK direction: RIGHT|LEFT|DOWN|UP
+ * @returns {Object} same coords object
+ */
+function alignLinearFlowCrossAxis(coords, processes, direction = 'RIGHT', edgeCoords = null) {
+  const dir = String(direction).toUpperCase();
+  const horizontal = dir === 'RIGHT' || dir === 'LEFT';
+  const forwardSign = dir === 'LEFT' || dir === 'UP' ? -1 : 1;
+  const primaryCenter = c => horizontal ? c.x + c.w / 2 : c.y + c.h / 2;
+  const crossCenter = c => horizontal ? c.y + c.h / 2 : c.x + c.w / 2;
+  const EPS = 1;
+
+  for (const proc of processes || []) {
+    const nodes = proc.nodes || [];
+    const edges = proc.edges || [];
+    const nodeById = new Map(nodes.map(n => [n.id, n]));
+
+    // Support both node.lane and lane.nodeIds representations.
+    const laneByNode = new Map();
+    for (const lane of proc.lanes || []) {
+      for (const id of lane.nodeIds || []) laneByNode.set(id, lane.id);
+    }
+    for (const node of nodes) {
+      if (node.lane) laneByNode.set(node.id, node.lane);
+    }
+
+    const hasLanes = (proc.lanes || []).length > 0;
+    const forwardEdges = [];
+    const forwardOut = new Map();
+    const forwardIn = new Map();
+
+    for (const edge of edges) {
+      const src = coords[edge.source];
+      const tgt = coords[edge.target];
+      const srcNode = nodeById.get(edge.source);
+      const tgtNode = nodeById.get(edge.target);
+      if (!src || !tgt || !srcNode || !tgtNode) continue;
+      // Boundary events are attached to another shape and must not be moved as
+      // independent flow nodes.
+      if (srcNode.type === 'boundaryEvent' || tgtNode.type === 'boundaryEvent') continue;
+
+      if (hasLanes) {
+        const srcLane = laneByNode.get(edge.source);
+        const tgtLane = laneByNode.get(edge.target);
+        if (!srcLane || !tgtLane || srcLane !== tgtLane) continue;
+      }
+
+      const delta = (primaryCenter(tgt) - primaryCenter(src)) * forwardSign;
+      if (delta <= EPS) continue; // loop-back or non-forward geometry
+
+      forwardEdges.push(edge);
+      forwardOut.set(edge.source, (forwardOut.get(edge.source) || 0) + 1);
+      forwardIn.set(edge.target, (forwardIn.get(edge.target) || 0) + 1);
+    }
+
+    const qualifying = forwardEdges.filter(edge => {
+      if (edge.isHappyPath) return true;
+      if (forwardOut.get(edge.source) === 1 && forwardIn.get(edge.target) === 1) return true;
+
+      // At a split/join, ELK usually leaves one branch visually straight through
+      // the gateway. Treat that near-collinear branch as the implicit main path
+      // when no explicit isHappyPath marker is present.
+      const srcNode = nodeById.get(edge.source);
+      const tgtNode = nodeById.get(edge.target);
+      const touchesBranchGateway =
+        (srcNode && isGateway(srcNode.type) && (forwardOut.get(edge.source) || 0) > 1) ||
+        (tgtNode && isGateway(tgtNode.type) && (forwardIn.get(edge.target) || 0) > 1);
+      if (!touchesBranchGateway) return false;
+      return Math.abs(crossCenter(coords[edge.source]) - crossCenter(coords[edge.target])) <= 5;
+    });
+    if (qualifying.length === 0) continue;
+
+    const adjacency = new Map();
+    const qualifyingIn = new Map();
+    const connect = (a, b) => {
+      if (!adjacency.has(a)) adjacency.set(a, new Set());
+      adjacency.get(a).add(b);
+    };
+    for (const edge of qualifying) {
+      connect(edge.source, edge.target);
+      connect(edge.target, edge.source);
+      qualifyingIn.set(edge.target, (qualifyingIn.get(edge.target) || 0) + 1);
+      if (!qualifyingIn.has(edge.source)) qualifyingIn.set(edge.source, 0);
+    }
+
+    const visited = new Set();
+    for (const start of adjacency.keys()) {
+      if (visited.has(start)) continue;
+      const stack = [start];
+      const component = [];
+      while (stack.length) {
+        const id = stack.pop();
+        if (visited.has(id)) continue;
+        visited.add(id);
+        component.push(id);
+        for (const next of adjacency.get(id) || []) {
+          if (!visited.has(next)) stack.push(next);
+        }
+      }
+      if (component.length < 2) continue;
+
+      const medianCenter = ids => {
+        const centers = ids.map(id => crossCenter(coords[id])).sort((a, b) => a - b);
+        const mid = Math.floor(centers.length / 2);
+        return centers.length % 2
+          ? centers[mid]
+          : (centers[mid - 1] + centers[mid]) / 2;
+      };
+
+      let targetCenter;
+      const happyNodeIds = [...new Set(qualifying
+        .filter(edge => edge.isHappyPath && component.includes(edge.source) && component.includes(edge.target))
+        .flatMap(edge => [edge.source, edge.target]))];
+
+      // If the model explicitly marks a happy path, preserve the row/column ELK
+      // already chose for those nodes and pull the rest of the linear chain onto it.
+      if (happyNodeIds.length > 0) {
+        targetCenter = medianCenter(happyNodeIds);
+      } else {
+        // Without an explicit happy path, a split/join gateway is the most stable
+        // visual anchor: ELK has already chosen which branch stays straight through
+        // that gateway. Align the adjacent linear chain to the gateway, not vice versa.
+        const gatewayAnchors = component.filter(id => {
+          const node = nodeById.get(id);
+          return node && isGateway(node.type) &&
+            ((forwardOut.get(id) || 0) > 1 || (forwardIn.get(id) || 0) > 1);
+        });
+        if (gatewayAnchors.length === 1) {
+          targetCenter = crossCenter(coords[gatewayAnchors[0]]);
+        } else {
+          const roots = component.filter(id => (qualifyingIn.get(id) || 0) === 0);
+          targetCenter = roots.length === 1 && coords[roots[0]]
+            ? crossCenter(coords[roots[0]])
+            : medianCenter(component);
+        }
+      }
+      targetCenter = Math.round(targetCenter * 2) / 2;
+
+      for (const id of component) {
+        const c = coords[id];
+        if (!c) continue;
+        if (horizontal) c.y = targetCenter - c.h / 2;
+        else c.x = targetCenter - c.w / 2;
+      }
+    }
+
+    // Re-route aligned qualifying edges as true straight segments. Moving shapes
+    // without replacing ELK's old waypoints leaves cosmetic L-jogs at endpoints.
+    if (edgeCoords) {
+      for (const edge of qualifying) {
+        const src = coords[edge.source];
+        const tgt = coords[edge.target];
+        if (!src || !tgt || !edge.id) continue;
+        if (Math.abs(crossCenter(src) - crossCenter(tgt)) > 0.01) continue;
+
+        const cross = crossCenter(src);
+        let startPt, endPt;
+        if (dir === 'LEFT') {
+          startPt = { x: src.x, y: cross };
+          endPt = { x: tgt.x + tgt.w, y: cross };
+        } else if (dir === 'DOWN') {
+          startPt = { x: cross, y: src.y + src.h };
+          endPt = { x: cross, y: tgt.y };
+        } else if (dir === 'UP') {
+          startPt = { x: cross, y: src.y };
+          endPt = { x: cross, y: tgt.y + tgt.h };
+        } else {
+          startPt = { x: src.x + src.w, y: cross };
+          endPt = { x: tgt.x, y: cross };
+        }
+
+        const clear = Object.entries(coords).every(([id, box]) => {
+          if (id === edge.source || id === edge.target) return true;
+          const pad = 4;
+          if (horizontal) {
+            if (cross <= box.y - pad || cross >= box.y + box.h + pad) return true;
+            const minX = Math.min(startPt.x, endPt.x);
+            const maxX = Math.max(startPt.x, endPt.x);
+            return maxX <= box.x - pad || minX >= box.x + box.w + pad;
+          }
+          if (cross <= box.x - pad || cross >= box.x + box.w + pad) return true;
+          const minY = Math.min(startPt.y, endPt.y);
+          const maxY = Math.max(startPt.y, endPt.y);
+          return maxY <= box.y - pad || minY >= box.y + box.h + pad;
+        });
+        if (clear) edgeCoords[edge.id] = [startPt, endPt];
+      }
+    }
+  }
+
+  return coords;
+}
+
+export { buildCoordinateMap, alignLinearFlowCrossAxis, enforceOrthogonal, findNodeInAllProcesses, clipOrthogonal };

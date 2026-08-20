@@ -65,7 +65,10 @@ async function runPipeline(logicCore, opts = {}) {
 
   const elkGraph  = logicCoreToElk(lc, { elkWrapping: refineOn, fixedFlowPorts: refineOn });
   const elkResult = await runElkLayout(elkGraph);
-  const coordMap  = buildCoordinateMap(elkResult, lc);
+  const coordMap  = buildCoordinateMap(elkResult, lc, {
+    crossAxisAlignment: refineOn && CFG.visualRefinement?.crossAxisAlignment !== false,
+    direction: CFG.elk?.layered?.['elk.direction'] ?? 'RIGHT',
+  });
 
   // Edge simplification: collapse ELK's layer-column jogs into clean L-shapes
   // where node-bbox collision allows it. Reduces cross-lane zigzag.

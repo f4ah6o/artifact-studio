@@ -115,7 +115,7 @@ export function routeSameLaneBackwardFlows(coordMap, process, direction = 'RIGHT
       const tgtCx = tgt.x + tgt.w / 2;
       const tgtCy = tgt.y + tgt.h / 2;
       const backwards = dir === 'RIGHT' ? srcCx > tgtCx : srcCx < tgtCx;
-      if (!backwards || Math.abs(srcCy - tgtCy) > 100) continue;
+      if (!backwards) continue;
 
       const lane = coordMap.laneCoords?.[laneByNode.get(edge.source)];
       const contentBottom = Math.max(src.y + src.h, tgt.y + tgt.h);

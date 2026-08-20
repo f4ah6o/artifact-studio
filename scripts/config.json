@@ -89,6 +89,7 @@
   },
   "visualRefinement": {
     "enabled": true,
+    "crossAxisAlignment": true,
     "dynamicLaneHeader": true,
     "laneHeaderMinWidth": 30,
     "laneHeaderMaxWidth": 120,

@@ -25,7 +25,7 @@ import {
 } from './pipeline.js';
 import { normalizeLaneAssignments } from './topology.js';
 import { wrapText, wrapTextByPx } from './utils.js';
-import { messageFlowPorts } from './coordinates.js';
+import { alignLinearFlowCrossAxis, messageFlowPorts } from './coordinates.js';
 
 import { bpmnToLogicCore, bpmnToLogicCoreLegacy } from './import.js';
 import { moddleParse, moddleToLogicCore } from './moddle-import.js';
@@ -55,6 +55,76 @@ describe('loadConfig', () => {
     expect(cfg.color).toBeDefined();
     expect(cfg.layout).toBeDefined();
     expect(cfg.elk).toBeDefined();
+  });
+});
+
+describe('cross-axis linear-flow alignment', () => {
+  test('RIGHT aligns linear chain centers but leaves split branches independent', () => {
+    const coords = {
+      start: { x: 0, y: 0, w: 36, h: 36 },
+      task: { x: 100, y: 20, w: 100, h: 80 },
+      split: { x: 240, y: -30, w: 50, h: 50 },
+      upper: { x: 360, y: -140, w: 100, h: 80 },
+      upperEnd: { x: 520, y: -110, w: 36, h: 36 },
+      lower: { x: 360, y: 120, w: 100, h: 80 },
+      lowerEnd: { x: 520, y: 150, w: 36, h: 36 },
+    };
+    const process = {
+      nodes: Object.keys(coords).map(id => ({
+        id,
+        type: id === 'split' ? 'exclusiveGateway' : (id.includes('End') ? 'endEvent' : 'task'),
+        lane: 'l1',
+      })),
+      lanes: [{ id: 'l1' }],
+      edges: [
+        { id: 'e1', source: 'start', target: 'task' },
+        { id: 'e2', source: 'task', target: 'split' },
+        { id: 'e3', source: 'split', target: 'upper' },
+        { id: 'e4', source: 'split', target: 'lower' },
+        { id: 'e5', source: 'upper', target: 'upperEnd' },
+        { id: 'e6', source: 'lower', target: 'lowerEnd' },
+      ],
+    };
+
+    alignLinearFlowCrossAxis(coords, [process], 'RIGHT');
+
+    const splitCenterBefore = -30 + 50 / 2;
+    const cy = id => coords[id].y + coords[id].h / 2;
+    expect(cy('task')).toBe(cy('start'));
+    expect(cy('split')).toBe(cy('start'));
+    expect(cy('split')).toBe(splitCenterBefore);
+    expect(cy('upperEnd')).toBe(cy('upper'));
+    expect(cy('lowerEnd')).toBe(cy('lower'));
+    expect(cy('upper')).not.toBe(cy('split'));
+    expect(cy('lower')).not.toBe(cy('split'));
+  });
+
+  test('DOWN aligns X centers and skips cross-lane flow', () => {
+    const coords = {
+      start: { x: 20, y: 0, w: 36, h: 36 },
+      task: { x: 60, y: 120, w: 100, h: 80 },
+      nextLane: { x: 240, y: 260, w: 100, h: 80 },
+    };
+    const process = {
+      nodes: [
+        { id: 'start', type: 'startEvent', lane: 'l1' },
+        { id: 'task', type: 'task', lane: 'l1' },
+        { id: 'nextLane', type: 'task', lane: 'l2' },
+      ],
+      lanes: [{ id: 'l1' }, { id: 'l2' }],
+      edges: [
+        { id: 'e1', source: 'start', target: 'task' },
+        { id: 'e2', source: 'task', target: 'nextLane' },
+      ],
+    };
+
+    const nextLaneCenterBefore = coords.nextLane.x + coords.nextLane.w / 2;
+    alignLinearFlowCrossAxis(coords, [process], 'DOWN');
+
+    const cx = id => coords[id].x + coords[id].w / 2;
+    expect(cx('task')).toBe(cx('start'));
+    expect(cx('nextLane')).toBe(nextLaneCenterBefore);
+    expect(cx('nextLane')).not.toBe(cx('task'));
   });
 });
 
