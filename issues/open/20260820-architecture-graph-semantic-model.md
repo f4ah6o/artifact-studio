@@ -831,8 +831,9 @@ Public repoに入れないもの:
 - 2026-08-21: Bonita BDM adapter added with canonical `bdm/bom.xml`, Business Object/field parsing and relationship GraphProjection. This removes the need to invent a generic BDM format before semantic-entity work.
 - 2026-08-21: `issues/closed/20260821-bonita-bdm-semantic-entities.md` completed the minimal generic `SemanticEntity` contract, adapter/runtime capability, Bonita Business Object + field provider, HostRuntime/server boundary, and generic resolver.
 - 2026-08-21: persisted `ArtifactRelationship` / `SemanticRef` values can now be resolved through adapter semantic-entity providers into an in-memory Architecture Graph, projected into a read-only generic `GraphProjection`, and traversed with generic direction-aware shortest semantic paths. Broken/missing/unresolved refs remain visible with findings instead of being silently dropped.
+- 2026-08-21: BPMN became the second concrete `SemanticEntity` provider. Stable BPMN element IDs expose process/collaboration/participant/lane/flow-element identities through the same provider/runtime contract as Bonita BDM; BPMN DI remains outside the semantic layer.
 
-**Next implementation slice:** expose the read-only Architecture Graph projection through a small workspace UI/navigation surface or add the next concrete SemanticEntity provider (BPMN) before introducing richer impact-analysis semantics.
+**Next implementation slice:** add a minimal relationship authoring + read-only Architecture Graph workspace surface so users can connect concrete BPMN and Bonita BDM SemanticEntities without editing workspace JSON manually. Keep impact-analysis semantics and automatic relationship discovery out of this slice.
 
 ## Acceptance criteria for first implementation milestone
 

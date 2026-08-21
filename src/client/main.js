@@ -1315,6 +1315,19 @@ registerArtifactRuntime('bpmn', {
     const { xml } = await modeler.saveXML({ format: true });
     return currentArtifactRecord('bpmn', textContent(xml));
   },
+  async semanticEntities(artifact) {
+    if (artifact?.content?.kind !== 'text') {
+      throw new Error('BPMN semantic entities require text artifact content');
+    }
+    const result = await hostRuntime().artifactAction('bpmn', 'entities', {
+      source: artifact.content.source,
+      artifactId: artifact.id,
+    });
+    if (!Array.isArray(result.entities)) {
+      throw new Error('BPMN semantic entity provider did not return entities');
+    }
+    return result.entities;
+  },
 });
 
 registerArtifactRuntime('mermaid', {

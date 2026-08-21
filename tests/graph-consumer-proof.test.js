@@ -23,6 +23,16 @@ describe('GraphProjection second-consumer proof', () => {
     expect(inferAdapterFromFileName('workflow.yml')).toBe('dagu');
   });
 
+  test('registers BPMN as a semantic entity provider without changing its canonical text artifact', () => {
+    const bpmn = getArtifactAdapter('bpmn');
+    expect(bpmn).toMatchObject({
+      id: 'bpmn',
+      contentKind: 'text',
+      exportFileName: 'process.bpmn',
+    });
+    expect(supportsCapability(bpmn, 'semanticEntities')).toBe(true);
+  });
+
   test('registers Bonita BDM as an exact bom.xml text artifact without stealing generic XML', () => {
     const bdm = getArtifactAdapter('bonita-bdm');
     expect(bdm).toMatchObject({
@@ -32,6 +42,7 @@ describe('GraphProjection second-consumer proof', () => {
     });
     expect(supportsCapability(bdm, 'validate')).toBe(true);
     expect(supportsCapability(bdm, 'project')).toBe(true);
+    expect(supportsCapability(bdm, 'semanticEntities')).toBe(true);
     expect(inferAdapterFromFileName('bom.xml')).toBe('bonita-bdm');
     expect(inferAdapterFromFileName('/project/bdm/BOM.XML')).toBe('bonita-bdm');
     expect(inferAdapterFromFileName('process.bpmn.xml')).toBe('bpmn');

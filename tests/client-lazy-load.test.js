@@ -26,6 +26,11 @@ describe('client adapter lazy loading', () => {
     expect(mainSource).toContain("import('./bpmn-runtime.js')");
   });
 
+  test('BPMN semantic entity provider delegates parsing through HostRuntime', () => {
+    expect(mainSource).toContain("hostRuntime().artifactAction('bpmn', 'entities'");
+    expect(mainSource).toContain('semanticEntities(artifact)');
+  });
+
   test('Mermaid runtime remains dynamically imported', () => {
     expect(adapterSource).toContain("import('mermaid')");
     expect(adapterSource).not.toContain("from 'mermaid'");

@@ -1,4 +1,5 @@
 import { GraphProjectionError } from '../core/graph-projection.js';
+import { BpmnSemanticSourceError, bpmnSemanticEntities } from '../adapters/bpmn.js';
 import {
   BonitaBdmSourceError,
   bonitaBdmGraphProjection,
@@ -23,6 +24,7 @@ import {
   testWorkspace,
 } from '../adapters/opa.js';
 
+const BPMN_MAX_BODY_BYTES = 7 * 1024 * 1024;
 const OPA_MAX_BODY_BYTES = 6 * 1024 * 1024;
 const DAGU_MAX_BODY_BYTES = 3 * 1024 * 1024;
 const BONITA_BDM_MAX_BODY_BYTES = 5 * 1024 * 1024;
@@ -63,6 +65,16 @@ function opaErrorStatus(error) {
   return 500;
 }
 
+function bpmnErrorStatus(error) {
+  if (error instanceof BpmnSemanticSourceError) {
+    return error.code === 'BPMN_SEMANTIC_SOURCE_TOO_LARGE' ||
+      error.code === 'BPMN_SEMANTIC_REQUEST_TOO_LARGE'
+      ? 413
+      : 400;
+  }
+  return 500;
+}
+
 function bonitaBdmErrorStatus(error) {
   if (error instanceof BonitaBdmSourceError) {
     return error.code === 'BONITA_BDM_SOURCE_TOO_LARGE' ||
@@ -96,6 +108,39 @@ function errorPayload(error, fallbackCode) {
     code: error.code || fallbackCode,
     error: error.message,
   };
+}
+
+async function handleBpmnRequest(req, res) {
+  if (req.method !== 'POST') {
+    sendJson(res, 405, { error: 'Method Not Allowed' });
+    return;
+  }
+
+  try {
+    const body = await readJson(
+      req,
+      BPMN_MAX_BODY_BYTES,
+      (maxBytes) =>
+        new BpmnSemanticSourceError(
+          `Request body exceeds ${maxBytes} bytes`,
+          'BPMN_SEMANTIC_REQUEST_TOO_LARGE',
+        ),
+      () =>
+        new BpmnSemanticSourceError('Invalid JSON request body', 'BPMN_SEMANTIC_REQUEST_INVALID'),
+    );
+    switch (req.url) {
+      case '/api/v1/artifacts/bpmn/entities':
+        sendJson(res, 200, {
+          status: 'success',
+          entities: await bpmnSemanticEntities(body.source, body.artifactId),
+        });
+        return;
+      default:
+        sendJson(res, 404, { error: 'Not Found' });
+    }
+  } catch (error) {
+    sendJson(res, bpmnErrorStatus(error), errorPayload(error, 'BPMN_SEMANTIC_INTERNAL_ERROR'));
+  }
 }
 
 async function handleOpaRequest(req, res) {
@@ -232,6 +277,7 @@ async function handleBonitaBdmRequest(req, res) {
 
 export function isArtifactHttpRoute(url = '') {
   return (
+    url.startsWith('/api/v1/artifacts/bpmn/') ||
     url.startsWith('/api/v1/artifacts/opa/') ||
     url.startsWith('/api/v1/artifacts/dagu/') ||
     url.startsWith('/api/v1/artifacts/bonita-bdm/')
@@ -239,6 +285,10 @@ export function isArtifactHttpRoute(url = '') {
 }
 
 export async function handleArtifactHttpRequest(req, res) {
+  if (req.url.startsWith('/api/v1/artifacts/bpmn/')) {
+    await handleBpmnRequest(req, res);
+    return;
+  }
   if (req.url.startsWith('/api/v1/artifacts/opa/')) {
     await handleOpaRequest(req, res);
     return;

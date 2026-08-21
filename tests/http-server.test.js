@@ -144,6 +144,46 @@ describe('HTTP API', () => {
     expect((await response.json()).error).toMatch(/Invalid JSON/);
   });
 
+  test('BPMN semantic entities are served by the main HTTP server', async () => {
+    const source = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Definitions_1" targetNamespace="http://example.com/bpmn">
+  <bpmn:process id="Process_1" isExecutable="false">
+    <bpmn:startEvent id="Start_1" name="Start"/>
+    <bpmn:userTask id="Task_Approve" name="Approve Order"/>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="Start_1" targetRef="Task_Approve"/>
+  </bpmn:process>
+</bpmn:definitions>`;
+    const response = await fetch(`${baseUrl}/api/v1/artifacts/bpmn/entities`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source, artifactId: 'artifact-http-bpmn' }),
+    });
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.status).toBe('success');
+    expect(body.entities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'bpmn:Process_1',
+          artifactId: 'artifact-http-bpmn',
+          kind: 'process',
+          address: '#Process_1',
+        }),
+        expect.objectContaining({
+          id: 'bpmn:Task_Approve',
+          artifactId: 'artifact-http-bpmn',
+          kind: 'activity',
+          label: 'Approve Order',
+          address: '#Task_Approve',
+        }),
+        expect.objectContaining({
+          id: 'bpmn:Flow_1',
+          kind: 'sequence-flow',
+        }),
+      ]),
+    );
+  });
+
   test('Bonita BDM inspect and projection are served by the main HTTP server', async () => {
     const source = `<?xml version="1.0"?><businessObjectModel modelVersion="1.0"><businessObjects>
       <businessObject qualifiedName="com.company.Order"><fields>

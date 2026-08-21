@@ -59,7 +59,12 @@ export const artifactAdapters = Object.freeze({
     exportFileName: 'process.bpmn',
     promptPlaceholder: '業務プロセスを自然言語で記述してください。',
     contentKind: 'text',
-    capabilities: adapterCapabilities({ validate: true, format: true, views: ['model'] }),
+    capabilities: adapterCapabilities({
+      validate: true,
+      format: true,
+      semanticEntities: true,
+      views: ['model'],
+    }),
   }),
   mermaid: Object.freeze({
     id: 'mermaid',
