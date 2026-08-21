@@ -52,8 +52,11 @@ describe('client adapter lazy loading', () => {
     expect(bonitaExtensionSource).toContain('../../examples/bonita-bdm/bom.xml?raw');
   });
 
-  test('Bonita BDM client delegates server actions through HostRuntime', () => {
+  test('Bonita BDM semantic entities are an explicit HostRuntime-backed capability', () => {
+    expect(adapterSource).toContain('semanticEntities: true');
     expect(bonitaBdmExtensionSource).toContain("hostRuntime().artifactAction('bonita-bdm'");
+    expect(bonitaBdmExtensionSource).toContain("artifactAction('bonita-bdm', 'entities'");
+    expect(bonitaBdmExtensionSource).toContain('artifactId: artifact.id');
     expect(bonitaBdmExtensionSource).not.toContain('fetch(');
   });
 

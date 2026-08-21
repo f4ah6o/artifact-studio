@@ -1,5 +1,6 @@
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import { normalizeGraphProjection } from '../core/graph-projection.js';
+import { normalizeSemanticEntities } from '../core/semantic-entity.js';
 
 const MAX_SOURCE_BYTES = 4 * 1024 * 1024;
 const ARRAY_TAGS = new Set([
@@ -68,6 +69,14 @@ function fieldNames(container) {
 
 function simpleName(qualifiedName) {
   return qualifiedName.split('.').at(-1) || qualifiedName;
+}
+
+function businessObjectEntityId(qualifiedName) {
+  return `bonita-bdm:${encodeURIComponent(qualifiedName)}`;
+}
+
+function fieldEntityId(qualifiedName, fieldName) {
+  return `${businessObjectEntityId(qualifiedName)}#field:${encodeURIComponent(fieldName)}`;
 }
 
 function normalizeSimpleField(field) {
@@ -278,6 +287,72 @@ export function validateBonitaBdmSource(source) {
   }
 }
 
+export function bonitaBdmSemanticEntities(source, artifactId) {
+  const normalizedArtifactId = String(artifactId || '').trim();
+  if (!normalizedArtifactId) {
+    throw new BonitaBdmSourceError(
+      'Bonita BDM semantic entity exposure requires artifactId',
+      'BONITA_BDM_ARTIFACT_ID_REQUIRED',
+    );
+  }
+  const model = inspectBonitaBdm(source);
+  if (model.errors.length) {
+    throw new BonitaBdmSourceError(
+      `Bonita BDM contains ${model.errors.length} structural error(s)`,
+      'BONITA_BDM_STRUCTURE_INVALID',
+      { findings: model.errors },
+    );
+  }
+
+  const entities = [];
+  for (const businessObject of model.businessObjects) {
+    entities.push({
+      id: businessObjectEntityId(businessObject.qualifiedName),
+      artifactId: normalizedArtifactId,
+      kind: 'business-object',
+      label: businessObject.simpleName || businessObject.qualifiedName,
+      address: businessObject.qualifiedName,
+      metadata: {
+        qualifiedName: businessObject.qualifiedName,
+        description: businessObject.description,
+        uniqueConstraints: businessObject.uniqueConstraints,
+        indexes: businessObject.indexes,
+        queries: businessObject.queries,
+      },
+    });
+    for (const field of businessObject.fields) {
+      const metadata =
+        field.kind === 'relation'
+          ? {
+              fieldKind: 'relation',
+              reference: field.reference,
+              relationType: field.relationType,
+              fetchType: field.fetchType,
+              nullable: field.nullable,
+              collection: field.collection,
+              description: field.description,
+            }
+          : {
+              fieldKind: 'simple',
+              type: field.type,
+              length: field.length,
+              nullable: field.nullable,
+              collection: field.collection,
+              description: field.description,
+            };
+      entities.push({
+        id: fieldEntityId(businessObject.qualifiedName, field.name),
+        artifactId: normalizedArtifactId,
+        kind: 'field',
+        label: field.name,
+        address: `${businessObject.qualifiedName}#${field.name}`,
+        metadata,
+      });
+    }
+  }
+  return normalizeSemanticEntities(entities, { artifactId: normalizedArtifactId });
+}
+
 export function bonitaBdmGraphProjection(source) {
   const model = inspectBonitaBdm(source);
   if (model.errors.length) {
@@ -288,7 +363,7 @@ export function bonitaBdmGraphProjection(source) {
     );
   }
   const nodes = model.businessObjects.map((businessObject) => ({
-    id: `bonita-bdm:${encodeURIComponent(businessObject.qualifiedName)}`,
+    id: businessObjectEntityId(businessObject.qualifiedName),
     label: businessObject.simpleName || businessObject.qualifiedName,
     kind: 'business-object',
     metadata: {
@@ -306,7 +381,7 @@ export function bonitaBdmGraphProjection(source) {
   const idByQualifiedName = new Map(
     model.businessObjects.map((businessObject) => [
       businessObject.qualifiedName,
-      `bonita-bdm:${encodeURIComponent(businessObject.qualifiedName)}`,
+      businessObjectEntityId(businessObject.qualifiedName),
     ]),
   );
   const edges = [];

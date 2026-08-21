@@ -440,6 +440,19 @@ registerArtifactRuntime('bonita-bdm', {
     if (!result.graph) throw new Error('Bonita BDM project did not return GraphProjection');
     return result.graph;
   },
+  async semanticEntities(artifact) {
+    if (artifact?.content?.kind !== 'text') {
+      throw new Error('Bonita BDM semantic entities require text artifact content');
+    }
+    const result = await hostRuntime().artifactAction('bonita-bdm', 'entities', {
+      source: artifact.content.source,
+      artifactId: artifact.id,
+    });
+    if (!Array.isArray(result.entities)) {
+      throw new Error('Bonita BDM semantic entity provider did not return entities');
+    }
+    return result.entities;
+  },
 });
 
 els.source.addEventListener('input', scheduleInspect);

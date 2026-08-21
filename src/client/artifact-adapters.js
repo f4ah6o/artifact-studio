@@ -112,6 +112,7 @@ export const artifactAdapters = Object.freeze({
     capabilities: adapterCapabilities({
       validate: true,
       project: true,
+      semanticEntities: true,
       views: ['source', 'preview'],
     }),
   }),

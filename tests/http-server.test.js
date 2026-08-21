@@ -187,6 +187,35 @@ describe('HTTP API', () => {
         metadata: expect.objectContaining({ fieldName: 'lines' }),
       }),
     ]);
+
+    const entitiesResponse = await fetch(`${baseUrl}/api/v1/artifacts/bonita-bdm/entities`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source, artifactId: 'artifact-http-bdm' }),
+    });
+    expect(entitiesResponse.status).toBe(200);
+    const entityBody = await entitiesResponse.json();
+    expect(entityBody.status).toBe('success');
+    expect(entityBody.entities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'bonita-bdm:com.company.Order',
+          artifactId: 'artifact-http-bdm',
+          kind: 'business-object',
+          address: 'com.company.Order',
+        }),
+        expect.objectContaining({
+          id: 'bonita-bdm:com.company.Order#field:lines',
+          artifactId: 'artifact-http-bdm',
+          kind: 'field',
+          address: 'com.company.Order#lines',
+          metadata: expect.objectContaining({
+            fieldKind: 'relation',
+            reference: 'com.company.Line',
+          }),
+        }),
+      ]),
+    );
   });
 
   test('Dagu projection is served by the main HTTP server without the Dagu binary', async () => {

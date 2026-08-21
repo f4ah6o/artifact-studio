@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vite-plus/test';
 import {
   BonitaBdmSourceError,
   bonitaBdmGraphProjection,
+  bonitaBdmSemanticEntities,
   inspectBonitaBdm,
   validateBonitaBdmSource,
 } from '../../src/adapters/bonita-bdm.js';
@@ -126,6 +127,65 @@ describe('Bonita BDM adapter', () => {
         }),
       ]),
     );
+  });
+
+  test('exposes deterministic Business Object and field SemanticEntities', () => {
+    const entities = bonitaBdmSemanticEntities(OFFICIAL_STYLE, 'artifact-bdm');
+    expect(entities).toHaveLength(3);
+    expect(entities[0]).toMatchObject({
+      id: 'bonita-bdm:com.company.model.Claim',
+      artifactId: 'artifact-bdm',
+      kind: 'business-object',
+      label: 'Claim',
+      address: 'com.company.model.Claim',
+      metadata: {
+        qualifiedName: 'com.company.model.Claim',
+        uniqueConstraints: [{ name: 'uniqueDescription', fieldNames: ['description'] }],
+        indexes: [{ name: 'IDX_DESCRIPTION', fieldNames: ['description'] }],
+      },
+    });
+    expect(entities[1]).toMatchObject({
+      id: 'bonita-bdm:com.company.model.Claim#field:description',
+      artifactId: 'artifact-bdm',
+      kind: 'field',
+      label: 'description',
+      address: 'com.company.model.Claim#description',
+      metadata: {
+        fieldKind: 'simple',
+        type: 'STRING',
+        length: 255,
+        nullable: false,
+        collection: false,
+      },
+    });
+    expect(bonitaBdmGraphProjection(OFFICIAL_STYLE).nodes[0].id).toBe(entities[0].id);
+  });
+
+  test('exposes relation-field metadata but fails closed for invalid BDM', () => {
+    const entities = bonitaBdmSemanticEntities(RELATIONS, 'artifact-relations');
+    expect(
+      entities.find((entity) => entity.address === 'com.company.model.PurchaseOrder#items'),
+    ).toMatchObject({
+      kind: 'field',
+      metadata: {
+        fieldKind: 'relation',
+        reference: 'com.company.model.OrderItem',
+        relationType: 'COMPOSITION',
+        fetchType: 'EAGER',
+        nullable: false,
+        collection: true,
+      },
+    });
+
+    const invalid = `<businessObjectModel><businessObjects>
+      <businessObject qualifiedName="a.A"><fields>
+        <relationField name="missing" reference="a.Missing" type="AGGREGATION"/>
+      </fields><uniqueConstraints/><queries/><indexes/></businessObject>
+    </businessObjects></businessObjectModel>`;
+    expect(() => bonitaBdmSemanticEntities(invalid, 'artifact-invalid')).toThrow(
+      BonitaBdmSourceError,
+    );
+    expect(() => bonitaBdmSemanticEntities(OFFICIAL_STYLE, '')).toThrow(/requires artifactId/);
   });
 
   test('reports malformed XML, duplicate fields, and unknown relation targets explicitly', () => {

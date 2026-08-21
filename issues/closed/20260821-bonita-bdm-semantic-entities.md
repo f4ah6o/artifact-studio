@@ -1,6 +1,6 @@
 # Bonita BDM SemanticEntity Provider
 
-Status: open
+Status: closed — implemented 2026-08-21
 Date: 2026-08-21
 Target: As-Code Studio Architecture Graph semantic infrastructure
 Parent: `issues/open/20260820-architecture-graph-semantic-model.md`
@@ -222,7 +222,8 @@ Request:
 
 ```json
 {
-  "source": "<businessObjectModel ...>"
+  "source": "<businessObjectModel ...>",
+  "artifactId": "artifact-bdm-1"
 }
 ```
 
@@ -261,21 +262,33 @@ This issue does not implement:
 
 ## Acceptance criteria
 
-- [ ] generic `SemanticEntity` normalize/validation contract exists in core;
-- [ ] semantic entity exposure is an explicit adapter capability;
-- [ ] Bonita BDM provides deterministic Business Object entities;
-- [ ] Bonita BDM provides deterministic simple/relation field entities;
-- [ ] Business Object IDs remain aligned with the existing Bonita graph node identity;
-- [ ] entity identity is scoped by `artifactId`;
-- [ ] duplicate id/address and wrong-artifact provider output fail closed;
-- [ ] generic resolver supports id, address, and consistent id+address resolution;
-- [ ] resolver returns null for ordinary not-found refs and errors on contradictory refs;
-- [ ] structurally invalid Bonita BDM does not expose partial entity output;
-- [ ] browser runtime uses HostRuntime rather than a browser-side Bonita parser;
-- [ ] `/api/v1/artifacts/bonita-bdm/entities` returns generic entities;
-- [ ] existing ArtifactRelationship/SemanticRef behavior remains unchanged;
-- [ ] no Architecture Graph UI or generic BDM schema is introduced;
-- [ ] existing adapters/tests/build remain green.
+- [x] generic `SemanticEntity` normalize/validation contract exists in core;
+- [x] semantic entity exposure is an explicit adapter capability;
+- [x] Bonita BDM provides deterministic Business Object entities;
+- [x] Bonita BDM provides deterministic simple/relation field entities;
+- [x] Business Object IDs remain aligned with the existing Bonita graph node identity;
+- [x] entity identity is scoped by `artifactId`;
+- [x] duplicate id/address and wrong-artifact provider output fail closed;
+- [x] generic resolver supports id, address, and consistent id+address resolution;
+- [x] resolver returns null for ordinary not-found refs and errors on contradictory refs;
+- [x] structurally invalid Bonita BDM does not expose partial entity output;
+- [x] browser runtime uses HostRuntime rather than a browser-side Bonita parser;
+- [x] `/api/v1/artifacts/bonita-bdm/entities` returns generic entities;
+- [x] existing ArtifactRelationship/SemanticRef behavior remains unchanged;
+- [x] no Architecture Graph UI or generic BDM schema is introduced;
+- [x] existing adapters/tests/build remain green.
+
+## Implementation result
+
+Implemented on 2026-08-21:
+
+- `src/core/semantic-entity.js` provides generic entity normalization, JSON-safe metadata validation, artifact-scoped duplicate detection, and resolver semantics.
+- `semanticEntities` is an explicit adapter capability and generic artifact runtime capability.
+- Bonita BDM exposes Business Objects plus simple/relation fields from canonical `bom.xml`; no copied entity persistence or generic BDM schema was added.
+- Business Object semantic IDs reuse the existing Bonita GraphProjection node IDs.
+- browser runtime calls `POST /api/v1/artifacts/bonita-bdm/entities` through HostRuntime and passes the stable Artifact id.
+- focused verification: 32 tests passed.
+- full verification: 456 tests passed, 1 skipped; production build passed; repository check reported 0 errors with only pre-existing warnings.
 
 ## Follow-up
 

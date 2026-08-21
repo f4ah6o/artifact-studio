@@ -2,6 +2,7 @@ import { GraphProjectionError } from '../core/graph-projection.js';
 import {
   BonitaBdmSourceError,
   bonitaBdmGraphProjection,
+  bonitaBdmSemanticEntities,
   inspectBonitaBdm,
   validateBonitaBdmSource,
 } from '../adapters/bonita-bdm.js';
@@ -214,6 +215,12 @@ async function handleBonitaBdmRequest(req, res) {
         return;
       case '/api/v1/artifacts/bonita-bdm/project':
         sendJson(res, 200, { status: 'success', graph: bonitaBdmGraphProjection(source) });
+        return;
+      case '/api/v1/artifacts/bonita-bdm/entities':
+        sendJson(res, 200, {
+          status: 'success',
+          entities: bonitaBdmSemanticEntities(source, body.artifactId),
+        });
         return;
       default:
         sendJson(res, 404, { error: 'Not Found' });

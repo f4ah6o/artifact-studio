@@ -1,4 +1,9 @@
-export const CORE_ADAPTER_CAPABILITIES = Object.freeze(['validate', 'format', 'project']);
+export const CORE_ADAPTER_CAPABILITIES = Object.freeze([
+  'validate',
+  'format',
+  'project',
+  'semanticEntities',
+]);
 
 function uniqueStrings(values = []) {
   return Object.freeze([...new Set(values.map(String).filter(Boolean))]);
@@ -8,6 +13,7 @@ export function adapterCapabilities({
   validate = false,
   format = false,
   project = false,
+  semanticEntities = false,
   actions = [],
   views = [],
 } = {}) {
@@ -15,6 +21,7 @@ export function adapterCapabilities({
     validate: Boolean(validate),
     format: Boolean(format),
     project: Boolean(project),
+    semanticEntities: Boolean(semanticEntities),
     actions: uniqueStrings(actions),
     views: uniqueStrings(views),
   });

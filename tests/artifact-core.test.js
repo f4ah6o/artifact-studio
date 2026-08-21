@@ -50,6 +50,7 @@ describe('adapter capability surface', () => {
       capabilities: adapterCapabilities({
         validate: true,
         project: true,
+        semanticEntities: true,
         actions: ['evaluate', 'evaluate', 'test'],
         views: ['source', 'dependencies'],
       }),
@@ -58,6 +59,7 @@ describe('adapter capability surface', () => {
     expect(supportsCapability(adapter, 'validate')).toBe(true);
     expect(supportsCapability(adapter, 'format')).toBe(false);
     expect(supportsCapability(adapter, 'project')).toBe(true);
+    expect(supportsCapability(adapter, 'semanticEntities')).toBe(true);
     expect(supportsCapability(adapter, 'evaluate')).toBe(false);
     expect(supportsAction(adapter, 'evaluate')).toBe(true);
     expect(supportsAction(adapter, 'missing')).toBe(false);

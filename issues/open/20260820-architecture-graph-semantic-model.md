@@ -829,14 +829,15 @@ Public repoに入れないもの:
 - 2026-08-21: Artifact Workspace v2 completed stable multi-artifact identity, migration and reload-safe lineage freshness.
 - 2026-08-21: open-vocabulary `ArtifactRelationship` + `SemanticRef` persistence and referential validation completed. Provenance distinguishes `declared`, `discovered`, and `generated`.
 - 2026-08-21: Bonita BDM adapter added with canonical `bdm/bom.xml`, Business Object/field parsing and relationship GraphProjection. This removes the need to invent a generic BDM format before semantic-entity work.
+- 2026-08-21: `issues/closed/20260821-bonita-bdm-semantic-entities.md` completed the minimal generic `SemanticEntity` contract, adapter/runtime capability, Bonita Business Object + field provider, HostRuntime/server boundary, and generic resolver.
 
-**Next implementation slice:** define the minimal `SemanticEntity` exposure contract and use Bonita BDM Business Objects/fields as the first provider. Then project persisted ArtifactRelationships/SemanticRefs into a read-only graph and add generic traversal.
+**Next implementation slice:** resolve persisted ArtifactRelationships/SemanticRefs through semantic entity providers, project those relationships into a read-only generic GraphProjection, and then add generic traversal.
 
 ## Acceptance criteria for first implementation milestone
 
 - [x] Artifact-level `ArtifactRelationship` / `SemanticRef` logical contractが存在する
 - [x] Artifact単位のrelationshipをworkspaceに保存・復元できる
-- [ ] Artifact内部`SemanticEntity`を最低1adapterで公開できる
+- [x] Artifact内部`SemanticEntity`を最低1adapterで公開できる
 - [ ] persisted relationshipをgeneric `GraphProjection`として表示できる
 - [x] declared / discovered / generated provenanceを区別できる
 - [x] source revision変更によるstale判定の基礎がある
