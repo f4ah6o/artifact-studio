@@ -1,0 +1,153 @@
+# Adopt Kumo UI with Artifact Studio theme
+
+Status: open
+Date: 2026-08-21
+Target: Artifact Studio browser shell
+
+## Goal
+
+Adopt Cloudflare Kumo as the browser UI component/design-system layer while preserving the current Artifact Studio visual character.
+
+The migration direction is **Kumo behavior/accessibility + Artifact Studio theme**, not a visual redesign toward Kumo defaults.
+
+## Context
+
+The current browser UI is intentionally simple:
+
+- white / neutral surfaces
+- thin 1px borders instead of card-heavy elevation
+- restrained border radius
+- minimal shadows
+- native-feeling controls
+- compact workbench density
+- primary color used sparingly for important actions
+
+This visual language should remain the baseline.
+
+Kumo provides reusable accessible React components, including Button, Input, Select, Toolbar, Sidebar, Dialog, Tabs, Tooltip, Empty and other primitives. It supports semantic theme tokens and a standalone stylesheet for non-Tailwind consumers.
+
+Artifact Studio currently uses Vanilla HTML/CSS/JS. Introducing Kumo therefore also introduces React at the browser shell/component boundary.
+
+## Architecture direction
+
+```text
+React + Kumo
+  |
+  +-- Artifact Studio shell/theme
+  |    +-- toolbar / controls
+  |    +-- sidebar / navigation
+  |    +-- inspector / findings
+  |    +-- dialogs / transient UI
+  |
+  +-- Artifact viewport boundary
+       +-- BPMN runtime (lazy)
+       +-- Mermaid runtime (lazy)
+       +-- OPA UI/runtime
+       +-- Dagu UI/runtime
+```
+
+Adapter semantic/runtime boundaries remain unchanged. React/Kumo is a presentation-shell concern and must not make adapters depend on each other.
+
+## Theme policy
+
+Create an Artifact Studio theme that maps Kumo semantic tokens to the current UI before replacing existing controls.
+
+Baseline values should be derived from the current CSS, including approximately:
+
+- canvas/base: `#ffffff`
+- app background: `#f3f4f6`
+- recessed/subtle surface: `#f8fafc`
+- normal border: `#d1d5db`
+- subtle border: `#e2e8f0`
+- default text: `#1f2937`
+- muted text: `#6b7280`
+- primary/action: `#1d4ed8`
+- compact radius: approximately `6px`
+
+Do not reproduce these values by scattering raw colors through React components. Theme/token overrides are the canonical visual contract.
+
+## Component policy
+
+Prefer Kumo styled components when an appropriate component exists.
+
+Use granular Kumo imports where practical to preserve tree-shaking.
+
+When Artifact Studio needs a higher-level application pattern:
+
+1. compose existing Kumo components first;
+2. use a Kumo/Base UI primitive when behavior is reusable but no styled Kumo component fits;
+3. define an Artifact Studio pattern/component only when the requirement is application-specific or genuinely missing from Kumo.
+
+Examples:
+
+- `SessionHistory` is an Artifact Studio pattern.
+- collapsible sidebar behavior should use Kumo `Sidebar`, not a new home-grown sidebar primitive.
+- artifact-specific inspector/findings semantics remain application-level concerns.
+
+## Initial implementation scope
+
+### Phase 1 — foundation
+
+1. Add React / React DOM / Kumo and required peer dependencies.
+2. Add the appropriate Vite React integration if required.
+3. Import Kumo standalone styles; do not introduce Tailwind solely for this migration.
+4. Define Artifact Studio theme/token overrides matching the current UI.
+5. Establish a React root for the application shell without breaking lazy adapter runtimes.
+
+### Phase 2 — shell primitives
+
+Migrate a minimal set of existing controls first:
+
+- primary/secondary buttons
+- select/input controls where Kumo fits cleanly
+- toolbar/shell presentation
+
+Keep the visual result intentionally close to the current application.
+
+### Phase 3 — application patterns
+
+After the foundation is stable, add new patterns as needed. The first expected pattern is a collapsible left session-history column using Kumo `Sidebar`.
+
+## Lazy-loading constraint
+
+The recently introduced adapter runtime lazy-loading must remain intact:
+
+- no eager `bpmn-js` import in the shell entry
+- Mermaid remains dynamically imported
+- OPA/Dagu browser runtime remains load-on-use where applicable
+- adopting React/Kumo must not collapse adapter chunks back into the initial bundle
+
+Kumo components should use granular imports where that materially reduces the entry bundle.
+
+## Migration strategy
+
+Prefer incremental migration over a full rewrite.
+
+The first implementation should establish React/Kumo/theme infrastructure and migrate enough shell UI to prove the approach. Existing imperative adapter code may continue to operate against stable DOM mount points during the transition.
+
+Avoid rewriting BPMN/Mermaid/OPA/Dagu logic merely to make it stylistically React-like.
+
+## Non-goals
+
+- redesigning Artifact Studio to match Cloudflare dashboard visuals
+- migrating all adapter/runtime logic to React
+- introducing Tailwind as an application styling dependency unless later justified
+- creating a comprehensive Artifact Studio component library up front
+- replacing Kumo components with local equivalents without a concrete need
+
+## Acceptance criteria
+
+- [ ] React and Kumo are installed and build successfully.
+- [ ] Kumo standalone styling is integrated without requiring Tailwind configuration.
+- [ ] Artifact Studio theme overrides preserve the current neutral/minimal visual character.
+- [ ] At least representative shell controls use Kumo components.
+- [ ] Existing BPMN / Mermaid / OPA / Dagu functionality remains usable.
+- [ ] BPMN and Mermaid lazy-loading behavior remains intact.
+- [ ] production build succeeds.
+- [ ] tests succeed.
+- [ ] no new lint errors are introduced.
+- [ ] migration remains incremental; adapter semantics are not coupled to React/Kumo.
+
+## Future follow-up
+
+Implement a collapsible left session-history column using Kumo `Sidebar` after the Kumo foundation/theme is stable. Session history itself remains an Artifact Studio application pattern rather than a design-system primitive.
