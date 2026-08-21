@@ -1,5 +1,11 @@
 import { GraphProjectionError } from '../core/graph-projection.js';
 import {
+  BonitaBdmSourceError,
+  bonitaBdmGraphProjection,
+  inspectBonitaBdm,
+  validateBonitaBdmSource,
+} from '../adapters/bonita-bdm.js';
+import {
   DaguCliError,
   DaguSourceError,
   daguGraphProjection,
@@ -18,6 +24,7 @@ import {
 
 const OPA_MAX_BODY_BYTES = 6 * 1024 * 1024;
 const DAGU_MAX_BODY_BYTES = 3 * 1024 * 1024;
+const BONITA_BDM_MAX_BODY_BYTES = 5 * 1024 * 1024;
 
 function sendJson(res, status, value) {
   const body = JSON.stringify(value);
@@ -52,6 +59,17 @@ function opaErrorStatus(error) {
     if (error.code === 'OPA_OUTPUT_LIMIT') return 413;
     return 422;
   }
+  return 500;
+}
+
+function bonitaBdmErrorStatus(error) {
+  if (error instanceof BonitaBdmSourceError) {
+    return error.code === 'BONITA_BDM_SOURCE_TOO_LARGE' ||
+      error.code === 'BONITA_BDM_REQUEST_TOO_LARGE'
+      ? 413
+      : 400;
+  }
+  if (error instanceof GraphProjectionError) return 422;
   return 500;
 }
 
@@ -169,8 +187,48 @@ async function handleDaguRequest(req, res) {
   }
 }
 
+async function handleBonitaBdmRequest(req, res) {
+  if (req.method !== 'POST') {
+    sendJson(res, 405, { error: 'Method Not Allowed' });
+    return;
+  }
+
+  try {
+    const body = await readJson(
+      req,
+      BONITA_BDM_MAX_BODY_BYTES,
+      (maxBytes) =>
+        new BonitaBdmSourceError(
+          `Request body exceeds ${maxBytes} bytes`,
+          'BONITA_BDM_REQUEST_TOO_LARGE',
+        ),
+      () => new BonitaBdmSourceError('Invalid JSON request body', 'BONITA_BDM_REQUEST_INVALID'),
+    );
+    const source = body.source;
+    switch (req.url) {
+      case '/api/v1/artifacts/bonita-bdm/check':
+        sendJson(res, 200, { status: 'success', ...validateBonitaBdmSource(source) });
+        return;
+      case '/api/v1/artifacts/bonita-bdm/inspect':
+        sendJson(res, 200, { status: 'success', model: inspectBonitaBdm(source) });
+        return;
+      case '/api/v1/artifacts/bonita-bdm/project':
+        sendJson(res, 200, { status: 'success', graph: bonitaBdmGraphProjection(source) });
+        return;
+      default:
+        sendJson(res, 404, { error: 'Not Found' });
+    }
+  } catch (error) {
+    sendJson(res, bonitaBdmErrorStatus(error), errorPayload(error, 'BONITA_BDM_INTERNAL_ERROR'));
+  }
+}
+
 export function isArtifactHttpRoute(url = '') {
-  return url.startsWith('/api/v1/artifacts/opa/') || url.startsWith('/api/v1/artifacts/dagu/');
+  return (
+    url.startsWith('/api/v1/artifacts/opa/') ||
+    url.startsWith('/api/v1/artifacts/dagu/') ||
+    url.startsWith('/api/v1/artifacts/bonita-bdm/')
+  );
 }
 
 export async function handleArtifactHttpRequest(req, res) {
@@ -180,6 +238,10 @@ export async function handleArtifactHttpRequest(req, res) {
   }
   if (req.url.startsWith('/api/v1/artifacts/dagu/')) {
     await handleDaguRequest(req, res);
+    return;
+  }
+  if (req.url.startsWith('/api/v1/artifacts/bonita-bdm/')) {
+    await handleBonitaBdmRequest(req, res);
     return;
   }
   sendJson(res, 404, { error: 'Not Found' });

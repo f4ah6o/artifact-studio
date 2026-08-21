@@ -77,13 +77,23 @@ Status: implemented.
 
 ### Dagu
 
-Target (next):
+Status: implemented.
 
 - Canonical model: Dagu workflow YAML
 - Renderer/editor: YAML source + generic DAG GraphProjection preview
 - Validation: official `dagu validate`
 - Runtime authority: Dagu CLI / built-in MCP, not Artifact Studio
 - Export: `.yaml` / `.yml`
+
+### Bonita BDM
+
+Status: implemented.
+
+- Canonical model: Bonita `bdm/bom.xml`; Artifact Studio does not introduce a competing BDM schema
+- Editor/viewer: raw XML + Business Object list/details + relation graph
+- Validation: XML and safe structural checks; full runtime compatibility remains Bonita's authority
+- Derived view: aggregation/composition `GraphProjection`
+- Export: canonical `bom.xml` source without lossy regeneration
 
 ### n8n
 

@@ -596,3 +596,94 @@ textarea:focus {
     justify-content: flex-end;
   }
 }
+
+.bonita-bdm-preview-pane {
+  display: grid;
+  grid-template-rows: auto minmax(84px, auto) auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.bonita-bdm-object-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  border-bottom: 1px solid var(--border-color, #d8dee4);
+  max-height: 150px;
+  overflow: auto;
+}
+
+.bonita-bdm-object-button {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 120px;
+  padding: 7px 9px;
+  border: 1px solid var(--border-color, #d8dee4);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.bonita-bdm-object-button.active {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+.bonita-bdm-object-button span {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.bonita-bdm-graph {
+  min-height: 0;
+  overflow: auto;
+}
+
+.bonita-bdm-object-details {
+  display: grid;
+  gap: 8px;
+}
+
+.bonita-bdm-qualified-name {
+  overflow-wrap: anywhere;
+}
+
+.bonita-bdm-description {
+  white-space: pre-wrap;
+}
+
+.bonita-bdm-detail-heading {
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.bonita-bdm-detail-row {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.bonita-bdm-detail-row > :last-child {
+  overflow-wrap: anywhere;
+}
+
+.bonita-bdm-field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  overflow-wrap: anywhere;
+}
+
+.bonita-bdm-relation-badge {
+  font-size: 10px;
+  padding: 2px 5px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  opacity: 0.75;
+}

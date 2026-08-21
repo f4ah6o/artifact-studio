@@ -1,6 +1,6 @@
 # Bonita BDM Adapter
 
-Status: open
+Status: closed
 Date: 2026-08-21
 Target: Artifact Studio
 
@@ -150,20 +150,33 @@ Use `HostRuntime` for adapter HTTP calls. Do not add direct client `fetch()` cal
 
 ## Acceptance criteria
 
-- [ ] `bonita-bdm` appears as an Artifact Studio adapter.
-- [ ] `bom.xml` is inferred as Bonita BDM without affecting BPMN XML inference.
-- [ ] Official-style Bonita BDM XML parses into Business Objects and fields.
-- [ ] Primitive and relation fields are distinguished.
-- [ ] aggregation/composition relationships project to GraphProjection.
-- [ ] malformed XML and unresolved relation references produce explicit findings/errors.
-- [ ] source XML remains the canonical persisted artifact.
-- [ ] UI shows source, object details, and relationship graph.
-- [ ] adapter client uses HostRuntime rather than direct fetch.
-- [ ] tests cover parsing, validation, projection, adapter inference, HTTP route, and lazy client activation.
-- [ ] `vp check`, `vp test --run`, and `vp build` pass.
+- [x] `bonita-bdm` appears as an Artifact Studio adapter.
+- [x] `bom.xml` is inferred as Bonita BDM without affecting BPMN XML inference.
+- [x] Official-style Bonita BDM XML parses into Business Objects and fields.
+- [x] Primitive and relation fields are distinguished.
+- [x] aggregation/composition relationships project to GraphProjection.
+- [x] malformed XML and unresolved relation references produce explicit findings/errors.
+- [x] source XML remains the canonical persisted artifact.
+- [x] UI shows source, object details, and relationship graph.
+- [x] adapter client uses HostRuntime rather than direct fetch.
+- [x] tests cover parsing, validation, projection, adapter inference, HTTP route, and lazy client activation.
+- [x] `vp check`, `vp test --run`, and `vp build` pass.
 
 ## Evidence / references
 
 - Bonita Studio source: `BusinessDataModel.ecore` describes BusinessObject, Field, RelationField, constraints, indexes and queries.
 - Bonita Studio source: `BusinessObjectModelFileStore.BOM_FILENAME = "bom.xml"` and uses `BusinessObjectModelConverter` to unmarshall/marshall it.
 - Bonitasoft Community getting-started project: `bdm/bom.xml` provides a real canonical example.
+
+## Completion evidence
+
+Implemented in Artifact Studio as a canonical-source Bonita BDM adapter.
+
+- `bdm/bom.xml` remains authoritative; no Artifact Studio-specific BDM schema was introduced.
+- Added structural XML parsing/validation, Business Object inspection, relation `GraphProjection`, lazy UI integration, and lossless source export.
+- Exact `bom.xml` filename inference does not claim arbitrary XML files.
+- Client adapter actions use the generic `HostRuntime` boundary.
+- `vp check`: pass (0 errors; pre-existing repository warnings remain).
+- `vp test --run`: 445 passed, 1 skipped.
+- `vp build`: pass.
+- `git diff --check`: pass.

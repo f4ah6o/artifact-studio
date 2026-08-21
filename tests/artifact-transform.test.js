@@ -29,7 +29,7 @@ describe('ArtifactTransform registry', () => {
     expect(registry.list()).toEqual([graphProjectionToMermaidTransform]);
     expect(registry.get('graph-projection-to-mermaid')).toMatchObject({
       id: 'graph-projection-to-mermaid',
-      from: ['opa', 'dagu'],
+      from: ['opa', 'dagu', 'bonita-bdm'],
       to: 'mermaid',
       version: '1',
     });
@@ -37,6 +37,9 @@ describe('ArtifactTransform registry', () => {
       'graph-projection-to-mermaid',
     ]);
     expect(registry.applicableTo('dagu').map((transform) => transform.id)).toEqual([
+      'graph-projection-to-mermaid',
+    ]);
+    expect(registry.applicableTo('bonita-bdm').map((transform) => transform.id)).toEqual([
       'graph-projection-to-mermaid',
     ]);
     expect(registry.applicableTo('bpmn')).toEqual([]);

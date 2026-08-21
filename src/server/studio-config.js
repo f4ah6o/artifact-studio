@@ -1,4 +1,4 @@
-const SUPPORTED_ADAPTERS = ['bpmn', 'mermaid', 'opa', 'dagu'];
+const SUPPORTED_ADAPTERS = ['bpmn', 'mermaid', 'opa', 'dagu', 'bonita-bdm'];
 
 export function resolveStudioConfig(env = process.env, cfg = {}) {
   const configured = env.ARTIFACT_STUDIO_ENABLED_ADAPTERS

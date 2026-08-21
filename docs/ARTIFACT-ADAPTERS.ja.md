@@ -74,17 +74,27 @@ Status: implemented.
 - Derived views: dependency graph、decision/evaluation result、test/coverage result
 - Persistence/export: generic workspace envelope / `.opa-workspace.json`
 
-## 次のadapter候補
-
 ### Dagu
 
-Target: next.
+Status: implemented.
 
 - Canonical model: Dagu workflow YAML
 - Renderer/editor: YAML source + generic DAG `GraphProjection` preview
 - Validation: official `dagu validate`
 - Runtime authority: Dagu CLI / built-in MCP。Artifact Studioはscheduler/runtimeを再実装しない
 - Export: `.yaml` / `.yml`
+
+### Bonita BDM
+
+Status: implemented.
+
+- Canonical model: Bonita `bdm/bom.xml`。Artifact Studio独自の競合BDM schemaは作らない
+- Editor/viewer: raw XML + Business Object list/detail + relation graph
+- Validation: XML / safe structural check。Bonita Runtime完全互換のvalidationはBonitaをauthorityとする
+- Derived view: aggregation/compositionの `GraphProjection`
+- Export: lossyな再生成をせずcanonical `bom.xml` sourceを保持
+
+## 次のadapter候補
 
 ### Bento
 

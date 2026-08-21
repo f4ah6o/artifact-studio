@@ -144,6 +144,51 @@ describe('HTTP API', () => {
     expect((await response.json()).error).toMatch(/Invalid JSON/);
   });
 
+  test('Bonita BDM inspect and projection are served by the main HTTP server', async () => {
+    const source = `<?xml version="1.0"?><businessObjectModel modelVersion="1.0"><businessObjects>
+      <businessObject qualifiedName="com.company.Order"><fields>
+        <relationField type="COMPOSITION" reference="com.company.Line" fetchType="LAZY" name="lines" nullable="false" collection="true"/>
+      </fields><uniqueConstraints/><queries/><indexes/></businessObject>
+      <businessObject qualifiedName="com.company.Line"><fields>
+        <field type="STRING" name="description" nullable="false" collection="false"/>
+      </fields><uniqueConstraints/><queries/><indexes/></businessObject>
+    </businessObjects></businessObjectModel>`;
+
+    const inspected = await fetch(`${baseUrl}/api/v1/artifacts/bonita-bdm/inspect`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source }),
+    });
+    expect(inspected.status).toBe(200);
+    expect(await inspected.json()).toMatchObject({
+      status: 'success',
+      model: {
+        modelVersion: '1.0',
+        errors: [],
+        businessObjects: [
+          { qualifiedName: 'com.company.Order' },
+          { qualifiedName: 'com.company.Line' },
+        ],
+      },
+    });
+
+    const projected = await fetch(`${baseUrl}/api/v1/artifacts/bonita-bdm/project`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source }),
+    });
+    expect(projected.status).toBe(200);
+    const projection = await projected.json();
+    expect(projection.status).toBe('success');
+    expect(projection.graph.nodes).toHaveLength(2);
+    expect(projection.graph.edges).toEqual([
+      expect.objectContaining({
+        kind: 'composition',
+        metadata: expect.objectContaining({ fieldName: 'lines' }),
+      }),
+    ]);
+  });
+
   test('Dagu projection is served by the main HTTP server without the Dagu binary', async () => {
     const response = await fetch(`${baseUrl}/api/v1/artifacts/dagu/project`, {
       method: 'POST',

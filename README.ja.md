@@ -6,13 +6,15 @@
 
 Artifact Studio は、構造化 Artifact の生成・編集・検証・描画・保存・書き出しを行う local-first の Workbench です。
 
-現在のコードベースでは3つの adapter を実装しています。
+現在のコードベースでは5つの adapter を実装しています。
 
 | Adapter | Canonical content | 現在の機能 |
 |---|---|---|
 | BPMN | Logic-Core JSON / BPMN 2.0 XML | 生成、import、検証、deterministic layout、編集、BPMN + SVG export |
 | Mermaid | Mermaid source | 編集、検証、正規化、preview、export |
 | OPA / Rego | multi-file workspace | 編集、保存、format、check、eval、test、coverage、dependency graph |
+| Dagu | Dagu workflow YAML | 編集、step/dependencyのvisual編集、Dagu CLI検証、dependency graph、export |
+| Bonita BDM | Bonita `bdm/bom.xml` | canonical XML編集、構造検証、Business Object確認、relation graph、export |
 
 BPMN が最も成熟した adapter ですが、browser shell と persistence はすでに BPMN 専用ではありません。
 

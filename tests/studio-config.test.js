@@ -47,10 +47,10 @@ describe('resolveStudioConfig', () => {
     ).toEqual({ defaultAdapter: 'opa', enabledAdapters: ['opa'] });
   });
 
-  test('enables Dagu by default when no adapter list is configured', () => {
+  test('enables all built-in adapters by default when no adapter list is configured', () => {
     expect(resolveStudioConfig()).toEqual({
       defaultAdapter: 'bpmn',
-      enabledAdapters: ['bpmn', 'mermaid', 'opa', 'dagu'],
+      enabledAdapters: ['bpmn', 'mermaid', 'opa', 'dagu', 'bonita-bdm'],
     });
   });
 });

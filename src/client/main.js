@@ -73,6 +73,7 @@ const els = {
 const adapterUiLoaders = Object.freeze({
   opa: () => import('./opa-extension.js'),
   dagu: () => import('./dagu-extension.js'),
+  'bonita-bdm': () => import('./bonita-bdm-extension.js'),
 });
 const adapterUiPromises = new Map();
 

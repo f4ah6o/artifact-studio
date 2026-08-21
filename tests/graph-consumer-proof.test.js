@@ -23,6 +23,21 @@ describe('GraphProjection second-consumer proof', () => {
     expect(inferAdapterFromFileName('workflow.yml')).toBe('dagu');
   });
 
+  test('registers Bonita BDM as an exact bom.xml text artifact without stealing generic XML', () => {
+    const bdm = getArtifactAdapter('bonita-bdm');
+    expect(bdm).toMatchObject({
+      id: 'bonita-bdm',
+      contentKind: 'text',
+      exportFileName: 'bom.xml',
+    });
+    expect(supportsCapability(bdm, 'validate')).toBe(true);
+    expect(supportsCapability(bdm, 'project')).toBe(true);
+    expect(inferAdapterFromFileName('bom.xml')).toBe('bonita-bdm');
+    expect(inferAdapterFromFileName('/project/bdm/BOM.XML')).toBe('bonita-bdm');
+    expect(inferAdapterFromFileName('process.bpmn.xml')).toBe('bpmn');
+    expect(inferAdapterFromFileName('arbitrary.xml')).toBe(null);
+  });
+
   test('OPA and Dagu normalize to the same graph contract and render through one generic entry point', () => {
     const opa = dependencyProjection(
       {

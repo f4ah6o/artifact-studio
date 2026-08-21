@@ -44,6 +44,7 @@
     "bpmn-js-i18n": "2.4.0",
     "bpmn-moddle": "^10.0.0",
     "elkjs": "^0.11.1",
+    "fast-xml-parser": "^5.11.0",
     "mermaid": "11.16.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

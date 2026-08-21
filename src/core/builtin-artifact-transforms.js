@@ -9,7 +9,7 @@ import { graphProjectionToMermaid } from './graph-projection-mermaid.js';
 export const graphProjectionToMermaidTransform = defineArtifactTransform({
   id: 'graph-projection-to-mermaid',
   label: 'Graph Projection to Mermaid',
-  from: ['opa', 'dagu'],
+  from: ['opa', 'dagu', 'bonita-bdm'],
   to: 'mermaid',
   version: '1',
   async transform(artifact, context) {

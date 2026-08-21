@@ -112,6 +112,32 @@
           </section>
         </div>
 
+        <div
+          id="bonita-bdm-pane"
+          class="artifact-view mermaid-pane hidden"
+          aria-label="Bonita BDM editor"
+        >
+          <section class="source-pane">
+            <div class="artifact-pane-heading">Bonita BDM / bom.xml</div>
+            <textarea
+              id="bonita-bdm-source"
+              class="source-editor"
+              spellcheck="false"
+              placeholder="&lt;businessObjectModel&gt;&#10;  &lt;businessObjects&gt;...&lt;/businessObjects&gt;&#10;&lt;/businessObjectModel&gt;"
+            ></textarea>
+          </section>
+          <section class="preview-pane bonita-bdm-preview-pane">
+            <div class="artifact-pane-heading">Business Objects</div>
+            <div id="bonita-bdm-object-list" class="bonita-bdm-object-list">
+              <span class="muted">bom.xml を開くと Business Object を表示します。</span>
+            </div>
+            <div class="artifact-pane-heading">Relationship graph</div>
+            <div id="bonita-bdm-preview" class="mermaid-preview bonita-bdm-graph">
+              <span class="muted">aggregation / composition の関係を表示します。</span>
+            </div>
+          </section>
+        </div>
+
         <div id="opa-pane" class="artifact-view opa-pane hidden" aria-label="OPA workspace editor">
           <section class="opa-files">
             <div>

@@ -102,6 +102,19 @@ export const artifactAdapters = Object.freeze({
       views: ['source', 'preview'],
     }),
   }),
+  'bonita-bdm': Object.freeze({
+    id: 'bonita-bdm',
+    label: 'Bonita BDM',
+    accept: '.xml,application/xml,text/xml',
+    exportFileName: 'bom.xml',
+    promptPlaceholder: 'Bonita BDM は bom.xml を開いて編集してください。',
+    contentKind: 'text',
+    capabilities: adapterCapabilities({
+      validate: true,
+      project: true,
+      views: ['source', 'preview'],
+    }),
+  }),
 });
 
 export function getArtifactAdapter(id) {
@@ -110,6 +123,8 @@ export function getArtifactAdapter(id) {
 
 export function inferAdapterFromFileName(fileName) {
   const name = String(fileName || '').toLowerCase();
+  const baseName = name.split(/[/]/).at(-1) || name;
+  if (baseName === 'bom.xml') return 'bonita-bdm';
   if (name.endsWith('.bpmn') || name.endsWith('.bpmn.xml')) return 'bpmn';
   if (name.endsWith('.mmd') || name.endsWith('.mermaid')) return 'mermaid';
   if (name.endsWith('.rego') || name.endsWith('.opa-workspace.json')) return 'opa';

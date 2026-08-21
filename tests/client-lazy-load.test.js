@@ -15,6 +15,10 @@ const themeSource = readFileSync(
   new URL('../src/client/artifact-studio-theme.css', import.meta.url),
   'utf8',
 );
+const bonitaBdmExtensionSource = readFileSync(
+  new URL('../src/client/bonita-bdm-extension.js', import.meta.url),
+  'utf8',
+);
 
 describe('client adapter lazy loading', () => {
   test('BPMN modeler is dynamically imported outside the shell entry', () => {
@@ -33,11 +37,18 @@ describe('client adapter lazy loading', () => {
     expect(adapterSource).toContain('mermaidRenderSequence += 1');
   });
 
-  test('OPA and Dagu browser extensions are not eager index entries', () => {
+  test('OPA, Dagu, and Bonita BDM browser extensions are not eager index entries', () => {
     expect(indexSource).not.toContain('/src/client/opa-extension.js');
     expect(indexSource).not.toContain('/src/client/dagu-extension.js');
+    expect(indexSource).not.toContain('/src/client/bonita-bdm-extension.js');
     expect(mainSource).toContain("opa: () => import('./opa-extension.js')");
     expect(mainSource).toContain("dagu: () => import('./dagu-extension.js')");
+    expect(mainSource).toContain("'bonita-bdm': () => import('./bonita-bdm-extension.js')");
+  });
+
+  test('Bonita BDM client delegates server actions through HostRuntime', () => {
+    expect(bonitaBdmExtensionSource).toContain("hostRuntime().artifactAction('bonita-bdm'");
+    expect(bonitaBdmExtensionSource).not.toContain('fetch(');
   });
 
   test('Kumo shell uses granular components and preserves adapter runtime boundaries', () => {

@@ -6,13 +6,15 @@
 
 Artifact Studio is a local-first workbench for generating, editing, validating, rendering, persisting, and exporting structured artifacts.
 
-The current codebase ships three adapters:
+The current codebase ships five adapters:
 
 | Adapter | Canonical content | Current capabilities |
 |---|---|---|
 | BPMN | Logic-Core JSON / BPMN 2.0 XML | generate, import, validate, deterministic layout, edit, export BPMN + SVG |
 | Mermaid | Mermaid source | edit, validate, normalize, preview, export |
 | OPA / Rego | multi-file workspace | edit, persist, format, check, eval, test, coverage, dependency graph |
+| Dagu | Dagu workflow YAML | edit, visual step/dependency editing, validate with Dagu CLI, dependency graph, export |
+| Bonita BDM | Bonita `bdm/bom.xml` | edit canonical XML, structural validation, Business Object inspection, relation graph, export |
 
 BPMN remains the most mature adapter, but the browser shell and persistence layer are no longer BPMN-only.
 
@@ -112,7 +114,7 @@ Adapter-specific runtime semantics stay behind their adapter boundary. For examp
 
 ## HTTP and MCP
 
-The Artifact Studio HTTP server is the single API boundary for BPMN, Mermaid, OPA, Dagu, configuration, chat, and telemetry. Adapter-specific actions are namespaced under `/api/v1/artifacts/<adapter>/...`; external runtimes such as the OPA and Dagu CLIs remain adapter implementation details rather than separate HTTP services.
+The Artifact Studio HTTP server is the single API boundary for BPMN, Mermaid, OPA, Dagu, Bonita BDM, configuration, chat, and telemetry. Adapter-specific actions are namespaced under `/api/v1/artifacts/<adapter>/...`; external runtimes such as the OPA and Dagu CLIs remain adapter implementation details rather than separate HTTP services.
 
 The repository also includes a BPMN MCP server with these tools:
 
