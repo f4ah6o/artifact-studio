@@ -37,8 +37,6 @@ process.on('SIGINT', () => shutdown(0));
 process.on('SIGTERM', () => shutdown(0));
 
 const apiPort = process.env.API_PORT || '3000';
-const opaApiPort = process.env.OPA_API_PORT || '3001';
-const daguApiPort = process.env.DAGU_API_PORT || '3002';
 start(process.execPath, ['--watch', 'src/server/http-server.js'], {
   env: {
     ...process.env,
@@ -47,20 +45,6 @@ start(process.execPath, ['--watch', 'src/server/http-server.js'], {
   },
 });
 
-start(process.execPath, ['--watch', 'src/server/opa-http-server.js'], {
-  env: {
-    ...process.env,
-    OPA_API_PORT: opaApiPort,
-  },
-});
-
-start(process.execPath, ['--watch', 'src/server/dagu-http-server.js'], {
-  env: {
-    ...process.env,
-    DAGU_API_PORT: daguApiPort,
-  },
-});
-
 start('vp', ['dev'], {
-  env: { ...process.env, OPA_API_PORT: opaApiPort, DAGU_API_PORT: daguApiPort },
+  env: { ...process.env, API_PORT: apiPort },
 });

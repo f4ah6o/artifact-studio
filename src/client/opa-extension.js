@@ -404,6 +404,7 @@ window.addEventListener('artifact-studio:flush-active-artifact', () => {
 });
 
 window.addEventListener('artifact-studio:active-artifact-changed', (event) => {
+  syncUi();
   if (event.detail?.adapterId !== 'opa') return;
   clearTimeout(persistTimer);
   workspace = restoreWorkspace();

@@ -25,11 +25,12 @@ vp install
 vp run dev
 ```
 
-開発アプリでは次の3プロセスを起動します。
+開発アプリでは次の2プロセスを起動します。
 
 - Artifact Studio API: 既定 `http://127.0.0.1:3000`
-- OPA adapter sidecar: 既定 `http://127.0.0.1:3001`
 - Vite+ development server: 通常 port `5173`
+
+OPA / Dagu actions は Artifact Studio API の `/api/v1/artifacts/*` 配下で処理し、adapterごとのHTTP portは使用しません。
 
 OPA は optional です。`opa` executable がなくても BPMN / Mermaid は利用できます。OPA actions を使う場合は OPA を `PATH` に置くか、`OPA_BINARY` に absolute executable path を設定してください。
 
@@ -37,7 +38,6 @@ port 等は上書きできます。
 
 ```bash
 API_PORT=3200 \
-OPA_API_PORT=3201 \
 VITE_PORT=5273 \
 VITE_HOST=127.0.0.1 \
 vp run dev
@@ -112,7 +112,7 @@ adapter 固有の runtime semantics は adapter boundary の内側に留めま�
 
 ## HTTP / MCP
 
-main HTTP server は BPMN generate/import/validate/orchestrate、Mermaid generation、config、chat、telemetry を提供します。OPA sidecar は OPA 固有の check/format/eval/test/dependency endpoints を提供します。
+Artifact Studio HTTP server を単一のAPI boundaryとし、BPMN / Mermaid / OPA / Dagu / config / chat / telemetry を同じportで提供します。adapter固有actionは `/api/v1/artifacts/<adapter>/...` にnamespaceし、OPA / Dagu CLI等の外部runtimeはadapter内部実装として扱います。
 
 BPMN MCP server には次の tools があります。
 

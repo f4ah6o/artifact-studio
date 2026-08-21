@@ -1,7 +1,3 @@
-import BpmnModeler from 'bpmn-js/lib/Modeler';
-import translations from 'bpmn-js-i18n/translations/ja.js';
-import 'bpmn-js/dist/assets/diagram-js.css';
-import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
 import {
   artifactAdapters,
   getArtifactAdapter,
@@ -27,20 +23,6 @@ import {
   notifyArtifactRuntimeChange,
   registerArtifactRuntime,
 } from './artifact-runtime-registry.js';
-
-function translate(template, replacements = {}) {
-  const translated = translations[template] || template;
-  return translated.replace(/{([^}]+)}/g, (_, key) => replacements[key] || `{${key}}`);
-}
-
-const japaneseTranslateModule = {
-  translate: ['value', translate],
-};
-
-const modeler = new BpmnModeler({
-  container: '#canvas',
-  additionalModules: [japaneseTranslateModule],
-});
 
 const els = {
   adapterSelect: document.querySelector('#adapter-select'),
@@ -75,6 +57,54 @@ const els = {
   aiSessionState: document.querySelector('#ai-session-state'),
   aiSessionReset: document.querySelector('#ai-session-reset-button'),
 };
+
+const adapterUiLoaders = Object.freeze({
+  opa: () => import('./opa-extension.js'),
+  dagu: () => import('./dagu-extension.js'),
+});
+const adapterUiPromises = new Map();
+
+async function ensureAdapterUi(adapterId) {
+  const loader = adapterUiLoaders[adapterId];
+  if (!loader) return;
+  if (!adapterUiPromises.has(adapterId)) {
+    adapterUiPromises.set(
+      adapterId,
+      loader().catch((error) => {
+        adapterUiPromises.delete(adapterId);
+        throw error;
+      }),
+    );
+  }
+  await adapterUiPromises.get(adapterId);
+}
+
+let bpmnModeler = null;
+let bpmnModelerPromise = null;
+
+async function ensureBpmnModeler() {
+  if (!bpmnModelerPromise) {
+    bpmnModelerPromise = import('./bpmn-runtime.js')
+      .then(({ createBpmnModeler }) => {
+        const modeler = createBpmnModeler('#canvas');
+        modeler.on('commandStack.changed', scheduleSync);
+        modeler.on('selection.changed', (event) => {
+          if (isBpmn()) renderSelected(event.newSelection?.[0] || null);
+        });
+        bpmnModeler = modeler;
+        return modeler;
+      })
+      .catch((error) => {
+        bpmnModelerPromise = null;
+        throw error;
+      });
+  }
+  return bpmnModelerPromise;
+}
+
+function currentBpmnModeler() {
+  return bpmnModeler;
+}
 
 const state = {
   activeAdapter: 'bpmn',
@@ -363,7 +393,8 @@ function asArray(value) {
 
 function extractTargetIds(message) {
   if (!isBpmn() || !state.diagramLoaded || typeof message !== 'string') return [];
-  const registry = modeler.get('elementRegistry');
+  const registry = currentBpmnModeler()?.get('elementRegistry');
+  if (!registry) return [];
   const matches = [...message.matchAll(/"([a-zA-Z_][a-zA-Z0-9_-]*)"/g)].map((m) => m[1]);
   return [...new Set(matches.filter((id) => registry.get(id)))];
 }
@@ -377,18 +408,21 @@ function allFindings() {
 
 function focusElement(id) {
   if (!isBpmn()) return;
-  const registry = modeler.get('elementRegistry');
+  const registry = currentBpmnModeler()?.get('elementRegistry');
+  if (!registry) return;
   const element = registry.get(id);
   if (!element) return;
-  const selection = modeler.get('selection');
-  const canvas = modeler.get('canvas');
+  const selection = currentBpmnModeler()?.get('selection');
+  const canvas = currentBpmnModeler()?.get('canvas');
+  if (!selection || !canvas) return;
   selection.select(element);
   if (typeof canvas.scrollToElement === 'function') canvas.scrollToElement(element);
 }
 
 function renderOverlays(findings) {
   if (!state.diagramLoaded) return;
-  const overlays = modeler.get('overlays');
+  const overlays = currentBpmnModeler()?.get('overlays');
+  if (!overlays) return;
   overlays.clear();
   if (!isBpmn()) return;
 
@@ -566,7 +600,7 @@ function updateAdapterUi() {
   els.empty.classList.toggle('hidden', !bpmn || state.diagramLoaded);
 
   if (bpmn) {
-    const selection = modeler.get('selection')?.get?.() || [];
+    const selection = currentBpmnModeler()?.get('selection')?.get?.() || [];
     renderSelected(selection[0] || null);
   } else {
     renderSelected(null);
@@ -599,6 +633,7 @@ function nextFrame() {
 }
 
 async function fitDiagramToViewport() {
+  const modeler = await ensureBpmnModeler();
   await nextFrame();
   await nextFrame();
   const canvas = modeler.get('canvas');
@@ -607,6 +642,7 @@ async function fitDiagramToViewport() {
 }
 
 async function importDiagram(xml, { persist = true } = {}) {
+  const modeler = await ensureBpmnModeler();
   state.suppressSync = true;
   try {
     await modeler.importXML(xml);
@@ -621,6 +657,7 @@ async function importDiagram(xml, { persist = true } = {}) {
 
 async function syncLogicCore({ validate = true } = {}) {
   if (!state.diagramLoaded) return null;
+  const modeler = await ensureBpmnModeler();
   setStatus('BPMN → Logic-Core 同期中…');
   const { xml } = await modeler.saveXML({ format: true });
   persistDiagramXml(xml);
@@ -715,6 +752,7 @@ function scheduleMermaidRender() {
 
 async function persistCurrentArtifact() {
   if (isBpmn() && state.diagramLoaded) {
+    const modeler = await ensureBpmnModeler();
     const { xml } = await modeler.saveXML({ format: true });
     persistDiagramXml(xml);
     return;
@@ -729,6 +767,7 @@ async function restoreAdapterArtifact(adapterId) {
   if (source === null) return false;
 
   if (adapterId === 'bpmn') {
+    const modeler = await ensureBpmnModeler();
     if (!source.trim()) {
       state.suppressSync = true;
       try {
@@ -783,6 +822,8 @@ async function activateAdapter(
   clearTimeout(state.mermaidRenderTimer);
   state.activeAdapter = adapterId;
   state.validation = { errors: [], warnings: [] };
+  if (adapterId === 'bpmn') await ensureBpmnModeler();
+  await ensureAdapterUi(adapterId);
   persistActiveAdapter(adapterId, artifactId);
   updateAdapterUi();
   renderFindings();
@@ -926,6 +967,7 @@ async function exportCurrent() {
 
   try {
     if (isBpmn()) {
+      const modeler = await ensureBpmnModeler();
       const { xml } = await modeler.saveXML({ format: true });
       persistDiagramXml(xml);
       downloadSource(xml, artifactAdapters.bpmn.exportFileName, 'application/xml');
@@ -1125,11 +1167,6 @@ async function loginCodex() {
   }
 }
 
-modeler.on('commandStack.changed', scheduleSync);
-modeler.on('selection.changed', (event) => {
-  if (isBpmn()) renderSelected(event.newSelection?.[0] || null);
-});
-
 els.adapterSelect.addEventListener('change', () => {
   activateAdapter(els.adapterSelect.value).catch((error) =>
     setStatus(`adapter切替エラー: ${error.message}`),
@@ -1194,6 +1231,7 @@ els.chatForm.addEventListener('submit', handleChatSubmit);
 registerArtifactRuntime('bpmn', {
   async currentArtifact() {
     if (!state.diagramLoaded) return null;
+    const modeler = await ensureBpmnModeler();
     const { xml } = await modeler.saveXML({ format: true });
     return currentArtifactRecord('bpmn', textContent(xml));
   },
@@ -1260,4 +1298,4 @@ async function bootstrap() {
   }
 }
 
-bootstrap();
+void bootstrap();

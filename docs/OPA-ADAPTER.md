@@ -63,13 +63,9 @@ The adapter enforces:
 
 ## Development
 
-`vp run dev` starts four local processes:
+`vp run dev` starts the Artifact Studio API and the Vite+ development server. OPA actions are handled directly by the main Artifact Studio HTTP server under `/api/v1/artifacts/opa/*`; there is no OPA sidecar port.
 
-1. the existing Artifact Studio API
-2. the OPA adapter API on `127.0.0.1:3001` by default
-3. Vite, which proxies `/api/v1/artifacts/opa/*` to the OPA adapter API
-
-Override the sidecar port with `OPA_API_PORT`. The sidecar binds to loopback only.
+The OPA CLI remains an adapter implementation detail. Its process execution, temporary workspace, request-size limits, timeout handling, and error mapping remain isolated inside the OPA adapter boundary.
 
 If OPA is not installed, the rest of Artifact Studio remains usable and OPA actions return `OPA_UNAVAILABLE` / HTTP 503.
 

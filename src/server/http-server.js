@@ -33,6 +33,7 @@ import { CFG } from '../bpmn/utils.js';
 import { resolveStudioConfig } from './studio-config.js';
 import { generateMermaidArtifact } from '../adapters/mermaid.js';
 import { ARTIFACT_STUDIO_VERSION } from '../version.js';
+import { handleArtifactHttpRequest, isArtifactHttpRoute } from './artifact-http-routes.js';
 
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.BPMN_API_KEY || null; // protects this HTTP app, unrelated to Codex auth
@@ -291,6 +292,10 @@ const server = createServer(async (req, res) => {
   // Auth + rate limiting (skip for health/config/static files)
   if (!checkAuth(req, res)) return;
   if (!checkRateLimit(req, res)) return;
+
+  // Artifact adapter actions share the main HTTP boundary. Each adapter route
+  // keeps its own request limits and runtime-specific error mapping.
+  if (isArtifactHttpRoute(url)) return handleArtifactHttpRequest(req, res);
 
   // Only POST for API endpoints
   if (method !== 'POST') return json(res, 405, { error: 'Method Not Allowed' });
@@ -569,10 +574,11 @@ const isEntryPoint = import.meta.url === `file://${process.argv[1]}`;
 if (isEntryPoint) {
   startupCheck(process.env);
   server.listen(PORT, () => {
-    console.log(`BPMN Generator HTTP API listening on port ${PORT}`);
+    console.log(`Artifact Studio HTTP API listening on port ${PORT}`);
     console.log(`  POST /api/v1/generate    — Logic-Core → BPMN + SVG`);
     console.log(`  POST /api/v1/validate    — Logic-Core → Validation`);
     console.log(`  POST /api/v1/import      — BPMN XML → Logic-Core`);
+    console.log(`  /api/v1/artifacts/*      — Artifact adapter actions`);
     console.log(`  POST /api/v1/orchestrate — Codex-assisted review + generate + compliance`);
     console.log(`  POST /api/v1/chat        — Codex discovery / grilling`);
     console.log(`  POST /api/v1/codex/login — Start managed ChatGPT login`);

@@ -28,9 +28,9 @@ vp run dev
 The development command starts:
 
 - the Artifact Studio API on `http://127.0.0.1:3000` by default;
-- the OPA adapter sidecar on `http://127.0.0.1:3001` by default;
-- the Dagu adapter sidecar on `http://127.0.0.1:3002` by default;
 - the Vite+ development server, normally on port `5173`.
+
+OPA and Dagu actions are routed through the Artifact Studio API under `/api/v1/artifacts/*`; adapters do not require dedicated HTTP ports.
 
 OPA is optional. BPMN and Mermaid remain usable without an `opa` executable. To enable OPA actions, install OPA on `PATH` or set `OPA_BINARY` to an absolute executable path.
 
@@ -38,7 +38,6 @@ Useful overrides:
 
 ```bash
 API_PORT=3200 \
-OPA_API_PORT=3201 \
 VITE_PORT=5273 \
 VITE_HOST=127.0.0.1 \
 vp run dev
@@ -113,7 +112,7 @@ Adapter-specific runtime semantics stay behind their adapter boundary. For examp
 
 ## HTTP and MCP
 
-The main HTTP server provides BPMN generation/import/validation/orchestration, Mermaid generation, configuration, chat, and telemetry endpoints. The OPA sidecar provides OPA-specific check/format/eval/test/dependency endpoints.
+The Artifact Studio HTTP server is the single API boundary for BPMN, Mermaid, OPA, Dagu, configuration, chat, and telemetry. Adapter-specific actions are namespaced under `/api/v1/artifacts/<adapter>/...`; external runtimes such as the OPA and Dagu CLIs remain adapter implementation details rather than separate HTTP services.
 
 The repository also includes a BPMN MCP server with these tools:
 

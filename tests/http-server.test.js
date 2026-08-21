@@ -122,6 +122,90 @@ describe('HTTP API', () => {
     expect(data.error).toMatch(/userText/i);
   });
 
+  test('OPA adapter actions are served by the main HTTP server', async () => {
+    const response = await fetch(`${baseUrl}/api/v1/artifacts/opa/check`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ workspace: { files: { '../policy.rego': 'package p\n' } } }),
+    });
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.code).toBe('OPA_WORKSPACE_INVALID');
+    expect(body.error).toMatch(/Unsafe workspace path/);
+  });
+
+  test('OPA adapter rejects malformed JSON workspace data through the main server', async () => {
+    const response = await fetch(`${baseUrl}/api/v1/artifacts/opa/check`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ workspace: { files: { 'data.json': '{oops' } } }),
+    });
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toMatch(/Invalid JSON/);
+  });
+
+  test('Dagu projection is served by the main HTTP server without the Dagu binary', async () => {
+    const response = await fetch(`${baseUrl}/api/v1/artifacts/dagu/project`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        source:
+          'steps:\n  - id: build\n    run: make\n  - id: test\n    depends: build\n    run: make test\n',
+      }),
+    });
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.status).toBe('success');
+    expect(body.graph).toEqual({
+      kind: 'graph',
+      nodes: [
+        { id: 'dagu:0:step:build', label: 'build', kind: 'step' },
+        { id: 'dagu:0:step:test', label: 'test', kind: 'step' },
+      ],
+      edges: [{ from: 'dagu:0:step:build', to: 'dagu:0:step:test', kind: 'depends-on' }],
+    });
+  });
+
+  test('Dagu capabilities remain available when its CLI is missing', async () => {
+    const previousBinary = process.env.DAGU_BINARY;
+    process.env.DAGU_BINARY = 'artifact-studio-definitely-missing-dagu-binary';
+    try {
+      const response = await fetch(`${baseUrl}/api/v1/artifacts/dagu/capabilities`);
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({
+        status: 'success',
+        capabilities: {
+          validate: { available: false, reason: 'DAGU_UNAVAILABLE' },
+          project: { available: true, reason: null },
+          version: null,
+        },
+      });
+    } finally {
+      if (previousBinary == null) delete process.env.DAGU_BINARY;
+      else process.env.DAGU_BINARY = previousBinary;
+    }
+  });
+
+  test('Dagu validation returns 503 through the main server when its CLI is missing', async () => {
+    const previousBinary = process.env.DAGU_BINARY;
+    process.env.DAGU_BINARY = 'artifact-studio-definitely-missing-dagu-binary';
+    try {
+      const response = await fetch(`${baseUrl}/api/v1/artifacts/dagu/check`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ source: 'steps:\n  - id: hello\n    run: echo hello\n' }),
+      });
+      expect(response.status).toBe(503);
+      expect(await response.json()).toMatchObject({
+        status: 'error',
+        code: 'DAGU_UNAVAILABLE',
+      });
+    } finally {
+      if (previousBinary == null) delete process.env.DAGU_BINARY;
+      else process.env.DAGU_BINARY = previousBinary;
+    }
+  });
+
   test('POST /api/v1/validate applies the Logic-Core schema gate', async () => {
     const res = await fetch(`${baseUrl}/api/v1/validate`, {
       method: 'POST',

@@ -303,6 +303,7 @@ window.addEventListener('artifact-studio:flush-active-artifact', () => {
 });
 
 window.addEventListener('artifact-studio:active-artifact-changed', (event) => {
+  syncUi();
   if (event.detail?.adapterId !== 'dagu') return;
   clearTimeout(persistTimer);
   clearTimeout(projectTimer);

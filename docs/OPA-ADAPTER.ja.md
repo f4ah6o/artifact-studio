@@ -63,14 +63,9 @@ adapterで次を強制する。
 
 ## Development
 
-`vp run dev` は次の4processを起動する。
+`vp run dev` は Artifact Studio API と Vite+ dev server の2processを起動する。OPA actions は main Artifact Studio HTTP server の `/api/v1/artifacts/opa/*` で直接処理し、OPA専用sidecar portは持たない。
 
-1. Artifact Studio API
-2. OPA adapter API（既定 `127.0.0.1:3001`）
-3. Dagu adapter API（既定 `127.0.0.1:3002`）
-4. Vite+ dev server。`/api/v1/artifacts/opa/*` をOPA sidecarへproxyする
-
-sidecar portは `OPA_API_PORT` で変更でき、loopbackのみにbindする。
+OPA CLIはadapter内部実装のままとし、process execution、temporary workspace、request-size limit、timeout、error mappingの分離は維持する。
 
 OPA未installでもArtifact Studioの他機能は利用でき、OPA actionsだけが `OPA_UNAVAILABLE` / HTTP 503を返す。
 
