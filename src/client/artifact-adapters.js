@@ -6,6 +6,7 @@ import {
 } from '../core/artifact-capabilities.js';
 
 let mermaidPromise = null;
+let mermaidRenderSequence = 0;
 
 async function mermaidRuntime() {
   if (!mermaidPromise) {
@@ -41,7 +42,8 @@ async function loadMermaidAdapter() {
       return text ? `${text}\n` : '';
     },
     async render(source, target) {
-      const id = `artifact-studio-mermaid-${crypto.randomUUID().replaceAll('-', '')}`;
+      mermaidRenderSequence += 1;
+      const id = `artifact-studio-mermaid-${mermaidRenderSequence}`;
       const { svg, bindFunctions } = await mermaid.render(id, String(source || ''));
       target.innerHTML = svg;
       bindFunctions?.(target);

@@ -28,6 +28,11 @@ describe('client adapter lazy loading', () => {
     expect(adapterSource).not.toContain('from "mermaid"');
   });
 
+  test('Mermaid rendering does not require crypto.randomUUID', () => {
+    expect(adapterSource).not.toContain('crypto.randomUUID');
+    expect(adapterSource).toContain('mermaidRenderSequence += 1');
+  });
+
   test('OPA and Dagu browser extensions are not eager index entries', () => {
     expect(indexSource).not.toContain('/src/client/opa-extension.js');
     expect(indexSource).not.toContain('/src/client/dagu-extension.js');
