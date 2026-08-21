@@ -90,8 +90,21 @@
             ></textarea>
           </section>
           <section class="preview-pane">
-            <div class="artifact-pane-heading">Dependency graph</div>
-            <div id="dagu-preview" class="mermaid-preview">
+            <div class="artifact-pane-heading row dagu-graph-heading">
+              <span>Dependency graph</span>
+              <div class="dagu-graph-tools" aria-label="Dagu visual editing controls">
+                <button id="dagu-add-step" class="button secondary compact" type="button">
+                  + Step
+                </button>
+                <button id="dagu-connect-step" class="button secondary compact" type="button">
+                  Connect
+                </button>
+                <button id="dagu-delete-step" class="button secondary compact" type="button">
+                  Delete
+                </button>
+              </div>
+            </div>
+            <div id="dagu-preview" class="mermaid-preview dagu-visual-preview">
               <span class="muted">Dagu YAML の step dependency graph を表示します。</span>
             </div>
           </section>

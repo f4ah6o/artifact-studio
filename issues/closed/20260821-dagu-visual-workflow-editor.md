@@ -1,6 +1,7 @@
 # Dagu Visual Workflow Editor
 
-Status: open
+Status: closed
+Closed: 2026-08-21
 Created: 2026-08-21
 
 ## Goal
@@ -109,20 +110,20 @@ The exact layout may adapt to the current shell, but should provide:
 
 ## Acceptance criteria
 
-- [ ] Dagu adapter offers a visual DAG editing view in addition to raw YAML.
-- [ ] Existing steps render as selectable nodes.
-- [ ] A user can add and delete a step visually.
-- [ ] A user can add and remove `depends` relationships visually.
-- [ ] Selecting a step exposes editable basic properties.
-- [ ] Visual mutations update canonical Dagu YAML.
-- [ ] Direct YAML edits update the visual representation.
-- [ ] Unsupported YAML fields survive supported visual edits.
-- [ ] Ambiguous/unsafe source shapes fail closed instead of losing content.
-- [ ] Existing `dagu validate` remains authoritative and works after visual edits.
-- [ ] Missing Dagu binary does not disable visual authoring.
-- [ ] Generic `GraphProjection` and renderer remain adapter-independent.
-- [ ] BPMN / Mermaid / OPA behavior does not regress.
-- [ ] tests and `vp check` pass.
+- [x] Dagu adapter offers a visual DAG editing view in addition to raw YAML.
+- [x] Existing steps render as selectable nodes.
+- [x] A user can add and delete a step visually.
+- [x] A user can add and remove `depends` relationships visually.
+- [x] Selecting a step exposes editable basic properties.
+- [x] Visual mutations update canonical Dagu YAML.
+- [x] Direct YAML edits update the visual representation.
+- [x] Unsupported YAML fields survive supported visual edits.
+- [x] Ambiguous/unsafe source shapes fail closed instead of losing content.
+- [x] Existing `dagu validate` remains authoritative and works after visual edits.
+- [x] Missing Dagu binary does not disable visual authoring.
+- [x] Generic `GraphProjection` and renderer remain adapter-independent.
+- [x] BPMN / Mermaid / OPA behavior does not regress.
+- [x] tests and `vp check` pass.
 
 ## Out of scope
 
@@ -134,3 +135,23 @@ The exact layout may adapt to the current shell, but should provide:
 - changing the canonical format away from Dagu YAML;
 - making generic `GraphProjection` bidirectionally editable;
 - arbitrary workflow layout persistence unless Dagu itself has a canonical field for it.
+
+
+## Completion evidence
+
+Implemented 2026-08-21.
+
+- Added a Dagu-owned visual DAG renderer using ELK; generic `GraphProjection` remains read-only and adapter-independent.
+- Added visual Step add/delete/select/connect controls and sidebar Step properties.
+- Added YAML Document/AST editing via the `yaml` package so unknown workflow/step fields and comments are preserved where possible.
+- Visual mutations update canonical Dagu YAML; direct YAML edits re-project into the visual graph.
+- Existing `retry_policy` fields (`limit`, `interval_sec`, `backoff`, `max_interval_sec`) are editable when their shape is safe; unsupported retry shapes are preserved read-only.
+- Ambiguous aliases, multi-document YAML, non-mapping steps, and unsafe dependency shapes fail closed for visual mutation.
+- `dagu validate` remains the semantic authority; missing Dagu CLI still permits YAML and visual authoring.
+- Tests cover empty-artifact creation, unknown-field/comment preservation, identity rename dependency rewrites, dependency add/remove, delete cleanup, retry policy editing, and fail-closed cases.
+
+Validation:
+
+- `vp check`: pass.
+- `vp test --run`: 429 passed, 1 skipped.
+- `vp build`: pass (existing large-chunk warning remains non-fatal; Dagu UI is lazy-loaded at adapter activation).

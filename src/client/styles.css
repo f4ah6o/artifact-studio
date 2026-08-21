@@ -459,3 +459,140 @@ textarea:focus {
     border-top: 1px solid #d1d5db;
   }
 }
+
+/* Dagu visual workflow editor */
+.dagu-graph-heading {
+  gap: 12px;
+}
+.dagu-graph-tools {
+  display: flex;
+  gap: 6px;
+}
+.button.compact {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+.button.secondary.active {
+  background: #dbeafe;
+  border-color: #60a5fa;
+  color: #1d4ed8;
+}
+.dagu-visual-preview {
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 12px;
+}
+.dagu-visual-svg {
+  width: 100%;
+  min-width: 520px;
+  height: 100%;
+  min-height: 320px;
+}
+.dagu-visual-edge {
+  fill: none;
+  stroke: #94a3b8;
+  stroke-width: 1.6;
+}
+.dagu-arrowhead {
+  fill: #64748b;
+}
+.dagu-visual-node {
+  cursor: pointer;
+  outline: none;
+}
+.dagu-visual-node rect {
+  fill: #fff;
+  stroke: #94a3b8;
+  stroke-width: 1.4;
+}
+.dagu-visual-node:hover rect,
+.dagu-visual-node:focus rect {
+  stroke: #2563eb;
+  stroke-width: 2;
+}
+.dagu-visual-node.selected rect {
+  fill: #eff6ff;
+  stroke: #2563eb;
+  stroke-width: 2.4;
+}
+.dagu-visual-node.connecting rect {
+  fill: #fef3c7;
+  stroke: #d97706;
+  stroke-dasharray: 5 3;
+}
+.dagu-visual-node.read-only {
+  cursor: default;
+}
+.dagu-visual-node-label {
+  fill: #1f2937;
+  font-size: 13px;
+  font-weight: 600;
+  dominant-baseline: middle;
+  pointer-events: none;
+}
+.dagu-step-properties {
+  display: grid;
+  gap: 10px;
+}
+.dagu-property-field {
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+}
+.dagu-property-field input,
+.dagu-property-field textarea {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 7px 8px;
+  background: #fff;
+  color: #111827;
+  font-size: 12px;
+  font-weight: 400;
+}
+.dagu-property-field textarea {
+  resize: vertical;
+}
+.dagu-property-apply {
+  width: 100%;
+}
+.dagu-visual-warning {
+  margin-top: 10px;
+  padding: 8px 9px;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.dagu-dependency-heading {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 12px;
+  font-weight: 700;
+}
+.dagu-dependency-list {
+  display: grid;
+  gap: 6px;
+}
+.dagu-dependency-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .dagu-graph-heading {
+    align-items: flex-start;
+  }
+  .dagu-graph-tools {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
