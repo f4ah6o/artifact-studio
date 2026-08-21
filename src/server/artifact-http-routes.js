@@ -10,8 +10,10 @@ import {
 import {
   DaguCliError,
   DaguSourceError,
+  daguDiscoveredRelationships,
   daguGraphProjection,
   daguRuntimeCapabilities,
+  daguSemanticEntities,
   validateDaguSource,
 } from '../adapters/dagu.js';
 import {
@@ -235,6 +237,18 @@ async function handleDaguRequest(req, res) {
     switch (req.url) {
       case '/api/v1/artifacts/dagu/project':
         sendJson(res, 200, { status: 'success', graph: daguGraphProjection(source) });
+        return;
+      case '/api/v1/artifacts/dagu/entities':
+        sendJson(res, 200, {
+          status: 'success',
+          entities: daguSemanticEntities(source, body.artifactId),
+        });
+        return;
+      case '/api/v1/artifacts/dagu/relationships':
+        sendJson(res, 200, {
+          status: 'success',
+          relationships: daguDiscoveredRelationships(source, body.artifactId),
+        });
         return;
       case '/api/v1/artifacts/dagu/check':
         sendJson(res, 200, { status: 'success', ...(await validateDaguSource(source)) });

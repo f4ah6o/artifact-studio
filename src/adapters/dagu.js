@@ -257,6 +257,100 @@ function graphNodeId(documentIndex, step) {
     : `dagu:${documentIndex}:anonymous:${step.index}`;
 }
 
+function requiredDaguArtifactId(artifactId) {
+  const value = typeof artifactId === 'string' && artifactId.trim() ? artifactId.trim() : null;
+  if (!value) throw new DaguSourceError('artifactId must be a non-empty string');
+  return value;
+}
+
+function daguSemanticAddress(documentIndex, identity) {
+  return `document:${documentIndex}#step:${identity}`;
+}
+
+function daguSemanticModel(source, artifactId) {
+  const normalizedArtifactId = requiredDaguArtifactId(artifactId);
+  const documents = parseDaguStructure(source);
+  const entities = [];
+  const relationships = [];
+
+  for (const document of documents) {
+    const aliases = new Map();
+    const ambiguousAliases = new Set();
+    const entityByNodeId = new Map();
+    const stepEntities = [];
+
+    for (const step of document.steps) {
+      const identity = step.id || step.name;
+      if (!identity) continue;
+      const nodeId = graphNodeId(document.documentIndex, step);
+      if (entityByNodeId.has(nodeId)) {
+        throw new DaguSourceError(
+          `duplicate Dagu semantic step identity: ${identity}`,
+          'DAGU_SEMANTIC_ID_DUPLICATE',
+        );
+      }
+      const entity = {
+        id: nodeId,
+        artifactId: normalizedArtifactId,
+        kind: 'step',
+        label: step.name || step.id,
+        address: daguSemanticAddress(document.documentIndex, identity),
+        metadata: {
+          documentIndex: document.documentIndex,
+          stepIndex: step.index,
+          id: step.id || null,
+          name: step.name || null,
+          depends: [...step.depends],
+        },
+      };
+      entities.push(entity);
+      entityByNodeId.set(nodeId, entity);
+      stepEntities.push({ step, entity });
+
+      for (const alias of [step.id, step.name].filter(Boolean)) {
+        if (aliases.has(alias) && aliases.get(alias) !== nodeId) ambiguousAliases.add(alias);
+        else aliases.set(alias, nodeId);
+      }
+    }
+
+    for (const { step, entity: sourceEntity } of stepEntities) {
+      for (const dependency of step.depends) {
+        if (ambiguousAliases.has(dependency)) continue;
+        const targetNodeId = aliases.get(dependency);
+        const targetEntity = targetNodeId ? entityByNodeId.get(targetNodeId) : null;
+        if (!targetEntity) continue;
+        relationships.push({
+          id: `dagu:discovered:${encodeURIComponent(normalizedArtifactId)}:${encodeURIComponent(sourceEntity.id)}:${encodeURIComponent(targetEntity.id)}`,
+          type: 'depends-on',
+          from: {
+            artifactId: normalizedArtifactId,
+            entityId: sourceEntity.id,
+            address: sourceEntity.address,
+          },
+          to: {
+            artifactId: normalizedArtifactId,
+            entityId: targetEntity.id,
+            address: targetEntity.address,
+          },
+          provenance: 'discovered',
+        });
+      }
+    }
+  }
+
+  entities.sort((a, b) => a.id.localeCompare(b.id, 'en'));
+  relationships.sort((a, b) => a.id.localeCompare(b.id, 'en'));
+  return { entities, relationships };
+}
+
+export function daguSemanticEntities(source, artifactId) {
+  return daguSemanticModel(source, artifactId).entities;
+}
+
+export function daguDiscoveredRelationships(source, artifactId) {
+  return daguSemanticModel(source, artifactId).relationships;
+}
+
 export function daguGraphProjection(source) {
   const documents = parseDaguStructure(source);
   const nodes = [];

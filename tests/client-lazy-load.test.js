@@ -15,6 +15,10 @@ const themeSource = readFileSync(
   new URL('../src/client/as-code-studio-theme.css', import.meta.url),
   'utf8',
 );
+const daguExtensionSource = readFileSync(
+  new URL('../src/client/dagu-extension.js', import.meta.url),
+  'utf8',
+);
 const opaExtensionSource = readFileSync(
   new URL('../src/client/opa-extension.js', import.meta.url),
   'utf8',
@@ -59,6 +63,12 @@ describe('client adapter lazy loading', () => {
     );
     expect(indexSource).toContain('id="bonita-bdm-load-sample"');
     expect(bonitaExtensionSource).toContain('../../examples/bonita-bdm/bom.xml?raw');
+  });
+
+  test('Dagu semantic entities and dependencies use the lazy HostRuntime boundary', () => {
+    expect(daguExtensionSource).toContain("api('entities'");
+    expect(daguExtensionSource).toContain("api('relationships'");
+    expect(daguExtensionSource).toContain('artifactId: artifact.id');
   });
 
   test('OPA semantic entities are exposed through the lazy HostRuntime boundary', () => {

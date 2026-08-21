@@ -2,7 +2,9 @@ import { describe, expect, test } from 'vite-plus/test';
 import { GraphProjectionError } from '../../src/core/graph-projection.js';
 import {
   DaguCliError,
+  daguDiscoveredRelationships,
   daguGraphProjection,
+  daguSemanticEntities,
   mapDaguValidationOutput,
   parseDaguStructure,
   validateDaguSource,
@@ -115,6 +117,62 @@ steps:
     run: ./deploy.sh
 `),
     ).toThrow(GraphProjectionError);
+  });
+});
+
+describe('Dagu semantic architecture model', () => {
+  const source = `
+steps:
+  - id: extract
+    name: Extract source
+    run: ./extract.sh
+  - id: transform
+    depends: extract
+    run: ./transform.sh
+  - id: load
+    depends: [transform, missing]
+    run: ./load.sh
+  - run: echo anonymous
+`;
+
+  test('exposes stable step entities and omits anonymous steps', () => {
+    const entities = daguSemanticEntities(source, 'artifact-dagu');
+    expect(entities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'dagu:0:step:extract',
+          artifactId: 'artifact-dagu',
+          kind: 'step',
+          label: 'Extract source',
+          address: 'document:0#step:extract',
+        }),
+        expect.objectContaining({
+          id: 'dagu:0:step:transform',
+          address: 'document:0#step:transform',
+          metadata: expect.objectContaining({ depends: ['extract'] }),
+        }),
+      ]),
+    );
+    expect(entities).toHaveLength(3);
+  });
+
+  test('discovers direct depends-on relationships without fabricating missing targets', () => {
+    const relationships = daguDiscoveredRelationships(source, 'artifact-dagu');
+    expect(relationships).toHaveLength(2);
+    expect(relationships).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'depends-on',
+          provenance: 'discovered',
+          from: expect.objectContaining({ address: 'document:0#step:transform' }),
+          to: expect.objectContaining({ address: 'document:0#step:extract' }),
+        }),
+        expect.objectContaining({
+          from: expect.objectContaining({ address: 'document:0#step:load' }),
+          to: expect.objectContaining({ address: 'document:0#step:transform' }),
+        }),
+      ]),
+    );
   });
 });
 

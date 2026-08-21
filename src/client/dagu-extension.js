@@ -615,6 +615,26 @@ registerArtifactRuntime('dagu', {
     if (!hasSource()) return null;
     return currentArtifactRecord('dagu', textContent(els.source.value));
   },
+  async semanticEntities(artifact) {
+    if (artifact?.content?.kind !== 'text') {
+      throw new Error('Dagu semantic entities require text artifact content');
+    }
+    const result = await api('entities', {
+      source: artifact.content.source,
+      artifactId: artifact.id,
+    });
+    return result.entities || [];
+  },
+  async discoverRelationships(artifact) {
+    if (artifact?.content?.kind !== 'text') {
+      throw new Error('Dagu relationship discovery requires text artifact content');
+    }
+    const result = await api('relationships', {
+      source: artifact.content.source,
+      artifactId: artifact.id,
+    });
+    return result.relationships || [];
+  },
   async project(artifact) {
     if (artifact?.content?.kind !== 'text') {
       throw new Error('Dagu project requires text artifact content');

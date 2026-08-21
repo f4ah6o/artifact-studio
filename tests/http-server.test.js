@@ -282,6 +282,38 @@ describe('HTTP API', () => {
     );
   });
 
+  test('Dagu semantic entities and discovered dependencies are served without the Dagu binary', async () => {
+    const source =
+      'steps:\n  - id: extract\n    run: echo extract\n  - id: load\n    depends: extract\n    run: echo load\n';
+    const entitiesResponse = await fetch(`${baseUrl}/api/v1/artifacts/dagu/entities`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source, artifactId: 'artifact-http-dagu' }),
+    });
+    expect(entitiesResponse.status).toBe(200);
+    expect((await entitiesResponse.json()).entities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'dagu:0:step:extract', kind: 'step' }),
+        expect.objectContaining({ id: 'dagu:0:step:load', kind: 'step' }),
+      ]),
+    );
+
+    const relationshipsResponse = await fetch(`${baseUrl}/api/v1/artifacts/dagu/relationships`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source, artifactId: 'artifact-http-dagu' }),
+    });
+    expect(relationshipsResponse.status).toBe(200);
+    expect((await relationshipsResponse.json()).relationships).toEqual([
+      expect.objectContaining({
+        type: 'depends-on',
+        provenance: 'discovered',
+        from: expect.objectContaining({ entityId: 'dagu:0:step:load' }),
+        to: expect.objectContaining({ entityId: 'dagu:0:step:extract' }),
+      }),
+    ]);
+  });
+
   test('Dagu projection is served by the main HTTP server without the Dagu binary', async () => {
     const response = await fetch(`${baseUrl}/api/v1/artifacts/dagu/project`, {
       method: 'POST',

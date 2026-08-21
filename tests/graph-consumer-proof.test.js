@@ -18,6 +18,8 @@ describe('GraphProjection second-consumer proof', () => {
     });
     expect(supportsCapability(dagu, 'validate')).toBe(true);
     expect(supportsCapability(dagu, 'project')).toBe(true);
+    expect(supportsCapability(dagu, 'semanticEntities')).toBe(true);
+    expect(supportsCapability(dagu, 'discoverRelationships')).toBe(true);
     expect(supportsCapability(dagu, 'format')).toBe(false);
     expect(inferAdapterFromFileName('workflow.yaml')).toBe('dagu');
     expect(inferAdapterFromFileName('workflow.yml')).toBe('dagu');
