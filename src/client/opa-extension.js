@@ -326,8 +326,8 @@ function addFile(path, source = '') {
   const safe = String(path || '')
     .trim()
     .replace(/^\.\//, '');
+  if (!safe) throw new Error('ファイル名を入力してください（例: policy.rego）');
   if (
-    !safe ||
     safe.includes('\\') ||
     safe.startsWith('/') ||
     safe.split('/').some((part) => !part || part === '.' || part === '..')
