@@ -4,39 +4,38 @@
 
 [![CI](https://github.com/f4ah6o/as-code-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/f4ah6o/as-code-studio/actions/workflows/ci.yml)
 
-As-Code Studio is a local-first workbench for creating, editing, validating, visualizing, transforming, persisting, and exporting structured as-code artifacts.
+As-Code Studio is a local-first workbench for working with structured, text-based artifacts such as business processes, diagrams, policies, workflows, and data models.
 
-The current codebase ships five adapters:
+You can open an existing artifact or create one locally, edit it in the browser, validate it, inspect a visual representation, and export the result without sending the artifact to a hosted service.
 
-| Adapter | Canonical content | Current capabilities |
-|---|---|---|
-| BPMN | Logic-Core JSON / BPMN 2.0 XML | generate, import, validate, deterministic layout, edit, export BPMN + SVG |
-| Mermaid | Mermaid source | edit, validate, normalize, preview, export |
-| OPA / Rego | multi-file workspace | edit, persist, format, check, eval, test, coverage, dependency graph |
-| Dagu | Dagu workflow YAML | edit, visual step/dependency editing, validate with Dagu CLI, dependency graph, export |
-| Bonita BDM | Bonita `bdm/bom.xml` | edit canonical XML, structural validation, Business Object inspection, relation graph, export |
+## What you can work with
 
-BPMN remains the most mature adapter, but the browser shell and persistence layer are no longer BPMN-only.
+| Format | What you can do |
+|---|---|
+| **BPMN** | Generate and import BPMN, edit the process model, validate it, apply deterministic layout, and export BPMN or SVG |
+| **Mermaid** | Edit Mermaid source, validate and normalize it, preview the diagram, and export the source |
+| **OPA / Rego** | Work with multi-file policy workspaces, format and check Rego, evaluate policies, run tests, inspect coverage, and view dependencies |
+| **Dagu** | Edit workflow YAML, edit steps and dependencies visually, inspect the dependency graph, validate, and export YAML |
+| **Bonita BDM** | Edit `bdm/bom.xml`, validate its structure, inspect Business Objects and relations, and export the XML |
 
-## Quick start
+BPMN currently has the broadest editing workflow, while the same Studio shell is also used for the other artifact types.
 
-Vite+ manages the JavaScript toolchain and package manager for this repository.
+## Run As-Code Studio
+
+This repository currently runs from source using Vite+ (`vp`).
 
 ```bash
+git clone https://github.com/f4ah6o/as-code-studio.git
+cd as-code-studio
 vp install
 vp run dev
 ```
 
-The development command starts:
+Then open the Vite development URL shown in the terminal (normally `http://127.0.0.1:5173`).
 
-- the As-Code Studio API on `http://127.0.0.1:3000` by default;
-- the Vite+ development server, normally on port `5173`.
+The local API runs on `http://127.0.0.1:3000` by default.
 
-OPA and Dagu actions are routed through the As-Code Studio API under `/api/v1/artifacts/*`; adapters do not require dedicated HTTP ports.
-
-OPA is optional. BPMN and Mermaid remain usable without an `opa` executable. To enable OPA actions, install OPA on `PATH` or set `OPA_BINARY` to an absolute executable path.
-
-Useful overrides:
+To use different ports:
 
 ```bash
 API_PORT=3200 \
@@ -45,37 +44,38 @@ VITE_HOST=127.0.0.1 \
 vp run dev
 ```
 
-## Development gates
+## Basic workflow
 
-Run these from the repository root:
+1. Choose the artifact type you want to work with.
+2. Create an artifact or open an existing file.
+3. Edit the source or visual model in the Studio.
+4. Run the validation and artifact-specific actions you need.
+5. Preview or inspect the resulting model, graph, decision, or test view.
+6. Export the artifact when you are done.
 
-```bash
-vp check
-vp test --run
-vp build
-```
+Supported file types include `.bpmn`, `.xml`, `.mmd`, `.mermaid`, `.rego`, `.yaml`, `.yml`, and OPA workspace JSON files. The Studio also recognizes Bonita `bom.xml` files.
 
-The CI workflow runs the same gates on supported Node.js LTS releases and finishes with a BPMN generation smoke test.
+## Optional external tools
 
-## Versioning
+Most BPMN and Mermaid work is self-contained.
 
-As-Code Studio uses CalVer `YYYY.M.PATCH`, for example `2026.8.0`. Releases are allocated by `f4ah6o/calver-action` using the `YYYY.MM.PATCH` action format (its `MM` token is an unpadded month) and the `Asia/Tokyo` timezone. Release tags are prefixless and immutable.
+OPA / Rego actions use the official `opa` executable. Install OPA on your `PATH`, or set `OPA_BINARY` to its absolute path, to enable policy evaluation, tests, coverage, and related actions.
 
-Run the **Release** workflow manually to allocate the next version, validate the repository, update `package.json` in a release-only commit when necessary, and push the CalVer tag. The application HTTP/MCP version is read from `package.json`.
+Dagu validation uses the Dagu CLI when that runtime is available.
 
-## BPMN pipeline
+## BPMN from the command line
 
-The original BPMN pipeline remains available as a direct CLI and programmatic API.
+The BPMN pipeline can also be used without the browser.
 
 ```bash
 # Logic-Core JSON -> BPMN + SVG
 node src/bpmn/pipeline.js tests/fixtures/simple-approval.json /tmp/simple-approval
 
-# Existing BPMN -> Logic-Core JSON
+# BPMN -> Logic-Core JSON
 node src/bpmn/import.js process.bpmn process.json
 ```
 
-Programmatic entry point:
+For programmatic use:
 
 ```js
 import { runPipeline } from './src/bpmn/pipeline.js';
@@ -83,67 +83,32 @@ import { runPipeline } from './src/bpmn/pipeline.js';
 const result = await runPipeline(logicCore);
 ```
 
-The BPMN path uses deterministic validation and layout. LLM output is not used to generate coordinates directly.
+BPMN layout and validation are deterministic; an LLM does not directly generate diagram coordinates.
 
-## Browser architecture
+## MCP and HTTP API
 
-The current browser application is organized around adapter-owned semantics and generic shell state:
+As-Code Studio also exposes local HTTP APIs for its artifact workflows.
 
-```text
-index.html               Vite application entry
-vite.config.ts           Vite+ dev/build/test/check configuration
-
-src/
-  client/                browser shell and browser adapter integrations
-  core/                  adapter-independent shared contracts
-  adapters/              server-side adapter semantics
-  bpmn/                  deterministic BPMN pipeline
-  ai/                    AI orchestration and providers
-  server/                HTTP/MCP runtime entry points
-
-tools/                   development, benchmark, and robustness tooling
-tests/                   executable tests, fixtures, and benchmark evidence
-```
-
-Generic artifact content currently supports:
-
-- `text` — single-source artifacts such as Mermaid;
-- `workspace` — multi-file artifacts such as OPA.
-
-Adapter-specific runtime semantics stay behind their adapter boundary. For example, Rego evaluation is delegated to the official OPA executable rather than reimplemented in JavaScript.
-
-## HTTP and MCP
-
-The As-Code Studio HTTP server is the single API boundary for BPMN, Mermaid, OPA, Dagu, Bonita BDM, configuration, chat, and telemetry. Adapter-specific actions are namespaced under `/api/v1/artifacts/<adapter>/...`; external runtimes such as the OPA and Dagu CLIs remain adapter implementation details rather than separate HTTP services.
-
-The repository also includes a BPMN MCP server with these tools:
+The included BPMN MCP server provides these tools:
 
 - `generate_bpmn`
 - `validate_bpmn`
 - `import_bpmn`
 - `orchestrate_bpmn`
 
-See [`references/api-reference.md`](references/api-reference.md) for the HTTP API and [`SKILL.md`](SKILL.md) for the agent-facing BPMN skill.
+See [`references/api-reference.md`](references/api-reference.md) for the HTTP API and [`SKILL.md`](SKILL.md) for the BPMN skill.
 
-## Documentation
+## More documentation
 
-README files describe the **current working codebase** only. Design proposals, migration plans, and future adapter work belong in `docs/` and `issues/`.
+Implementation details, adapter design, and ongoing work are kept outside the README so this page can stay focused on using the Studio.
 
-Maintained documentation is written in English and Japanese using paired files such as:
+- [Artifact adapter documentation](docs/ARTIFACT-ADAPTERS.md) / [日本語](docs/ARTIFACT-ADAPTERS.ja.md)
+- [OPA adapter documentation](docs/OPA-ADAPTER.md) / [日本語](docs/OPA-ADAPTER.ja.md)
+- [`docs/`](docs/) — technical documentation
+- [`issues/`](issues/) — active and completed implementation work
 
-```text
-docs/ARTIFACT-ADAPTERS.md
-docs/ARTIFACT-ADAPTERS.ja.md
-```
+## License
 
-Start here:
+As-Code Studio is distributed under the [MIT License](LICENSE).
 
-- [Adapter architecture](docs/ARTIFACT-ADAPTERS.md) / [日本語](docs/ARTIFACT-ADAPTERS.ja.md)
-- [OPA adapter](docs/OPA-ADAPTER.md) / [日本語](docs/OPA-ADAPTER.ja.md)
-- [Documentation policy](docs/DOCUMENTATION.md) / [日本語](docs/DOCUMENTATION.ja.md)
-- [`issues/open/`](issues/open/) — active design and implementation work
-- [`issues/closed/`](issues/closed/) — completed work with evidence
-
-## License and third-party notices
-
-As-Code Studio is distributed under the [MIT License](LICENSE). Upstream attribution, dependency licenses, and other third-party notices are kept in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+Third-party licenses and attribution are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
