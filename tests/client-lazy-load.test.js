@@ -44,6 +44,12 @@ describe('client adapter lazy loading', () => {
     expect(mainSource).toContain("opa: () => import('./opa-extension.js')");
     expect(mainSource).toContain("dagu: () => import('./dagu-extension.js')");
     expect(mainSource).toContain("'bonita-bdm': () => import('./bonita-bdm-extension.js')");
+    const bonitaExtensionSource = readFileSync(
+      new URL('../src/client/bonita-bdm-extension.js', import.meta.url),
+      'utf8',
+    );
+    expect(indexSource).toContain('id="bonita-bdm-load-sample"');
+    expect(bonitaExtensionSource).toContain('../../examples/bonita-bdm/bom.xml?raw');
   });
 
   test('Bonita BDM client delegates server actions through HostRuntime', () => {

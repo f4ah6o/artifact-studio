@@ -1,3 +1,4 @@
+import sampleSource from '../../examples/bonita-bdm/bom.xml?raw';
 import { getArtifactAdapter } from './artifact-adapters.js';
 import {
   currentArtifactRecord,
@@ -17,6 +18,7 @@ const els = {
   adapter: document.querySelector('#adapter-select'),
   pane: document.querySelector('#bonita-bdm-pane'),
   source: document.querySelector('#bonita-bdm-source'),
+  loadSample: document.querySelector('#bonita-bdm-load-sample'),
   objectList: document.querySelector('#bonita-bdm-object-list'),
   preview: document.querySelector('#bonita-bdm-preview'),
   canvas: document.querySelector('#canvas'),
@@ -365,6 +367,17 @@ async function importFile(file) {
   setStatus(`${file.name} をBonita BDMとして読み込みました`);
 }
 
+async function loadSample() {
+  if (hasSource() && els.source.value.trim() !== sampleSource.trim()) {
+    const confirmed = window.confirm('現在のBonita BDMをサンプルで置き換えますか？');
+    if (!confirmed) return;
+  }
+  els.source.value = sampleSource;
+  persistNow();
+  await inspectAndProject({ announce: true });
+  setStatus('Bonita BDM サンプルを読み込みました');
+}
+
 function syncActionStates() {
   if (!active) return;
   const loaded = hasSource();
@@ -430,6 +443,9 @@ registerArtifactRuntime('bonita-bdm', {
 });
 
 els.source.addEventListener('input', scheduleInspect);
+els.loadSample.addEventListener('click', () => {
+  void loadSample().catch((error) => setStatus(`サンプル読み込みエラー: ${error.message}`));
+});
 
 els.validate.addEventListener(
   'click',
