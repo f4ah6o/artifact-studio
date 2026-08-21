@@ -23,8 +23,8 @@ describe('resolveStudioConfig', () => {
     expect(
       resolveStudioConfig(
         {
-          ARTIFACT_STUDIO_DEFAULT_ADAPTER: 'dagu',
-          ARTIFACT_STUDIO_ENABLED_ADAPTERS: 'dagu,opa,mermaid,bpmn',
+          AS_CODE_STUDIO_DEFAULT_ADAPTER: 'dagu',
+          AS_CODE_STUDIO_ENABLED_ADAPTERS: 'dagu,opa,mermaid,bpmn',
         },
         {
           studio: { defaultAdapter: 'bpmn', enabledAdapters: ['bpmn'] },
@@ -34,6 +34,15 @@ describe('resolveStudioConfig', () => {
       defaultAdapter: 'dagu',
       enabledAdapters: ['dagu', 'opa', 'mermaid', 'bpmn'],
     });
+  });
+
+  test('accepts legacy Artifact Studio environment variables as compatibility aliases', () => {
+    expect(
+      resolveStudioConfig({
+        ARTIFACT_STUDIO_DEFAULT_ADAPTER: 'opa',
+        ARTIFACT_STUDIO_ENABLED_ADAPTERS: 'opa,bpmn',
+      }),
+    ).toEqual({ defaultAdapter: 'opa', enabledAdapters: ['opa', 'bpmn'] });
   });
 
   test('drops unknown adapters and repairs an invalid default', () => {

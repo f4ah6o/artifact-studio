@@ -6,14 +6,14 @@ Versions below reflect the current pnpm lock/install at the time this notice was
 
 ## Original BPMN Generator code
 
-Artifact Studio contains and extends code whose repository history began as **BPMN Generator**.
+As-Code Studio contains and extends code whose repository history began as **BPMN Generator**.
 
 - Original project: `dstiegler/bpmn-generator`
 - Original code copyright: Copyright (c) 2026 Daniel Stiegler
 - License: MIT
 - License text retained in this repository: [`LICENSE`](LICENSE)
 
-The original MIT notice is preserved. Subsequent Artifact Studio modifications are distributed under the repository's MIT license unless a file or dependency states otherwise.
+The original MIT notice is preserved. Subsequent As-Code Studio modifications are distributed under the repository's MIT license unless a file or dependency states otherwise.
 
 ## Runtime dependencies
 
@@ -49,7 +49,7 @@ The original MIT notice is preserved. Subsequent Artifact Studio modifications a
 - Project: https://github.com/bpmn-io/bpmn-js
 - Use: browser BPMN modeler / renderer
 
-The `bpmn-js` license requires the bpmn.io project watermark source and rendered watermark to remain intact and visible when used in a website or application. Artifact Studio must not remove, change, or visually cover that watermark.
+The `bpmn-js` license requires the bpmn.io project watermark source and rendered watermark to remain intact and visible when used in a website or application. As-Code Studio must not remove, change, or visually cover that watermark.
 
 The complete dependency license is available in the installed package as `bpmn-js/LICENSE` and in the upstream repository.
 
@@ -76,7 +76,7 @@ The complete dependency license is available in the installed package as `bpmn-j
 - Project: https://github.com/kieler/elkjs
 - Use: deterministic graph layout for BPMN
 
-Artifact Studio consumes ElkJS as a dependency and does not relicense ElkJS code under MIT. EPL-2.0 terms continue to apply to ElkJS itself.
+As-Code Studio consumes ElkJS as a dependency and does not relicense ElkJS code under MIT. EPL-2.0 terms continue to apply to ElkJS itself.
 
 ### mermaid
 
@@ -110,6 +110,6 @@ Vite+ bundles or resolves additional development tools and transitive dependenci
 
 ## Standards and references
 
-The repository implements and documents behavior related to BPMN 2.0 and cites external books, papers, specifications, and projects. A citation or compatibility target does not imply that the cited work is incorporated into Artifact Studio or relicensed under MIT.
+The repository implements and documents behavior related to BPMN 2.0 and cites external books, papers, specifications, and projects. A citation or compatibility target does not imply that the cited work is incorporated into As-Code Studio or relicensed under MIT.
 
 In particular, OMG BPMN specifications and ISO/IEC publications remain subject to their respective copyright and distribution terms.

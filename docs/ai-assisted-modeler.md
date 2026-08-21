@@ -17,7 +17,7 @@ Browser / bpmn-js
       |
       | HTTP
       v
-bpmn-generator HTTP server
+As-Code Studio HTTP server
       |
       | stdio JSONL / JSON-RPC
       v
@@ -46,11 +46,11 @@ spawn codex app-server
   -> turn/completed
 ```
 
-Artifact Studio keeps Codex runtime metadata separate from canonical artifact content. The browser persists only an opaque `aiSessionId` plus the selected model/effort for each Artifact work session; raw Codex `threadId` values stay server-side. Reloading the page reuses the same work-session identity, while switching to another Artifact resolves a different session. Opening replacement artifact content starts a new work-session identity.
+As-Code Studio keeps Codex runtime metadata separate from canonical artifact content. The browser persists only an opaque `aiSessionId` plus the selected model/effort for each Artifact work session; raw Codex `threadId` values stay server-side. Reloading the page reuses the same work-session identity, while switching to another Artifact resolves a different session. Opening replacement artifact content starts a new work-session identity.
 
 The model selector is populated from app-server `model/list`. The advertised default model and each model's `defaultReasoningEffort` / `supportedReasoningEfforts` are authoritative. `CODEX_MODEL` and `CODEX_EFFORT` remain deployment/bootstrap overrides. Changing the UI selection is applied by `turn/start` on subsequent turns and does not restart app-server.
 
-`thread/resume` is attempted for an existing work session. If Codex reports that the persisted rollout no longer exists, Artifact Studio starts a new thread and exposes the context reset in the safe AI-session status instead of leaking or accepting a browser-supplied thread id.
+`thread/resume` is attempted for an existing work session. If Codex reports that the persisted rollout no longer exists, As-Code Studio starts a new thread and exposes the context reset in the safe AI-session status instead of leaking or accepting a browser-supplied thread id.
 
 For the browser UI, ChatGPT login is initiated through `account/login/start` with `type: chatgpt`; the returned authorization URL is opened in the user's browser. There is no OpenAI API-key input in the BPMN UI.
 

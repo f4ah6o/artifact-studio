@@ -4,7 +4,8 @@ import {
   normalizeArtifactRelationships,
 } from '../core/artifact-relationship.js';
 
-export const ARTIFACT_WORKSPACE_STORAGE_KEY = 'artifact-studio:workspace:v2';
+export const ARTIFACT_WORKSPACE_STORAGE_KEY = 'as-code-studio:workspace:v2';
+export const LEGACY_ARTIFACT_STUDIO_WORKSPACE_V2_STORAGE_KEY = 'artifact-studio:workspace:v2';
 export const LEGACY_SHELL_WORKSPACE_STORAGE_KEY = 'artifact-studio:workspace:v1';
 export const LEGACY_ARTIFACT_CONTENT_STORAGE_KEY = 'artifact-studio:artifact-content:v1';
 export const LEGACY_LAST_ARTIFACT_STORAGE_KEY = 'artifact-studio:last-artifact:v1';
@@ -204,7 +205,12 @@ export function readArtifactWorkspace(storage = localStorage) {
   const current = normalizeArtifactWorkspace(
     parseJson(storage.getItem(ARTIFACT_WORKSPACE_STORAGE_KEY)),
   );
-  return current || migrateArtifactWorkspace(storage);
+  if (current) return current;
+
+  const previousProductWorkspace = normalizeArtifactWorkspace(
+    parseJson(storage.getItem(LEGACY_ARTIFACT_STUDIO_WORKSPACE_V2_STORAGE_KEY)),
+  );
+  return previousProductWorkspace || migrateArtifactWorkspace(storage);
 }
 
 export function writeArtifactWorkspace(workspace, storage = localStorage) {

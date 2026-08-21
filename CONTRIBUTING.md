@@ -1,4 +1,4 @@
-# Contributing to Artifact Studio
+# Contributing to As-Code Studio
 
 [日本語](CONTRIBUTING.ja.md)
 

@@ -2,11 +2,11 @@
 
 - Status: open
 - Date: 2026-08-21
-- Scope: Artifact Studio shell / workspace / local runtime
+- Scope: As-Code Studio shell / workspace / local runtime
 
 ## 背景
 
-Artifact Studio の Artifact Workspace v2 では、同じ adapter について複数の Artifact を保持できる。
+As-Code Studio の Artifact Workspace v2 では、同じ adapter について複数の Artifact を保持できる。
 UI には adapter selector と artifact selector と `New Artifact` がある。
 
 現状、`New Artifact` を押すたびに localStorage の workspace に新しい Artifact record が追加される。
@@ -44,7 +44,7 @@ UI は ID の先頭側だけを短縮表示しているため、複数 Artifact 
 - Dagu / OPA 等: local CLI
 
 この構成では、ローカルファイル・CLI・workspace の概念が browser origin に依存しやすい。
-Artifact Studio は実態として「ローカル開発ツール / desktop workbench」に近くなっている。
+As-Code Studio は実態として「ローカル開発ツール / desktop workbench」に近くなっている。
 
 ## 期待する Artifact lifecycle
 
@@ -78,7 +78,7 @@ Artifact record に少なくとも以下を持つ。
 
 ## Desktop application 化の検討
 
-Artifact Studio を Electron または Tauri の desktop app とし、CLI / Codex はローカル process として動かす案を検討する。
+As-Code Studio を Electron または Tauri の desktop app とし、CLI / Codex はローカル process として動かす案を検討する。
 
 ### Desktop 化で改善できる点
 
@@ -150,7 +150,7 @@ local CLI を host から spawn する構成自体は適合する。
 ## Proposed architecture
 
 ```text
-Artifact Studio UI
+As-Code Studio UI
   |
   +-- ArtifactWorkspace
   |     +-- ArtifactStore

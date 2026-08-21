@@ -3,6 +3,7 @@ import { textContent } from '../src/core/artifact-content.js';
 import { artifactRevision, derivedArtifactStatus } from '../src/core/artifact-transform.js';
 import {
   ARTIFACT_WORKSPACE_STORAGE_KEY,
+  LEGACY_ARTIFACT_STUDIO_WORKSPACE_V2_STORAGE_KEY,
   ArtifactWorkspaceStore,
   LEGACY_ARTIFACT_CONTENT_STORAGE_KEY,
   LEGACY_BPMN_STORAGE_KEY,
@@ -21,6 +22,35 @@ function memoryStorage() {
 }
 
 describe('artifact workspace v2', () => {
+  test('migrates the pre-rename Artifact Studio v2 workspace into the As-Code Studio storage namespace', () => {
+    const storage = memoryStorage();
+    storage.setItem(
+      LEGACY_ARTIFACT_STUDIO_WORKSPACE_V2_STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        activeArtifactId: 'artifact:mermaid:legacy',
+        artifacts: {
+          'artifact:mermaid:legacy': {
+            id: 'artifact:mermaid:legacy',
+            adapterId: 'mermaid',
+            title: 'Legacy diagram',
+            content: { kind: 'text', source: 'flowchart LR\n  A --> B\n' },
+            createdAt: '2026-08-21T00:00:00.000Z',
+            updatedAt: '2026-08-21T00:00:00.000Z',
+          },
+        },
+        relationships: {},
+        aiSessions: {},
+      }),
+    );
+
+    const store = new ArtifactWorkspaceStore(storage);
+    expect(store.active()?.title).toBe('Legacy diagram');
+    expect(JSON.parse(storage.getItem(ARTIFACT_WORKSPACE_STORAGE_KEY))).toMatchObject({
+      activeArtifactId: 'artifact:mermaid:legacy',
+    });
+  });
+
   test('persists multiple same-adapter artifacts with stable active identity', () => {
     const storage = memoryStorage();
     const store = new ArtifactWorkspaceStore(storage);

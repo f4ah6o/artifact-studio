@@ -1,4 +1,4 @@
-const MERMAID_SYSTEM_PROMPT = `You generate Mermaid diagram source for Artifact Studio.
+const MERMAID_SYSTEM_PROMPT = `You generate Mermaid diagram source for As-Code Studio.
 Return ONLY Mermaid source text. Do not use Markdown fences and do not add explanation.
 Use the same human language as the user's request for visible labels.
 Choose the Mermaid diagram type that best fits the request. Prefer flowchart TD for ordinary process flows unless the user requests another diagram type.

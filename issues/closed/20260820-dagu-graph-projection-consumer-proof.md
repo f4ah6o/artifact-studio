@@ -2,7 +2,7 @@
 
 Status: closed
 Date: 2026-08-20
-Target: Artifact Studio
+Target: As-Code Studio
 Parent: `issues/closed/20260820-dagu-adapter.md`
 Depends on: `issues/closed/20260820-minimal-adapter-core-before-dagu.md`
 Related:
@@ -62,7 +62,7 @@ Optional only after the proof above is complete:
 
 - generic capability queries are sufficient to expose validation/project affordances;
 - Dagu-specific operations remain action ids rather than new core methods;
-- runtime authority remains Dagu itself, not Artifact Studio;
+- runtime authority remains Dagu itself, not As-Code Studio;
 - adding Dagu must not require OPA-specific or Dagu-specific UI branching in generic capability queries.
 
 ### GraphProjection
@@ -77,7 +77,7 @@ Optional only after the proof above is complete:
 
 ## Dagu authority boundary
 
-Artifact Studio may parse enough YAML to derive a read-only graph, but must not claim semantic validity from that parser alone.
+As-Code Studio may parse enough YAML to derive a read-only graph, but must not claim semantic validity from that parser alone.
 
 Authoritative flow:
 

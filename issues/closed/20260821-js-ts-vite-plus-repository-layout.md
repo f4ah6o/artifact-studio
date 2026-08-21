@@ -2,13 +2,13 @@
 
 ## Problem
 
-Artifact Studio inherited the original BPMN generator repository layout:
+As-Code Studio inherited the original BPMN generator repository layout:
 
 - the JavaScript package root was `scripts/` rather than the repository root;
 - Vite+ configuration and dependency metadata lived under `scripts/`;
 - production modules, tests, CLI/tooling, benchmarks, HTTP servers, and developer utilities were mixed in one directory;
 - browser code lived in a separate top-level `frontend/` tree and generic cross-runtime contracts in another top-level `shared/` tree;
-- development commands required `cd scripts`, which no longer represented Artifact Studio as a web application plus Node runtime.
+- development commands required `cd scripts`, which no longer represented As-Code Studio as a web application plus Node runtime.
 
 ## Goal
 
@@ -86,9 +86,9 @@ After migration:
 - `vp check` from repository root: exit 0, 0 errors. Root/type-aware scope surfaces existing warnings but does not introduce a failing gate.
 - `vp test --run`: 18 test files passed, 1 skipped; 406 tests passed, 1 skipped — identical functional test baseline.
 - `vp build`: succeeded and writes the Vite output to root `dist/`.
-- `node src/bpmn/pipeline.js tests/fixtures/simple-approval.json /tmp/artifact-studio-smoke`: succeeded and produced BPMN + SVG.
+- `node src/bpmn/pipeline.js tests/fixtures/simple-approval.json /tmp/as-code-studio-smoke`: succeeded and produced BPMN + SVG.
 - `vp run build:skill`: succeeded and built a 44-file skill bundle from the new source paths.
 - `vp run demo` with isolated test ports: API `/health` returned `status: ok` and the root Vite dev server served `index.html` successfully.
 - `git diff --check`: clean.
 
-The migration is therefore structural: the executable test baseline is unchanged while the package/tooling/source boundaries now match the current Artifact Studio architecture.
+The migration is therefore structural: the executable test baseline is unchanged while the package/tooling/source boundaries now match the current As-Code Studio architecture.

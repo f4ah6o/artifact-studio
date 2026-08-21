@@ -152,7 +152,7 @@ function writeWorkspace() {
     state.workspace = replaceArtifactWorkspace(state.workspace || artifactWorkspaceSnapshot());
     return true;
   } catch (error) {
-    console.warn('Artifact Studio workspaceの保存に失敗しました', error);
+    console.warn('As-Code Studio workspaceの保存に失敗しました', error);
     return false;
   }
 }
@@ -614,7 +614,7 @@ function renderArtifactSelector() {
 }
 
 function flushArtifactEditors() {
-  window.dispatchEvent(new CustomEvent('artifact-studio:flush-active-artifact'));
+  window.dispatchEvent(new CustomEvent('as-code-studio:flush-active-artifact'));
 }
 
 function updateAdapterUi() {
@@ -863,7 +863,7 @@ async function activateAdapter(
   updateAdapterUi();
   renderFindings();
   window.dispatchEvent(
-    new CustomEvent('artifact-studio:active-artifact-changed', {
+    new CustomEvent('as-code-studio:active-artifact-changed', {
       detail: { artifactId: activeArtifactRecord()?.id || null, adapterId },
     }),
   );

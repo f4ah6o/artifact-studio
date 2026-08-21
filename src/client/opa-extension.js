@@ -387,13 +387,13 @@ function exportWorkspace() {
   );
 }
 
-window.addEventListener('artifact-studio:flush-active-artifact', () => {
+window.addEventListener('as-code-studio:flush-active-artifact', () => {
   if (!opaActive) return;
   clearTimeout(persistTimer);
   persistNow();
 });
 
-window.addEventListener('artifact-studio:active-artifact-changed', (event) => {
+window.addEventListener('as-code-studio:active-artifact-changed', (event) => {
   syncUi();
   if (event.detail?.adapterId !== 'opa') return;
   clearTimeout(persistTimer);

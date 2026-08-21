@@ -1,7 +1,7 @@
 {
-  "name": "artifact-studio",
+  "name": "as-code-studio",
   "version": "2026.8.0",
-  "description": "AI-assisted artifact studio — generate, edit, validate, persist and export structured artifacts; BPMN is the first adapter",
+  "description": "Local-first workbench for creating, editing, validating, visualizing, transforming, and exporting structured as-code artifacts",
   "keywords": [
     "bpmn",
     "bpmn2",
@@ -19,7 +19,7 @@
   "author": "f12o <gh@f12o.com>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/f4ah6o/artifact-studio.git"
+    "url": "git+https://github.com/f4ah6o/as-code-studio.git"
   },
   "type": "module",
   "main": "./src/bpmn/pipeline.js",

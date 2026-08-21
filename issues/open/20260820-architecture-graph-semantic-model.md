@@ -2,7 +2,7 @@
 
 Status: open
 Date: 2026-08-20
-Target: Artifact Studio → Architecture Studio direction
+Target: As-Code Studio → Architecture Studio direction
 Related:
 - `issues/open/20260820-artifact-composition-transformation-architecture.md`
 - `issues/closed/20260820-opa-adapter.md`
@@ -12,7 +12,7 @@ Related:
 
 ## Summary
 
-Artifact Studio を「複数形式のArtifactを個別に編集・検証するStudio」から、
+As-Code Studio を「複数形式のArtifactを個別に編集・検証するStudio」から、
 **異なる設計Artifactの意味的関係を横断して扱う Architecture Studio** へ進化させる。
 
 中心概念は diagram ではなく **Architecture Graph** とする。
@@ -804,7 +804,7 @@ Initial implementation must NOT:
 
 ## Public repository boundary
 
-この機能はpublic Artifact Studio repositoryで一般化可能。
+この機能はpublic As-Code Studio repositoryで一般化可能。
 
 Public repoに入れてよいもの:
 
@@ -878,4 +878,4 @@ Public repoに入れないもの:
 - n8n expression/node mappingからfield-level lineageをどこまで推論するか
 - OpenLineageとのimport/export boundary
 - architecture rule validationをOPAで統一するか独立rule APIを用意するか
-- Artifact Studio → Architecture Studio renameの時期
+- As-Code Studio → Architecture Studio renameの時期

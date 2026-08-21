@@ -2,7 +2,7 @@
 
 [English](ADAPTER-CORE.md)
 
-Artifact Studio の generic adapter core は意図的に小さく保つ。core の役割は実 adapter を支えることであり、各 artifact の canonical format や runtime semantics を置き換えることではない。
+As-Code Studio の generic adapter core は意図的に小さく保つ。core の役割は実 adapter を支えることであり、各 artifact の canonical format や runtime semantics を置き換えることではない。
 
 ## Scope
 

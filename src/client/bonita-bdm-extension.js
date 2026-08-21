@@ -404,13 +404,13 @@ function syncUi() {
   if (!wasActive) void inspectAndProject();
 }
 
-window.addEventListener('artifact-studio:flush-active-artifact', () => {
+window.addEventListener('as-code-studio:flush-active-artifact', () => {
   if (!active) return;
   clearTimeout(persistTimer);
   persistNow();
 });
 
-window.addEventListener('artifact-studio:active-artifact-changed', (event) => {
+window.addEventListener('as-code-studio:active-artifact-changed', (event) => {
   syncUi();
   setTimeout(() => {
     syncUi();

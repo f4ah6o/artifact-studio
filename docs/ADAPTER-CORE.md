@@ -2,7 +2,7 @@
 
 [日本語](ADAPTER-CORE.ja.md)
 
-Artifact Studio keeps the generic adapter core deliberately small. The core exists to support real adapters without replacing their canonical formats or runtime semantics.
+As-Code Studio keeps the generic adapter core deliberately small. The core exists to support real adapters without replacing their canonical formats or runtime semantics.
 
 ## Scope
 

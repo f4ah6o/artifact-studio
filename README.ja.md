@@ -1,10 +1,10 @@
-# Artifact Studio
+# As-Code Studio
 
 [English](README.md)
 
-[![CI](https://github.com/f4ah6o/artifact-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/f4ah6o/artifact-studio/actions/workflows/ci.yml)
+[![CI](https://github.com/f4ah6o/as-code-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/f4ah6o/as-code-studio/actions/workflows/ci.yml)
 
-Artifact Studio は、構造化 Artifact の生成・編集・検証・描画・保存・書き出しを行う local-first の Workbench です。
+As-Code Studio は、Process / Policy / Workflow / Data Model / Diagram などの structured as-code artifact を生成・編集・検証・可視化・変換・保存・書き出しする local-first Workbench です。
 
 現在のコードベースでは5つの adapter を実装しています。
 
@@ -29,10 +29,10 @@ vp run dev
 
 開発アプリでは次の2プロセスを起動します。
 
-- Artifact Studio API: 既定 `http://127.0.0.1:3000`
+- As-Code Studio API: 既定 `http://127.0.0.1:3000`
 - Vite+ development server: 通常 port `5173`
 
-OPA / Dagu actions は Artifact Studio API の `/api/v1/artifacts/*` 配下で処理し、adapterごとのHTTP portは使用しません。
+OPA / Dagu actions は As-Code Studio API の `/api/v1/artifacts/*` 配下で処理し、adapterごとのHTTP portは使用しません。
 
 OPA は optional です。`opa` executable がなくても BPMN / Mermaid は利用できます。OPA actions を使う場合は OPA を `PATH` に置くか、`OPA_BINARY` に absolute executable path を設定してください。
 
@@ -59,7 +59,7 @@ CI でも supported Node.js LTS 上で同じ gate を実行し、最後に BPMN 
 
 ## バージョニング
 
-Artifact Studio は CalVer `YYYY.M.PATCH`（例: `2026.8.0`）を使用します。リリース番号は `f4ah6o/calver-action` で採番し、Action の指定は `YYYY.MM.PATCH`（同Actionの `MM` はゼロ埋めなし月）、タイムゾーンは `Asia/Tokyo` とします。リリースタグに `v` プレフィックスは付けず、immutable tag として扱います。
+As-Code Studio は CalVer `YYYY.M.PATCH`（例: `2026.8.0`）を使用します。リリース番号は `f4ah6o/calver-action` で採番し、Action の指定は `YYYY.MM.PATCH`（同Actionの `MM` はゼロ埋めなし月）、タイムゾーンは `Asia/Tokyo` とします。リリースタグに `v` プレフィックスは付けず、immutable tag として扱います。
 
 GitHub Actions の **Release** workflow を手動実行すると、次のバージョンを採番し、検証後、必要なら `package.json` を release-only commit で更新して CalVer tag をpushします。HTTP/MCPが返すアプリバージョンも `package.json` を参照します。
 
@@ -114,7 +114,7 @@ adapter 固有の runtime semantics は adapter boundary の内側に留めま�
 
 ## HTTP / MCP
 
-Artifact Studio HTTP server を単一のAPI boundaryとし、BPMN / Mermaid / OPA / Dagu / config / chat / telemetry を同じportで提供します。adapter固有actionは `/api/v1/artifacts/<adapter>/...` にnamespaceし、OPA / Dagu CLI等の外部runtimeはadapter内部実装として扱います。
+As-Code Studio HTTP server を単一のAPI boundaryとし、BPMN / Mermaid / OPA / Dagu / config / chat / telemetry を同じportで提供します。adapter固有actionは `/api/v1/artifacts/<adapter>/...` にnamespaceし、OPA / Dagu CLI等の外部runtimeはadapter内部実装として扱います。
 
 BPMN MCP server には次の tools があります。
 
@@ -146,4 +146,4 @@ docs/ARTIFACT-ADAPTERS.ja.md
 
 ## License / third-party notices
 
-Artifact Studio は [MIT License](LICENSE) で配布します。upstream attribution、依存ライブラリのlicense、その他third-party noticeは [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) に集約します。
+As-Code Studio は [MIT License](LICENSE) で配布します。upstream attribution、依存ライブラリのlicense、その他third-party noticeは [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) に集約します。

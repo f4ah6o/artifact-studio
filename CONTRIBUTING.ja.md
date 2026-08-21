@@ -1,4 +1,4 @@
-# Artifact Studio への contribution
+# As-Code Studio への contribution
 
 [English](CONTRIBUTING.md)
 

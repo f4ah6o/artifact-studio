@@ -2,7 +2,7 @@
 
 Status: closed
 Date: 2026-08-20
-Target: Artifact Studio app server / Web UI
+Target: As-Code Studio app server / Web UI
 Related:
 - `docs/ai-assisted-modeler.md`
 - `docs/ai-assisted-modeler.ja.md`
@@ -48,7 +48,7 @@ model / effort については provider 側に既に以下の入力経路があ�
 - `defaultReasoningEffort`
 - `supportedReasoningEfforts`
 
-よって Artifact Studio 側で model 名や effort 候補をハードコードしない。
+よって As-Code Studio 側で model 名や effort 候補をハードコードしない。
 
 ## Design principles
 
@@ -115,7 +115,7 @@ model selector は `model/list` の結果から生成する。
 - unsupported effort を送らない
 - model ごとの `defaultReasoningEffort` を利用する
 
-Artifact Studio 側に `low / medium / high / ultra` 等の固定リストを authority として持たない。
+As-Code Studio 側に `low / medium / high / ultra` 等の固定リストを authority として持たない。
 
 ### 5. Selection affects subsequent turns
 
@@ -237,7 +237,7 @@ Requirements:
 
 ただし Codex app-server 側で thread が既に失効・削除されている場合は、新しい thread を開始して session metadata を更新できること。
 
-永続化するのは必要最低限の参照情報とし、Codex conversation transcript を Artifact Studio 側に二重保存することは本 issue の目的にしない。
+永続化するのは必要最低限の参照情報とし、Codex conversation transcript を As-Code Studio 側に二重保存することは本 issue の目的にしない。
 
 ## Security / privacy
 
@@ -302,7 +302,7 @@ Requirements:
 - `thread/resume` is the protocol operation for continuing a persisted thread by `threadId`; the current schema explicitly says to prefer `threadId` when possible.
 - `turn/start.model` and `turn/start.effort` are confirmed by the current schema to override the current and subsequent turns, so UI changes do not require restarting app-server.
 - A live missing-thread probe returned `no rollout found for thread id ...`; only this stale/unavailable-thread class is treated as recoverable. Authentication and unrelated app-server failures are not silently converted into context resets.
-- A live `model/list` probe returned six visible models in the current account; the advertised default at verification time was `gpt-5.6-sol` with default reasoning effort `low`. Artifact Studio does not hard-code those values.
+- A live `model/list` probe returned six visible models in the current account; the advertised default at verification time was `gpt-5.6-sol` with default reasoning effort `low`. As-Code Studio does not hard-code those values.
 
 ### Implementation evidence
 

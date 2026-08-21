@@ -2,11 +2,11 @@
 
 Status: open
 Date: 2026-08-20
-Target: Artifact Studio
+Target: As-Code Studio
 
 ## Goal
 
-Artifact Studio に Open Policy Agent (OPA) / Rego を扱う汎用 adapter を追加する。
+As-Code Studio に Open Policy Agent (OPA) / Rego を扱う汎用 adapter を追加する。
 
 この adapter は、特定の業務ドメインの Policy を扱うものではなく、OPA/Rego artifact の編集・検証・評価・テスト・分析・可視化を行うための workbench とする。
 
@@ -21,11 +21,11 @@ Rego / data / input / bundle
   -> export
 ```
 
-Artifact Studio の public repository には、業務役割管理、組織、任命、kintone 等のドメイン固有概念を持ち込まない。
+As-Code Studio の public repository には、業務役割管理、組織、任命、kintone 等のドメイン固有概念を持ち込まない。
 
 ## Design boundary
 
-### Artifact Studio が知るもの
+### As-Code Studio が知るもの
 
 OPA/Rego の一般概念のみを扱う。
 
@@ -44,7 +44,7 @@ OPA/Rego の一般概念のみを扱う。
 - explanation / trace
 - coverage
 
-### Artifact Studio が知らないもの
+### As-Code Studio が知らないもの
 
 以下は adapter 本体にハードコードしない。
 
@@ -62,7 +62,7 @@ OPA/Rego の一般概念のみを扱う。
 Domain policy source
   -> domain-specific compiler / generator
   -> Rego + data
-  -> Artifact Studio OPA adapter
+  -> As-Code Studio OPA adapter
 ```
 
 ## Canonical artifact
@@ -92,11 +92,11 @@ policy/
 
 単一 `.rego` の import も workspace の1ファイルとして扱う。
 
-### Artifact Studio の一般化
+### As-Code Studio の一般化
 
 現状の adapter / persistence は単一 `source` を中心に設計されているため、OPA adapter のためだけの例外実装にはしない。
 
-必要であれば Artifact Studio の artifact contract を以下のように一般化する。
+必要であれば As-Code Studio の artifact contract を以下のように一般化する。
 
 ```ts
 type ArtifactContent =
@@ -149,7 +149,7 @@ OPA の意味論を JavaScript で再実装しない。
 
 OPA公式実装を実行系の authority とする。
 
-初期実装では、Artifact Studio の server/backend から `opa` CLI を実行する方式を第一候補とする。
+初期実装では、As-Code Studio の server/backend から `opa` CLI を実行する方式を第一候補とする。
 
 想定コマンド相当:
 
@@ -194,7 +194,7 @@ OPA公式 evaluator / compiler を使う。
 - import/package error
 - type/check diagnostics where available
 
-結果は Artifact Studio 共通 findings UI に変換する。
+結果は As-Code Studio 共通 findings UI に変換する。
 
 ```ts
 interface Finding {
@@ -267,7 +267,7 @@ relevant evaluation
   scope_matches     false
 ```
 
-OPAの実際の explanation / trace 情報を基に表示し、Artifact Studio側で存在しない因果関係を推測しない。
+OPAの実際の explanation / trace 情報を基に表示し、As-Code Studio側で存在しない因果関係を推測しない。
 
 ### 4. Tests / Coverage
 
@@ -280,7 +280,7 @@ OPAの実際の explanation / trace 情報を基に表示し、Artifact Studio�
 
 ## Projection API
 
-OPA adapter 実装で Mermaid 専用データを直接生成するのではなく、可能なら Artifact Studio 共通の graph projection を導入する。
+OPA adapter 実装で Mermaid 専用データを直接生成するのではなく、可能なら As-Code Studio 共通の graph projection を導入する。
 
 ```ts
 interface GraphProjection {
@@ -333,9 +333,9 @@ Decision view では少なくとも以下を指定可能にする。
 
 ## Persistence
 
-OPA workspace を Artifact Studio workspace envelope に保存・復元できること。
+OPA workspace を As-Code Studio workspace envelope に保存・復元できること。
 
-multi-file artifact の保存形式は OPA 固有にせず、Artifact Studio の generic workspace artifact として設計する。
+multi-file artifact の保存形式は OPA 固有にせず、As-Code Studio の generic workspace artifact として設計する。
 
 大容量化する場合は既存設計方針に従い IndexedDB を検討する。
 
@@ -350,7 +350,7 @@ multi-file artifact の保存形式は OPA 固有にせず、Artifact Studio の
 - 複数ファイル workspace
 - `.rego` + JSON/YAML data/input
 
-bundle archive の import/export は、既存 Artifact Studio の file handling と security boundary を確認して次段階で追加してよい。
+bundle archive の import/export は、既存 As-Code Studio の file handling と security boundary を確認して次段階で追加してよい。
 
 ## AI assistance
 
@@ -367,7 +367,7 @@ prompt
 
 AIに独自のOPA互換性判定をさせない。
 
-初期版で domain-specific prompt template は Artifact Studio 本体に入れない。
+初期版で domain-specific prompt template は As-Code Studio 本体に入れない。
 
 ## Out of scope
 
@@ -414,7 +414,7 @@ BPMN / Mermaid の既存動作を壊さないことを各段階で確認する�
 - [ ] dependency graph を表示できる
 - [ ] evaluation explanation を Decision Explorer で確認できる
 - [ ] BPMN / Mermaid adapter の既存テスト・demo が回帰しない
-- [ ] Artifact Studio 本体に業務役割・組織・kintone固有ロジックが入っていない
+- [ ] As-Code Studio 本体に業務役割・組織・kintone固有ロジックが入っていない
 - [ ] OPA CLI invocation に path traversal / arbitrary command injection がない
 
 ## Open questions
@@ -428,11 +428,11 @@ BPMN / Mermaid の既存動作を壊さないことを各段階で確認する�
 
 ## Non-goal / architectural rule
 
-この issue の目的は「業務PolicyをArtifact Studioに実装すること」ではない。
+この issue の目的は「業務PolicyをAs-Code Studioに実装すること」ではない。
 
-目的は **OPA/RegoをArtifact Studioの汎用artifact typeとして第一級に扱えるようにすること** である。
+目的は **OPA/RegoをAs-Code Studioの汎用artifact typeとして第一級に扱えるようにすること** である。
 
-特定業務で OPA を利用する際は、そのドメイン固有 source / compiler / schema を別レイヤーに置き、Artifact Studio は生成済み OPA artifact を扱う。
+特定業務で OPA を利用する際は、そのドメイン固有 source / compiler / schema を別レイヤーに置き、As-Code Studio は生成済み OPA artifact を扱う。
 
 ## Completion evidence — 2026-08-20
 

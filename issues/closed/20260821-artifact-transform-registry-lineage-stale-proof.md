@@ -3,7 +3,7 @@
 Status: closed
 Date: 2026-08-21
 Closed: 2026-08-21
-Target: Artifact Studio
+Target: As-Code Studio
 Parent: `issues/open/20260820-artifact-composition-transformation-architecture.md`
 Depends on:
 - `issues/closed/20260820-minimal-adapter-core-before-dagu.md`
@@ -32,7 +32,7 @@ The result should make Transformation a first-class concept distinct from Projec
 
 Phase 1 established the minimal generic contracts and GraphProjection boundary. Phase 2 proved that boundary with two materially different consumers, OPA and Dagu, using the same generic GraphProjection normalization and renderer.
 
-The next architectural uncertainty is no longer GraphProjection reuse. It is whether Artifact Studio can create and track a derived canonical artifact through a generic transform registry without coupling source and destination adapters or requiring the future artifact-graph persistence model.
+The next architectural uncertainty is no longer GraphProjection reuse. It is whether As-Code Studio can create and track a derived canonical artifact through a generic transform registry without coupling source and destination adapters or requiring the future artifact-graph persistence model.
 
 Do not implement the entire parent architecture issue in this slice.
 

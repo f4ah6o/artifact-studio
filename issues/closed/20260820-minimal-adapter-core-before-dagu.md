@@ -2,7 +2,7 @@
 
 Status: closed
 Date: 2026-08-20
-Target: Artifact Studio
+Target: As-Code Studio
 Blocks: `issues/closed/20260820-dagu-adapter.md`
 Related:
 - `issues/open/20260820-artifact-composition-transformation-architecture.md`

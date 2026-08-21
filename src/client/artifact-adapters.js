@@ -43,7 +43,7 @@ async function loadMermaidAdapter() {
     },
     async render(source, target) {
       mermaidRenderSequence += 1;
-      const id = `artifact-studio-mermaid-${mermaidRenderSequence}`;
+      const id = `as-code-studio-mermaid-${mermaidRenderSequence}`;
       const { svg, bindFunctions } = await mermaid.render(id, String(source || ''));
       target.innerHTML = svg;
       bindFunctions?.(target);

@@ -258,7 +258,7 @@ async function currentCapabilities() {
 
 async function materialize(workspaceValue, callback) {
   const workspace = normalizeWorkspace(workspaceValue);
-  const root = await mkdtemp(join(tmpdir(), 'artifact-studio-opa-'));
+  const root = await mkdtemp(join(tmpdir(), 'as-code-studio-opa-'));
   const workspaceDir = join(root, 'workspace');
   try {
     await mkdir(workspaceDir, { recursive: true });

@@ -2,7 +2,7 @@
 
 Status: closed
 Date: 2026-08-21
-Target: Artifact Studio
+Target: As-Code Studio
 Parent: `issues/open/20260820-architecture-graph-semantic-model.md`
 Depends on: `issues/closed/20260821-artifact-workspace-v2-persistence.md`
 

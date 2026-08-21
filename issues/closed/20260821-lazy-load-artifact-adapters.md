@@ -2,11 +2,11 @@
 
 Status: closed
 Date: 2026-08-21
-Target: Artifact Studio browser runtime
+Target: As-Code Studio browser runtime
 
 ## Goal
 
-Artifact Studio の初期ロードから adapter 固有の重量runtimeを分離し、実際にその adapter / view / capability を使うまで読み込まない。
+As-Code Studio の初期ロードから adapter 固有の重量runtimeを分離し、実際にその adapter / view / capability を使うまで読み込まない。
 
 特に `bpmn-js` と `mermaid` は browser bundle が大きいため、adapter registry の metadata と runtime implementation を分離する。
 
@@ -24,7 +24,7 @@ Artifact Studio の初期ロードから adapter 固有の重量runtimeを分離
 起動時に必要なのは adapter の metadata のみとする。
 
 ```text
-Artifact Studio shell
+As-Code Studio shell
   -> lightweight adapter registry
        - id
        - label

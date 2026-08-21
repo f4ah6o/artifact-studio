@@ -2,11 +2,11 @@
 
 [English](OPA-ADAPTER.md)
 
-Artifact Studioでは Open Policy Agent policy code をgenericなmulti-file artifactとして扱う。adapter本体にorganization、role、kintone、Kubernetes、Terraform等のdomain-specific policy ruleは持たせない。
+As-Code Studioでは Open Policy Agent policy code をgenericなmulti-file artifactとして扱う。adapter本体にorganization、role、kintone、Kubernetes、Terraform等のdomain-specific policy ruleは持たせない。
 
 ## Runtime requirement
 
-Rego semanticsは公式 `opa` executableへ委譲する。OPAをinstallして`PATH`から実行可能にするか、Artifact Studio server processの`OPA_BINARY`にabsolute executable pathを指定する。
+Rego semanticsは公式 `opa` executableへ委譲する。OPAをinstallして`PATH`から実行可能にするか、As-Code Studio server processの`OPA_BINARY`にabsolute executable pathを指定する。
 
 browser内でRego evaluatorを再実装しない。
 
@@ -41,7 +41,7 @@ server-side adapterではOPA CLIをsemantic authorityとする。
 - Coverage: `opa test --coverage --format=json`
 - Dependencies: `opa deps --format=json`
 
-validation errorsはArtifact Studio共通findingへprojectする。dependency outputはgeneric graphへprojectし、既存Mermaid rendererで描画できる。Mermaid sourceはderived viewであり、OPA canonical artifactではない。
+validation errorsはAs-Code Studio共通findingへprojectする。dependency outputはgeneric graphへprojectし、既存Mermaid rendererで描画できる。Mermaid sourceはderived viewであり、OPA canonical artifactではない。
 
 ## Security boundary
 
@@ -63,12 +63,12 @@ adapterで次を強制する。
 
 ## Development
 
-`vp run dev` は Artifact Studio API と Vite+ dev server の2processを起動する。OPA actions は main Artifact Studio HTTP server の `/api/v1/artifacts/opa/*` で直接処理し、OPA専用sidecar portは持たない。
+`vp run dev` は As-Code Studio API と Vite+ dev server の2processを起動する。OPA actions は main As-Code Studio HTTP server の `/api/v1/artifacts/opa/*` で直接処理し、OPA専用sidecar portは持たない。
 
 OPA CLIはadapter内部実装のままとし、process execution、temporary workspace、request-size limit、timeout、error mappingの分離は維持する。
 
-OPA未installでもArtifact Studioの他機能は利用でき、OPA actionsだけが `OPA_UNAVAILABLE` / HTTP 503を返す。
+OPA未installでもAs-Code Studioの他機能は利用でき、OPA actionsだけが `OPA_UNAVAILABLE` / HTTP 503を返す。
 
 ## Non-goals
 
-このadapterではbusiness-policy DSL、role/organization schema、OPA deployment、authorization middleware、JavaScript Rego evaluatorを提供しない。domain-specific sourceはArtifact Studio外部で生成・管理し、通常のOPA workspaceとしてimportする。
+このadapterではbusiness-policy DSL、role/organization schema、OPA deployment、authorization middleware、JavaScript Rego evaluatorを提供しない。domain-specific sourceはAs-Code Studio外部で生成・管理し、通常のOPA workspaceとしてimportする。

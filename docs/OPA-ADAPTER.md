@@ -2,11 +2,11 @@
 
 [日本語](OPA-ADAPTER.ja.md)
 
-Artifact Studio treats Open Policy Agent policy code as a generic multi-file artifact. The adapter does not contain organization, role, kintone, Kubernetes, Terraform, or other domain-specific policy rules.
+As-Code Studio treats Open Policy Agent policy code as a generic multi-file artifact. The adapter does not contain organization, role, kintone, Kubernetes, Terraform, or other domain-specific policy rules.
 
 ## Runtime requirement
 
-The adapter delegates Rego semantics to the official `opa` executable. Install OPA and make `opa` available on `PATH`, or set `OPA_BINARY` on the Artifact Studio server process to an absolute executable path.
+The adapter delegates Rego semantics to the official `opa` executable. Install OPA and make `opa` available on `PATH`, or set `OPA_BINARY` on the As-Code Studio server process to an absolute executable path.
 
 The browser never evaluates Rego itself.
 
@@ -41,7 +41,7 @@ The server-side adapter uses OPA CLI commands as the semantic authority:
 - Coverage: `opa test --coverage --format=json`
 - Dependencies: `opa deps --format=json`
 
-Validation errors are projected into Artifact Studio's common finding shape. Dependency output is projected into a generic graph and rendered through the existing Mermaid renderer; Mermaid is a derived view, not the canonical OPA artifact.
+Validation errors are projected into As-Code Studio's common finding shape. Dependency output is projected into a generic graph and rendered through the existing Mermaid renderer; Mermaid is a derived view, not the canonical OPA artifact.
 
 ## Security boundary
 
@@ -63,12 +63,12 @@ The adapter enforces:
 
 ## Development
 
-`vp run dev` starts the Artifact Studio API and the Vite+ development server. OPA actions are handled directly by the main Artifact Studio HTTP server under `/api/v1/artifacts/opa/*`; there is no OPA sidecar port.
+`vp run dev` starts the As-Code Studio API and the Vite+ development server. OPA actions are handled directly by the main As-Code Studio HTTP server under `/api/v1/artifacts/opa/*`; there is no OPA sidecar port.
 
 The OPA CLI remains an adapter implementation detail. Its process execution, temporary workspace, request-size limits, timeout handling, and error mapping remain isolated inside the OPA adapter boundary.
 
-If OPA is not installed, the rest of Artifact Studio remains usable and OPA actions return `OPA_UNAVAILABLE` / HTTP 503.
+If OPA is not installed, the rest of As-Code Studio remains usable and OPA actions return `OPA_UNAVAILABLE` / HTTP 503.
 
 ## Non-goals
 
-The adapter intentionally does not provide a business-policy DSL, a role/organization schema, OPA deployment, authorization middleware, or a JavaScript Rego evaluator. Domain-specific sources should be generated or maintained outside Artifact Studio and imported as ordinary OPA workspace files.
+The adapter intentionally does not provide a business-policy DSL, a role/organization schema, OPA deployment, authorization middleware, or a JavaScript Rego evaluator. Domain-specific sources should be generated or maintained outside As-Code Studio and imported as ordinary OPA workspace files.

@@ -1,8 +1,11 @@
 const SUPPORTED_ADAPTERS = ['bpmn', 'mermaid', 'opa', 'dagu', 'bonita-bdm'];
 
 export function resolveStudioConfig(env = process.env, cfg = {}) {
-  const configured = env.ARTIFACT_STUDIO_ENABLED_ADAPTERS
-    ? env.ARTIFACT_STUDIO_ENABLED_ADAPTERS.split(',')
+  const configuredAdapters =
+    env.AS_CODE_STUDIO_ENABLED_ADAPTERS || env.ARTIFACT_STUDIO_ENABLED_ADAPTERS;
+  const configured = configuredAdapters
+    ? configuredAdapters
+        .split(',')
         .map((value) => value.trim())
         .filter(Boolean)
     : cfg.studio?.enabledAdapters;
@@ -14,7 +17,10 @@ export function resolveStudioConfig(env = process.env, cfg = {}) {
   if (!enabledAdapters.length) enabledAdapters.push('bpmn');
 
   const requestedDefault =
-    env.ARTIFACT_STUDIO_DEFAULT_ADAPTER || cfg.studio?.defaultAdapter || 'bpmn';
+    env.AS_CODE_STUDIO_DEFAULT_ADAPTER ||
+    env.ARTIFACT_STUDIO_DEFAULT_ADAPTER ||
+    cfg.studio?.defaultAdapter ||
+    'bpmn';
   const defaultAdapter = enabledAdapters.includes(requestedDefault)
     ? requestedDefault
     : enabledAdapters[0];

@@ -17,7 +17,7 @@ Browser / bpmn-js
       |
       | HTTP
       v
-Artifact Studio HTTP server
+As-Code Studio HTTP server
       |
       | stdio JSONL / JSON-RPC
       v

@@ -1,10 +1,10 @@
-# Artifact Studio
+# As-Code Studio
 
 [日本語](README.ja.md)
 
-[![CI](https://github.com/f4ah6o/artifact-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/f4ah6o/artifact-studio/actions/workflows/ci.yml)
+[![CI](https://github.com/f4ah6o/as-code-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/f4ah6o/as-code-studio/actions/workflows/ci.yml)
 
-Artifact Studio is a local-first workbench for generating, editing, validating, rendering, persisting, and exporting structured artifacts.
+As-Code Studio is a local-first workbench for creating, editing, validating, visualizing, transforming, persisting, and exporting structured as-code artifacts.
 
 The current codebase ships five adapters:
 
@@ -29,10 +29,10 @@ vp run dev
 
 The development command starts:
 
-- the Artifact Studio API on `http://127.0.0.1:3000` by default;
+- the As-Code Studio API on `http://127.0.0.1:3000` by default;
 - the Vite+ development server, normally on port `5173`.
 
-OPA and Dagu actions are routed through the Artifact Studio API under `/api/v1/artifacts/*`; adapters do not require dedicated HTTP ports.
+OPA and Dagu actions are routed through the As-Code Studio API under `/api/v1/artifacts/*`; adapters do not require dedicated HTTP ports.
 
 OPA is optional. BPMN and Mermaid remain usable without an `opa` executable. To enable OPA actions, install OPA on `PATH` or set `OPA_BINARY` to an absolute executable path.
 
@@ -59,7 +59,7 @@ The CI workflow runs the same gates on supported Node.js LTS releases and finish
 
 ## Versioning
 
-Artifact Studio uses CalVer `YYYY.M.PATCH`, for example `2026.8.0`. Releases are allocated by `f4ah6o/calver-action` using the `YYYY.MM.PATCH` action format (its `MM` token is an unpadded month) and the `Asia/Tokyo` timezone. Release tags are prefixless and immutable.
+As-Code Studio uses CalVer `YYYY.M.PATCH`, for example `2026.8.0`. Releases are allocated by `f4ah6o/calver-action` using the `YYYY.MM.PATCH` action format (its `MM` token is an unpadded month) and the `Asia/Tokyo` timezone. Release tags are prefixless and immutable.
 
 Run the **Release** workflow manually to allocate the next version, validate the repository, update `package.json` in a release-only commit when necessary, and push the CalVer tag. The application HTTP/MCP version is read from `package.json`.
 
@@ -114,7 +114,7 @@ Adapter-specific runtime semantics stay behind their adapter boundary. For examp
 
 ## HTTP and MCP
 
-The Artifact Studio HTTP server is the single API boundary for BPMN, Mermaid, OPA, Dagu, Bonita BDM, configuration, chat, and telemetry. Adapter-specific actions are namespaced under `/api/v1/artifacts/<adapter>/...`; external runtimes such as the OPA and Dagu CLIs remain adapter implementation details rather than separate HTTP services.
+The As-Code Studio HTTP server is the single API boundary for BPMN, Mermaid, OPA, Dagu, Bonita BDM, configuration, chat, and telemetry. Adapter-specific actions are namespaced under `/api/v1/artifacts/<adapter>/...`; external runtimes such as the OPA and Dagu CLIs remain adapter implementation details rather than separate HTTP services.
 
 The repository also includes a BPMN MCP server with these tools:
 
@@ -146,4 +146,4 @@ Start here:
 
 ## License and third-party notices
 
-Artifact Studio is distributed under the [MIT License](LICENSE). Upstream attribution, dependency licenses, and other third-party notices are kept in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+As-Code Studio is distributed under the [MIT License](LICENSE). Upstream attribution, dependency licenses, and other third-party notices are kept in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

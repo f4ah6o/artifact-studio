@@ -2,13 +2,13 @@
 
 Status: closed
 Date: 2026-08-21
-Target: Artifact Studio
+Target: As-Code Studio
 
 ## Goal
 
-Add Bonita Business Data Model (BDM) as a generic Artifact Studio adapter while keeping Bonita's `bdm/bom.xml` as the canonical source of truth.
+Add Bonita Business Data Model (BDM) as a generic As-Code Studio adapter while keeping Bonita's `bdm/bom.xml` as the canonical source of truth.
 
-Artifact Studio must not invent a second proprietary Business Data Model format.
+As-Code Studio must not invent a second proprietary Business Data Model format.
 
 ## Background
 
@@ -50,7 +50,7 @@ An official Bonita getting-started project contains a canonical example such as:
 Bonita BDM is an external canonical artifact, analogous to BPMN XML or Rego source.
 
 ```text
-Artifact Studio
+As-Code Studio
   ├─ BPMN adapter
   ├─ Mermaid adapter
   ├─ OPA adapter
@@ -59,7 +59,7 @@ Artifact Studio
           canonical = bdm/bom.xml
 ```
 
-Do not create an Artifact Studio-specific canonical BDM schema.
+Do not create an As-Code Studio-specific canonical BDM schema.
 
 ## MVP
 
@@ -105,7 +105,7 @@ Minimum checks:
 - relation target resolves to an existing Business Object
 - duplicate field names inside a Business Object rejected
 
-Do not claim full Bonita Runtime validation equivalence. Artifact Studio does not reimplement Bonita's complete validator set in this issue.
+Do not claim full Bonita Runtime validation equivalence. As-Code Studio does not reimplement Bonita's complete validator set in this issue.
 
 ### GraphProjection
 
@@ -150,7 +150,7 @@ Use `HostRuntime` for adapter HTTP calls. Do not add direct client `fetch()` cal
 
 ## Acceptance criteria
 
-- [x] `bonita-bdm` appears as an Artifact Studio adapter.
+- [x] `bonita-bdm` appears as an As-Code Studio adapter.
 - [x] `bom.xml` is inferred as Bonita BDM without affecting BPMN XML inference.
 - [x] Official-style Bonita BDM XML parses into Business Objects and fields.
 - [x] Primitive and relation fields are distinguished.
@@ -170,9 +170,9 @@ Use `HostRuntime` for adapter HTTP calls. Do not add direct client `fetch()` cal
 
 ## Completion evidence
 
-Implemented in Artifact Studio as a canonical-source Bonita BDM adapter.
+Implemented in As-Code Studio as a canonical-source Bonita BDM adapter.
 
-- `bdm/bom.xml` remains authoritative; no Artifact Studio-specific BDM schema was introduced.
+- `bdm/bom.xml` remains authoritative; no As-Code Studio-specific BDM schema was introduced.
 - Added structural XML parsing/validation, Business Object inspection, relation `GraphProjection`, lazy UI integration, and lossless source export.
 - Exact `bom.xml` filename inference does not claim arbitrary XML files.
 - Client adapter actions use the generic `HostRuntime` boundary.

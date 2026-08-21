@@ -401,7 +401,7 @@ export function runDagu(
 
 async function materializeDagu(source, callback) {
   const text = sourceText(source);
-  const root = await mkdtemp(join(tmpdir(), 'artifact-studio-dagu-'));
+  const root = await mkdtemp(join(tmpdir(), 'as-code-studio-dagu-'));
   const workflowPath = join(root, 'workflow.yaml');
   try {
     await writeFile(workflowPath, text, { encoding: 'utf8', flag: 'wx' });

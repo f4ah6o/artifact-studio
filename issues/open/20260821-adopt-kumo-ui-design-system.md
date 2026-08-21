@@ -1,14 +1,14 @@
-# Adopt Kumo UI with Artifact Studio theme
+# Adopt Kumo UI with As-Code Studio theme
 
 Status: open
 Date: 2026-08-21
-Target: Artifact Studio browser shell
+Target: As-Code Studio browser shell
 
 ## Goal
 
-Adopt Cloudflare Kumo as the browser UI component/design-system layer while preserving the current Artifact Studio visual character.
+Adopt Cloudflare Kumo as the browser UI component/design-system layer while preserving the current As-Code Studio visual character.
 
-The migration direction is **Kumo behavior/accessibility + Artifact Studio theme**, not a visual redesign toward Kumo defaults.
+The migration direction is **Kumo behavior/accessibility + As-Code Studio theme**, not a visual redesign toward Kumo defaults.
 
 ## Context
 
@@ -26,14 +26,14 @@ This visual language should remain the baseline.
 
 Kumo provides reusable accessible React components, including Button, Input, Select, Toolbar, Sidebar, Dialog, Tabs, Tooltip, Empty and other primitives. It supports semantic theme tokens and a standalone stylesheet for non-Tailwind consumers.
 
-Artifact Studio currently uses Vanilla HTML/CSS/JS. Introducing Kumo therefore also introduces React at the browser shell/component boundary.
+As-Code Studio currently uses Vanilla HTML/CSS/JS. Introducing Kumo therefore also introduces React at the browser shell/component boundary.
 
 ## Architecture direction
 
 ```text
 React + Kumo
   |
-  +-- Artifact Studio shell/theme
+  +-- As-Code Studio shell/theme
   |    +-- toolbar / controls
   |    +-- sidebar / navigation
   |    +-- inspector / findings
@@ -50,7 +50,7 @@ Adapter semantic/runtime boundaries remain unchanged. React/Kumo is a presentati
 
 ## Theme policy
 
-Create an Artifact Studio theme that maps Kumo semantic tokens to the current UI before replacing existing controls.
+Create an As-Code Studio theme that maps Kumo semantic tokens to the current UI before replacing existing controls.
 
 Baseline values should be derived from the current CSS, including approximately:
 
@@ -72,15 +72,15 @@ Prefer Kumo styled components when an appropriate component exists.
 
 Use granular Kumo imports where practical to preserve tree-shaking.
 
-When Artifact Studio needs a higher-level application pattern:
+When As-Code Studio needs a higher-level application pattern:
 
 1. compose existing Kumo components first;
 2. use a Kumo/Base UI primitive when behavior is reusable but no styled Kumo component fits;
-3. define an Artifact Studio pattern/component only when the requirement is application-specific or genuinely missing from Kumo.
+3. define an As-Code Studio pattern/component only when the requirement is application-specific or genuinely missing from Kumo.
 
 Examples:
 
-- `SessionHistory` is an Artifact Studio pattern.
+- `SessionHistory` is an As-Code Studio pattern.
 - collapsible sidebar behavior should use Kumo `Sidebar`, not a new home-grown sidebar primitive.
 - artifact-specific inspector/findings semantics remain application-level concerns.
 
@@ -91,7 +91,7 @@ Examples:
 1. Add React / React DOM / Kumo and required peer dependencies.
 2. Add the appropriate Vite React integration if required.
 3. Import Kumo standalone styles; do not introduce Tailwind solely for this migration.
-4. Define Artifact Studio theme/token overrides matching the current UI.
+4. Define As-Code Studio theme/token overrides matching the current UI.
 5. Establish a React root for the application shell without breaking lazy adapter runtimes.
 
 ### Phase 2 — shell primitives
@@ -129,17 +129,17 @@ Avoid rewriting BPMN/Mermaid/OPA/Dagu logic merely to make it stylistically Reac
 
 ## Non-goals
 
-- redesigning Artifact Studio to match Cloudflare dashboard visuals
+- redesigning As-Code Studio to match Cloudflare dashboard visuals
 - migrating all adapter/runtime logic to React
 - introducing Tailwind as an application styling dependency unless later justified
-- creating a comprehensive Artifact Studio component library up front
+- creating a comprehensive As-Code Studio component library up front
 - replacing Kumo components with local equivalents without a concrete need
 
 ## Acceptance criteria
 
 - [x] React and Kumo are installed and build successfully.
 - [x] Kumo standalone styling is integrated without requiring Tailwind configuration.
-- [x] Artifact Studio theme overrides preserve the current neutral/minimal visual character.
+- [x] As-Code Studio theme overrides preserve the current neutral/minimal visual character.
 - [x] At least representative shell controls use Kumo components.
 - [ ] Existing BPMN / Mermaid / OPA / Dagu functionality remains usable.
 - [x] BPMN and Mermaid lazy-loading behavior remains intact.
@@ -150,7 +150,7 @@ Avoid rewriting BPMN/Mermaid/OPA/Dagu logic merely to make it stylistically Reac
 
 ## Future follow-up
 
-Implement a collapsible left session-history column using Kumo `Sidebar` after the Kumo foundation/theme is stable. Session history itself remains an Artifact Studio application pattern rather than a design-system primitive.
+Implement a collapsible left session-history column using Kumo `Sidebar` after the Kumo foundation/theme is stable. Session history itself remains an As-Code Studio application pattern rather than a design-system primitive.
 
 ## Implementation progress — 2026-08-21
 
@@ -158,7 +158,7 @@ Foundation implementation started after the issue-only commit.
 
 - Installed `@cloudflare/kumo@2.11.0`, `react@19.2.8`, `react-dom@19.2.8`, and `@phosphor-icons/react@2.1.10` through Vite+ package management.
 - Added `kumo-bootstrap.jsx` as an incremental React island/bootstrap boundary. It renders Kumo controls first and then imports the existing imperative `main.js`.
-- Added an `artifact-studio` Kumo theme mapped to the existing neutral palette and compact radius.
+- Added an `as-code-studio` Kumo theme mapped to the existing neutral palette and compact radius.
 - Migrated representative shell buttons (New Artifact, AI session reset, ChatGPT login, Validate, Format, AI Generate) to granular Kumo `Button` imports.
 - Kumo standalone CSS is used; Tailwind was not added to the application.
 - Headless Chrome confirms the Kumo buttons and BPMN canvas render in the running dev application.

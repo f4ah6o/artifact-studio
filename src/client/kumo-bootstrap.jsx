@@ -3,7 +3,7 @@ import { createPortal, flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { Button } from '@cloudflare/kumo/components/button';
 import '@cloudflare/kumo/styles/standalone';
-import './artifact-studio-theme.css';
+import './as-code-studio-theme.css';
 import './styles.css';
 import './opa.css';
 

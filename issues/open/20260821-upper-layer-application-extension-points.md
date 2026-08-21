@@ -2,7 +2,7 @@
 
 Status: open
 Date: 2026-08-21
-Target: Artifact Studio
+Target: As-Code Studio
 
 Related:
 - `issues/closed/20260821-ddt-transformation-cockpit-proposal.md`
@@ -12,9 +12,9 @@ Related:
 
 ## Summary
 
-Artifact Studio を BPMN / OPA / Dagu / Mermaid 等の structured artifact を扱う **public / generic local-first workbench** として維持しつつ、DDT Cockpit 等の上位 application が Artifact Studio の機能を再利用・embedできる extension point を整備する。
+As-Code Studio を BPMN / OPA / Dagu / Mermaid 等の structured artifact を扱う **public / generic local-first workbench** として維持しつつ、DDT Cockpit 等の上位 application が As-Code Studio の機能を再利用・embedできる extension point を整備する。
 
-Artifact Studio 自体には Transformation / Fact / Decision / Concept 等の上位 domain model を持ち込まない。
+As-Code Studio 自体には Transformation / Fact / Decision / Concept 等の上位 domain model を持ち込まない。
 
 ```text
 Upper-layer application
@@ -22,7 +22,7 @@ Upper-layer application
   ├─ navigation / workflow
   └─ contextual artifact usage
           ↓
-Artifact Studio
+As-Code Studio
   ├─ Artifact / Workspace
   ├─ Adapter / View / Editor
   ├─ Relationship / SemanticRef
@@ -34,7 +34,7 @@ BPMN / OPA / Dagu / Mermaid / ...
 
 ## Boundary
 
-### Artifact Studio owns
+### As-Code Studio owns
 
 - Artifact identity / content / title / persistence
 - ArtifactStore / Workspace
@@ -51,7 +51,7 @@ BPMN / OPA / Dagu / Mermaid / ...
 
 ### Upper-layer application owns
 
-Examples include DDT / Transformation Cockpit, but Artifact Studio must not depend on these concepts.
+Examples include DDT / Transformation Cockpit, but As-Code Studio must not depend on these concepts.
 
 - domain-specific work context and lifecycle
 - Transformation
@@ -64,11 +64,11 @@ Examples include DDT / Transformation Cockpit, but Artifact Studio must not depe
 
 ## Design principles
 
-### 1. No upper-domain dependency from Artifact Studio
+### 1. No upper-domain dependency from As-Code Studio
 
-Artifact Studio core and adapters must not import or require an upper-layer domain model.
+As-Code Studio core and adapters must not import or require an upper-layer domain model.
 
-A user must be able to use Artifact Studio directly without creating a Transformation, Project governance object, Decision, or similar domain object.
+A user must be able to use As-Code Studio directly without creating a Transformation, Project governance object, Decision, or similar domain object.
 
 ### 2. Artifact editors must be reusable contextually
 
@@ -101,11 +101,11 @@ proposal
   → validation
 ```
 
-This must remain domain-neutral. Artifact Studio does not decide who is authorized to approve a proposal.
+This must remain domain-neutral. As-Code Studio does not decide who is authorized to approve a proposal.
 
 ### 5. Repository references are generic
 
-Artifact Studio may represent a repository/resource reference and revision, but must not become an organization-specific repository registry.
+As-Code Studio may represent a repository/resource reference and revision, but must not become an organization-specific repository registry.
 
 Minimum candidate fields:
 
@@ -119,7 +119,7 @@ Minimum candidate fields:
 
 ArtifactRelationship / SemanticRef can support generic traversal and projections.
 
-Artifact Studio may answer questions such as:
+As-Code Studio may answer questions such as:
 
 - what artifacts reference this artifact/entity?
 - what derived artifacts depend on this source?
@@ -158,7 +158,7 @@ Whether such a path means a DDT impact, governance violation, or business depend
 
 ### E. Upper-layer Host Integration
 
-- allow a host/application shell to provide navigation/context around Artifact Studio
+- allow a host/application shell to provide navigation/context around As-Code Studio
 - keep ArtifactStore and HostRuntime injectable
 - avoid hard-coding a specific desktop framework or DDT Cockpit
 
@@ -180,12 +180,12 @@ This issue does NOT implement:
 
 ## Acceptance criteria
 
-- [ ] Artifact Studio README/product boundary remains a generic structured-artifact workbench.
+- [ ] As-Code Studio README/product boundary remains a generic structured-artifact workbench.
 - [ ] Upper-layer application code can open/reuse an Artifact editor/view through a generic runtime API rather than adapter-specific DOM knowledge.
 - [ ] A generic external/repository resource reference can be represented with optional revision provenance.
 - [ ] A proposed Artifact change can exist separately from canonical content and requires explicit apply.
 - [ ] Generic relationship traversal can return semantic paths without DDT-specific interpretation.
-- [ ] No Transformation / Fact / Decision / Concept domain dependency is introduced into Artifact Studio core.
+- [ ] No Transformation / Fact / Decision / Concept domain dependency is introduced into As-Code Studio core.
 - [ ] Existing direct Artifact workflows remain first-class and all existing tests remain green.
 
 ## Direction

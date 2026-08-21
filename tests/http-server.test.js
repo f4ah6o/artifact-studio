@@ -213,7 +213,7 @@ describe('HTTP API', () => {
 
   test('Dagu capabilities remain available when its CLI is missing', async () => {
     const previousBinary = process.env.DAGU_BINARY;
-    process.env.DAGU_BINARY = 'artifact-studio-definitely-missing-dagu-binary';
+    process.env.DAGU_BINARY = 'as-code-studio-definitely-missing-dagu-binary';
     try {
       const response = await fetch(`${baseUrl}/api/v1/artifacts/dagu/capabilities`);
       expect(response.status).toBe(200);
@@ -233,7 +233,7 @@ describe('HTTP API', () => {
 
   test('Dagu validation returns 503 through the main server when its CLI is missing', async () => {
     const previousBinary = process.env.DAGU_BINARY;
-    process.env.DAGU_BINARY = 'artifact-studio-definitely-missing-dagu-binary';
+    process.env.DAGU_BINARY = 'as-code-studio-definitely-missing-dagu-binary';
     try {
       const response = await fetch(`${baseUrl}/api/v1/artifacts/dagu/check`, {
         method: 'POST',

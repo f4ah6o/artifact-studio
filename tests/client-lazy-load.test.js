@@ -12,7 +12,7 @@ const kumoBootstrapSource = readFileSync(
   'utf8',
 );
 const themeSource = readFileSync(
-  new URL('../src/client/artifact-studio-theme.css', import.meta.url),
+  new URL('../src/client/as-code-studio-theme.css', import.meta.url),
   'utf8',
 );
 const bonitaBdmExtensionSource = readFileSync(
@@ -63,7 +63,7 @@ describe('client adapter lazy loading', () => {
     expect(kumoBootstrapSource).not.toContain("from '@cloudflare/kumo';");
     expect(kumoBootstrapSource).toContain('@cloudflare/kumo/styles/standalone');
     expect(kumoBootstrapSource).toContain("await import('./main.js')");
-    expect(themeSource).toContain("data-theme='artifact-studio'");
+    expect(themeSource).toContain("data-theme='as-code-studio'");
     expect(themeSource).toContain('--color-kumo-brand: #1d4ed8;');
   });
 });

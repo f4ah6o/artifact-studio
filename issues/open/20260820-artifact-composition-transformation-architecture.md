@@ -2,7 +2,7 @@
 
 Status: open
 Date: 2026-08-20
-Target: Artifact Studio
+Target: As-Code Studio
 
 ## Current progress
 
@@ -20,9 +20,9 @@ Workspace persistence v2, relationship persistence/navigation, regenerate UI, an
 
 ## Goal
 
-Artifact Studio の各 adapter は独立性を保ったまま、Artifact 間の連動を第一級の概念として扱えるようにする。
+As-Code Studio の各 adapter は独立性を保ったまま、Artifact 間の連動を第一級の概念として扱えるようにする。
 
-現在の Artifact Studio は BPMN / Mermaid / OPA / n8n / Bento などの artifact type を adapter 単位で扱う方向にあるが、今後は単なる「複数フォーマット対応エディタ」ではなく、**構造化 Artifact 同士を変換・参照・派生・可視化できる Workbench** へ拡張する。
+現在の As-Code Studio は BPMN / Mermaid / OPA / n8n / Bento などの artifact type を adapter 単位で扱う方向にあるが、今後は単なる「複数フォーマット対応エディタ」ではなく、**構造化 Artifact 同士を変換・参照・派生・可視化できる Workbench** へ拡張する。
 
 ```text
 Artifact A
@@ -49,7 +49,7 @@ BPMN adapter ─imports──> Mermaid adapter
 n8n adapter ──imports──> Mermaid adapter
 ```
 
-代わりに、Artifact Studio 本体に generic な Composition / Transformation / Projection 層を置く。
+代わりに、As-Code Studio 本体に generic な Composition / Transformation / Projection 層を置く。
 
 ```text
 OPA adapter ───┐
@@ -134,7 +134,7 @@ Bento document
   └─ visualizes ──> another artifact
 ```
 
-Reference は adapter 固有 URL を直接埋め込むのではなく、Artifact Studio が解決可能な logical artifact reference を優先する。
+Reference は adapter 固有 URL を直接埋め込むのではなく、As-Code Studio が解決可能な logical artifact reference を優先する。
 
 ## Artifact graph
 
@@ -372,7 +372,7 @@ Policy YAML  --projects-to--> BPMN
 
 逆に import された BPMN が canonical source なら、その BPMN から作られた Mermaid は projection に過ぎない。
 
-Artifact Studio core が特定 artifact type を常に authority と決めない。
+As-Code Studio core が特定 artifact type を常に authority と決めない。
 
 ## Integration with OPA adapter
 
@@ -400,7 +400,7 @@ OPA bundle
 validate / test / eval / visualize
 ```
 
-Artifact Studio public repository にドメイン固有 Policy schema を持ち込まない。
+As-Code Studio public repository にドメイン固有 Policy schema を持ち込まない。
 
 ## Integration with BPMN / n8n
 
@@ -491,7 +491,7 @@ OPA CLI 等を使う transform/evaluation は各 adapter の security requiremen
 - arbitrary adapter pair 間の自動変換
 - 全 transform の双方向同期
 - CRDT / multi-user collaborative graph editing
-- Git を Artifact Studio の必須 backend にする
+- Git を As-Code Studio の必須 backend にする
 - 汎用 event sourcing
 - semantic merge engine
 - adapter 固有 domain model を core に統合する
@@ -547,7 +547,7 @@ Completed workspace child: `issues/closed/20260821-artifact-workspace-v2-persist
 - [ ] derived artifact の手動編集を source へ自動逆同期しない
 - [ ] workspace が artifact relationships を永続化できる方向に拡張可能である
 - [ ] BPMN / Mermaid 等既存 adapter の独立性・回帰互換を維持する
-- [ ] Artifact Studio core に業務固有 domain model が入らない
+- [ ] As-Code Studio core に業務固有 domain model が入らない
 
 ## Design questions to resolve during implementation
 
@@ -563,7 +563,7 @@ Completed workspace child: `issues/closed/20260821-artifact-workspace-v2-persist
 ## Architecture summary
 
 ```text
-                     Artifact Studio
+                     As-Code Studio
                            │
           ┌────────────────┼────────────────┐
           │                │                │

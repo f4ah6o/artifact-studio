@@ -2,7 +2,7 @@
 
 - Status: closed
 - Date: 2026-08-21
-- Scope: Artifact Studio shell / workspace / browser host runtime
+- Scope: As-Code Studio shell / workspace / browser host runtime
 - Parent: `issues/open/20260821-artifact-lifecycle-and-desktop-runtime.md`
 
 ## 背景

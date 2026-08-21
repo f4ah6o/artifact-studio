@@ -72,7 +72,7 @@ Do not attempt to expose every Dagu YAML field in the first implementation.
 
 ## UI direction
 
-Use the existing Artifact Studio shell and Kumo migration direction.
+Use the existing As-Code Studio shell and Kumo migration direction.
 
 Conceptually:
 

@@ -80,7 +80,7 @@ jobs:
           TAG: ${{ steps.calver.outputs.tag }}
         run: |
           {
-            echo "## Artifact Studio release"
+            echo "## As-Code Studio release"
             echo
             echo "- version: `${VERSION}`"
             echo "- tag: `${TAG}`"

@@ -10,7 +10,7 @@
  *     "mcpServers": {
  *       "bpmn-generator": {
  *         "command": "node",
- *         "args": ["/path/to/artifact-studio/src/server/mcp-bpmn-server.js"]
+ *         "args": ["/path/to/as-code-studio/src/server/mcp-bpmn-server.js"]
  *       }
  *     }
  *   }
@@ -22,10 +22,10 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { runPipeline, validateLogicCore, generateDiagramSet } from '../bpmn/pipeline.js';
 import { bpmnToLogicCore } from '../bpmn/import.js';
 import { orchestrate } from '../ai/orchestrator.js';
-import { ARTIFACT_STUDIO_VERSION } from '../version.js';
+import { AS_CODE_STUDIO_VERSION } from '../version.js';
 
 const server = new Server(
-  { name: 'bpmn-generator', version: ARTIFACT_STUDIO_VERSION },
+  { name: 'bpmn-generator', version: AS_CODE_STUDIO_VERSION },
   { capabilities: { tools: {} } },
 );
 

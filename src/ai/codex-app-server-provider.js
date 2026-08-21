@@ -138,7 +138,7 @@ export class CodexAppServerClient {
       await this.#requestRaw('initialize', {
         clientInfo: {
           name: 'artifact_studio',
-          title: 'Artifact Studio',
+          title: 'As-Code Studio',
           version: '0.1.0',
         },
       });

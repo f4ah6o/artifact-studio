@@ -2,4 +2,4 @@ import { readFileSync } from 'node:fs';
 
 const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
-export const ARTIFACT_STUDIO_VERSION = packageJson.version;
+export const AS_CODE_STUDIO_VERSION = packageJson.version;

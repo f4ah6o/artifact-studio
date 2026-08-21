@@ -1,11 +1,11 @@
-# Artifact Studio — Adapter Architecture
+# As-Code Studio — Adapter Architecture
 
 [English](ARTIFACT-ADAPTERS.md)
 
 
 adapterが利用するshared contractは [`ADAPTER-CORE.ja.md`](ADAPTER-CORE.ja.md) にまとめる。
 
-Artifact Studio は BPMN 固有アプリではなく、artifact typeごとに adapter を差し替えられる workbench として構成する。
+As-Code Studio は BPMN 固有アプリではなく、artifact typeごとに adapter を差し替えられる workbench として構成する。
 
 ```text
 prompt / source
@@ -40,7 +40,7 @@ interface ArtifactAdapter<Model = unknown> {
 }
 ```
 
-canonical modelはadapter-ownedとする。Artifact Studio coreが保存するのはadapter id、serialized artifact、shell metadataであり、artifact固有modelをcore schemaへ統合しない。
+canonical modelはadapter-ownedとする。As-Code Studio coreが保存するのはadapter id、serialized artifact、shell metadataであり、artifact固有modelをcore schemaへ統合しない。
 
 ## 現在のadapter
 
@@ -81,14 +81,14 @@ Status: implemented.
 - Canonical model: Dagu workflow YAML
 - Renderer/editor: YAML source + generic DAG `GraphProjection` preview
 - Validation: official `dagu validate`
-- Runtime authority: Dagu CLI / built-in MCP。Artifact Studioはscheduler/runtimeを再実装しない
+- Runtime authority: Dagu CLI / built-in MCP。As-Code Studioはscheduler/runtimeを再実装しない
 - Export: `.yaml` / `.yml`
 
 ### Bonita BDM
 
 Status: implemented.
 
-- Canonical model: Bonita `bdm/bom.xml`。Artifact Studio独自の競合BDM schemaは作らない
+- Canonical model: Bonita `bdm/bom.xml`。As-Code Studio独自の競合BDM schemaは作らない
 - Editor/viewer: raw XML + Business Object list/detail + relation graph
 - Validation: XML / safe structural check。Bonita Runtime完全互換のvalidationはBonitaをauthorityとする
 - Derived view: aggregation/compositionの `GraphProjection`
@@ -106,7 +106,7 @@ Target: after the generic core/Dagu work.
 - AI editing: Bento document JSONを編集し、surrounding runtimeを保持する
 - Export: `.bento.html`
 
-Bento用に競合する独自page schemaをArtifact Studio側で作らない。
+Bento用に競合する独自page schemaをAs-Code Studio側で作らない。
 
 ### n8n
 
@@ -121,7 +121,7 @@ Status: deferred.
 browser persistenceはadapterごとに最新artifactを保持できるworkspace envelopeを利用する。
 
 ```text
-artifact-studio:workspace:v1
+as-code-studio:workspace:v2
 ```
 
 現在はsingle-source artifactに加え、OPA導入時にgeneric `workspace` content contractも追加されている。

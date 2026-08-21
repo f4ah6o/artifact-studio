@@ -1,11 +1,11 @@
-# Artifact Studio — Adapter Architecture
+# As-Code Studio — Adapter Architecture
 
 [日本語](ARTIFACT-ADAPTERS.ja.md)
 
 
 The shared contracts used by adapters are documented in [`ADAPTER-CORE.md`](ADAPTER-CORE.md).
 
-Artifact Studio treats BPMN as the first implementation of a generic artifact workflow:
+As-Code Studio treats BPMN as the first implementation of a generic artifact workflow:
 
 ```text
 prompt / source
@@ -40,7 +40,7 @@ interface ArtifactAdapter<Model = unknown> {
 }
 ```
 
-The canonical model is adapter-owned. Artifact Studio only persists an adapter id plus the serialized current artifact and shell metadata.
+The canonical model is adapter-owned. As-Code Studio only persists an adapter id plus the serialized current artifact and shell metadata.
 
 ## Initial adapters
 
@@ -82,14 +82,14 @@ Status: implemented.
 - Canonical model: Dagu workflow YAML
 - Renderer/editor: YAML source + generic DAG GraphProjection preview
 - Validation: official `dagu validate`
-- Runtime authority: Dagu CLI / built-in MCP, not Artifact Studio
+- Runtime authority: Dagu CLI / built-in MCP, not As-Code Studio
 - Export: `.yaml` / `.yml`
 
 ### Bonita BDM
 
 Status: implemented.
 
-- Canonical model: Bonita `bdm/bom.xml`; Artifact Studio does not introduce a competing BDM schema
+- Canonical model: Bonita `bdm/bom.xml`; As-Code Studio does not introduce a competing BDM schema
 - Editor/viewer: raw XML + Business Object list/details + relation graph
 - Validation: XML and safe structural checks; full runtime compatibility remains Bonita's authority
 - Derived view: aggregation/composition `GraphProjection`
@@ -115,14 +115,14 @@ Target:
 - AI editing: operate on the Bento document JSON and preserve the surrounding runtime
 - Export: `.bento.html`
 
-Bento is unusually well suited to the adapter model because the artifact is already local-first, self-contained and AI-editable. Artifact Studio should not invent a competing page schema for Bento; it should use Bento's documented format as the adapter boundary.
+Bento is unusually well suited to the adapter model because the artifact is already local-first, self-contained and AI-editable. As-Code Studio should not invent a competing page schema for Bento; it should use Bento's documented format as the adapter boundary.
 
 ## Persistence
 
 Browser persistence uses a workspace envelope so each enabled adapter can retain its latest source independently:
 
 ```text
-artifact-studio:workspace:v1
+as-code-studio:workspace:v2
 ```
 
 ```json

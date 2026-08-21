@@ -31,7 +31,7 @@ import { auditLog } from './audit.js';
 import { validateLogicCoreSchema } from '../bpmn/schema-gate.js';
 import { resolveStudioConfig } from './studio-config.js';
 import { generateMermaidArtifact } from '../adapters/mermaid.js';
-import { ARTIFACT_STUDIO_VERSION } from '../version.js';
+import { AS_CODE_STUDIO_VERSION } from '../version.js';
 import { handleArtifactHttpRequest, isArtifactHttpRoute } from './artifact-http-routes.js';
 
 const PORT = process.env.PORT || 3000;
@@ -233,7 +233,7 @@ const server = createServer(async (req, res) => {
     return json(res, 200, {
       status: 'ok',
       uptime: Math.floor((Date.now() - startTime) / 1000),
-      version: ARTIFACT_STUDIO_VERSION,
+      version: AS_CODE_STUDIO_VERSION,
     });
   }
 
@@ -573,7 +573,7 @@ const isEntryPoint = import.meta.url === `file://${process.argv[1]}`;
 if (isEntryPoint) {
   startupCheck(process.env);
   server.listen(PORT, () => {
-    console.log(`Artifact Studio HTTP API listening on port ${PORT}`);
+    console.log(`As-Code Studio HTTP API listening on port ${PORT}`);
     console.log(`  POST /api/v1/generate    — Logic-Core → BPMN + SVG`);
     console.log(`  POST /api/v1/validate    — Logic-Core → Validation`);
     console.log(`  POST /api/v1/import      — BPMN XML → Logic-Core`);

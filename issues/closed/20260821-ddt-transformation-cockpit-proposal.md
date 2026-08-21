@@ -1,9 +1,9 @@
 # DDT Transformation Cockpit Proposal
 
-Status: closed — superseded as Artifact Studio product direction
+Status: closed — superseded as As-Code Studio product direction
 Date: 2026-08-21
-Target: upper-layer DDT / Transformation application built on Artifact Studio
-Implementation: not started in Artifact Studio
+Target: upper-layer DDT / Transformation application built on As-Code Studio
+Implementation: not started in As-Code Studio
 
 Related:
 - `issues/open/20260820-artifact-composition-transformation-architecture.md`
@@ -15,23 +15,23 @@ Related:
 
 ## Closure decision
 
-この proposal は、Artifact Studio 自体の product direction としては close する。
+この proposal は、As-Code Studio 自体の product direction としては close する。
 
-Artifact Studio は public / generic な structured-artifact workbench として維持し、DDT 固有の Transformation / Fact / Question / Decision / Concept / Verification / Observation 等は **Artifact Studio を利用・embedする上位 application layer** に置く。
+As-Code Studio は public / generic な structured-artifact workbench として維持し、DDT 固有の Transformation / Fact / Question / Decision / Concept / Verification / Observation 等は **As-Code Studio を利用・embedする上位 application layer** に置く。
 
 ```text
 DDT / Transformation Cockpit
         ↓ uses / embeds
-Artifact Studio
+As-Code Studio
         ↓
 BPMN / OPA / Dagu / Mermaid / ...
 ```
 
-この文書の DDT domain model / lifecycle / governance / verification 構想は、将来の上位アプリ設計資料として保存する。Artifact Studio 側で必要な generic extension point は `issues/open/20260821-upper-layer-application-extension-points.md` に切り出した。
+この文書の DDT domain model / lifecycle / governance / verification 構想は、将来の上位アプリ設計資料として保存する。As-Code Studio 側で必要な generic extension point は `issues/open/20260821-upper-layer-application-extension-points.md` に切り出した。
 
 ## Summary
 
-Artifact Studio を基盤として、**Transformation を中心に Domain-Driven Transformation (DDT) を実務で回す Cockpit** を上位アプリとして bottom-up に構築する。
+As-Code Studio を基盤として、**Transformation を中心に Domain-Driven Transformation (DDT) を実務で回す Cockpit** を上位アプリとして bottom-up に構築する。
 
 新しい方法論を作ることは目的としない。Carola Lilienthal / Henning Schwentner の Domain-Driven Transformation を基礎とし、DDD、Clean Architecture、DMMF 等は必要な範囲で利用する。
 
@@ -65,7 +65,7 @@ Next Transformation
 
 ## Why
 
-現状の Artifact Studio では、BPMN / OPA / Mermaid / Dagu 等を adapter として独立に扱い、artifact identity、relationship、transform、lineage、stale detection まで実装が進んでいる。
+現状の As-Code Studio では、BPMN / OPA / Mermaid / Dagu 等を adapter として独立に扱い、artifact identity、relationship、transform、lineage、stale detection まで実装が進んでいる。
 
 次の課題は、Artifact をさらに増やすことではない。
 
@@ -98,11 +98,11 @@ Transformation list
 
 BPMN / Policy / Manual / Code 等は Transformation の中で参照・編集・検証する。
 
-### 2. Existing Artifact Studio remains the foundation
+### 2. Existing As-Code Studio remains the foundation
 
-Artifact Studio は generic foundation として利用する。
+As-Code Studio は generic foundation として利用する。
 
-DDT domain model は Artifact Studio core / adapter として実装しない。上位アプリの repository / package 境界は、最小実装を開始する時点で分離する。
+DDT domain model は As-Code Studio core / adapter として実装しない。上位アプリの repository / package 境界は、最小実装を開始する時点で分離する。
 
 再利用対象:
 
@@ -602,7 +602,7 @@ proposal
 
 ## Bottom-up migration
 
-実装は既存 Artifact Studio から bottom-up に進める。
+実装は既存 As-Code Studio から bottom-up に進める。
 
 ### Existing assets
 
@@ -614,9 +614,9 @@ proposal
 
 ### Repository strategy
 
-Artifact Studio 側には generic extension point のみ実装する。
+As-Code Studio 側には generic extension point のみ実装する。
 
-Transformation / Fact / Decision / Concept 等の DDT 固有 model と Cockpit UI は、Artifact Studio とは別の上位 application/repository に置く。Artifact Studioを DDT adapter 化しない。
+Transformation / Fact / Decision / Concept 等の DDT 固有 model と Cockpit UI は、As-Code Studio とは別の上位 application/repository に置く。As-Code Studioを DDT adapter 化しない。
 
 ## Suggested implementation phases
 
@@ -641,7 +641,7 @@ Transformation / Fact / Decision / Concept 等の DDT 固有 model と Cockpit U
 
 - Transformation list
 - Transformation Cockpit routing/layout
-- existing Artifact Studio editor embedded/reused as contextual views
+- existing As-Code Studio editor embedded/reused as contextual views
 - keep direct Artifact workflow available
 
 ### Phase 3 — Concept / Vocabulary slice
@@ -705,9 +705,9 @@ Initial implementation must NOT:
 - make Git, Graph DB, or a central server mandatory runtime dependencies for every Repository
 - start with a general-purpose Graph Editor
 
-## Artifact Studio / upper-layer boundary
+## As-Code Studio / upper-layer boundary
 
-Public Artifact Studio core may contain:
+Public As-Code Studio core may contain:
 
 - Artifact identity / content / workspace contracts
 - adapter registry and embeddable editor/view capabilities

@@ -143,7 +143,7 @@ describe('Dagu validation boundary', () => {
 
   test('reports a missing Dagu binary without treating source authoring as invalid', async () => {
     const previous = process.env.DAGU_BINARY;
-    process.env.DAGU_BINARY = 'artifact-studio-definitely-missing-dagu-binary';
+    process.env.DAGU_BINARY = 'as-code-studio-definitely-missing-dagu-binary';
     try {
       await expect(
         validateDaguSource('steps:\n  - id: hello\n    run: echo hello\n'),
@@ -156,7 +156,7 @@ describe('Dagu validation boundary', () => {
 
   test('uses a typed CLI error for unavailable validation authority', async () => {
     const previous = process.env.DAGU_BINARY;
-    process.env.DAGU_BINARY = 'artifact-studio-definitely-missing-dagu-binary';
+    process.env.DAGU_BINARY = 'as-code-studio-definitely-missing-dagu-binary';
     try {
       await expect(validateDaguSource('steps: []\n')).rejects.toBeInstanceOf(DaguCliError);
     } finally {

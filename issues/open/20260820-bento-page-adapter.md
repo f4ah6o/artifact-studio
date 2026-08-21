@@ -2,11 +2,11 @@
 
 Status: open
 Date: 2026-08-20
-Target: Artifact Studio
+Target: As-Code Studio
 
 ## Goal
 
-Artifact Studio から Bento.page の portable presentation/document を生成・編集・検証・保存・書き出しできる adapter を追加する。
+As-Code Studio から Bento.page の portable presentation/document を生成・編集・検証・保存・書き出しできる adapter を追加する。
 
 BPMN や Mermaid と同様に、AI 生成そのものではなく以下の共通ライフサイクルへ載せる。
 
@@ -23,7 +23,7 @@ prompt / import
 
 Bento の `.bento.html` を canonical artifact とする。
 
-Bento は単一 HTML 内に `application/bento+json` の構造化データを持てるため、Artifact Studio 側で独自の中間 presentation schema を新設するより、Bento の document format を直接扱う方針とする。
+Bento は単一 HTML 内に `application/bento+json` の構造化データを持てるため、As-Code Studio 側で独自の中間 presentation schema を新設するより、Bento の document format を直接扱う方針とする。
 
 内部では次の2表現を区別する。
 
@@ -115,7 +115,7 @@ Bento は HTML artifact のため BPMN / Mermaid より強い隔離が必要。
 
 ## Persistence
 
-Artifact Studio workspace storage を利用する。
+As-Code Studio workspace storage を利用する。
 
 ```json
 {
@@ -133,7 +133,7 @@ Artifact Studio workspace storage を利用する。
 - `.bento.html` の format/version 検出方法
 - asset を data URI とするか外部参照を許すか
 - AI が編集する単位を Bento JSON 全体にするか patch operation にするか
-- slide/page 単位の差分・undo を Artifact Studio 側で持つか
+- slide/page 単位の差分・undo を As-Code Studio 側で持つか
 
 ## Acceptance criteria
 

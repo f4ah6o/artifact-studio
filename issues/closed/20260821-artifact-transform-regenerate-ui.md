@@ -2,13 +2,13 @@
 
 Status: closed
 Date: 2026-08-21
-Target: Artifact Studio
+Target: As-Code Studio
 Parent: `issues/open/20260820-artifact-composition-transformation-architecture.md`
 Depends on: `issues/closed/20260821-artifact-transform-registry-lineage-stale-proof.md`
 
 ## Goal
 
-Expose the already-complete generic `ArtifactTransform` capability through the Artifact Studio workflow without adding adapter-to-adapter imports, transform-specific frontend routing, workspace v2, or Architecture Graph UI.
+Expose the already-complete generic `ArtifactTransform` capability through the As-Code Studio workflow without adding adapter-to-adapter imports, transform-specific frontend routing, workspace v2, or Architecture Graph UI.
 
 Required user flow:
 

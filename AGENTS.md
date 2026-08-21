@@ -1,6 +1,6 @@
-# Artifact Studio — Agent Guide
+# As-Code Studio — Agent Guide
 
-Artifact Studio is a multi-adapter workbench. Do not assume the repository is BPMN-only.
+As-Code Studio is a multi-adapter workbench. Do not assume the repository is BPMN-only.
 
 Current implemented adapters:
 
@@ -34,7 +34,7 @@ Run the local application with:
 vp run dev
 ```
 
-OPA is optional. OPA-specific actions require an `opa` executable on `PATH` or an absolute `OPA_BINARY`; the rest of Artifact Studio must continue to work when OPA is unavailable.
+OPA is optional. OPA-specific actions require an `opa` executable on `PATH` or an absolute `OPA_BINARY`; the rest of As-Code Studio must continue to work when OPA is unavailable.
 
 ## Architectural rules
 

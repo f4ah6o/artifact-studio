@@ -7,18 +7,18 @@ Closed: 2026-08-21
 
 Add Dagu as the next structured workflow adapter after OPA.
 
-Dagu workflow YAML is the canonical artifact. Artifact Studio should provide authoring, validation, graph projection, local persistence/export, and optional execution integration while keeping Dagu itself as the runtime authority.
+Dagu workflow YAML is the canonical artifact. As-Code Studio should provide authoring, validation, graph projection, local persistence/export, and optional execution integration while keeping Dagu itself as the runtime authority.
 
 ## Why Dagu before n8n
 
-Dagu fits Artifact Studio's adapter boundary unusually well:
+Dagu fits As-Code Studio's adapter boundary unusually well:
 
 - workflow definitions are portable declarative YAML rather than instance-owned editor state;
 - DAG structure is explicit (`steps` + `depends`) and naturally projects into the generic `GraphProjection` contract;
 - the runtime is a single local-first binary with no required external DB or broker;
-- official CLI operations provide validation / dry-run / execution / status / history instead of requiring Artifact Studio to reproduce scheduler semantics;
-- built-in MCP gives AI agents a runtime integration path without coupling Artifact Studio core to a Dagu instance API;
-- workflow YAML can live beside source code and remain useful without Artifact Studio.
+- official CLI operations provide validation / dry-run / execution / status / history instead of requiring As-Code Studio to reproduce scheduler semantics;
+- built-in MCP gives AI agents a runtime integration path without coupling As-Code Studio core to a Dagu instance API;
+- workflow YAML can live beside source code and remain useful without As-Code Studio.
 
 n8n remains a possible future adapter, but it is not the next implementation target.
 
@@ -61,7 +61,7 @@ Runtime actions must never become prerequisites for editing or validating a loca
 
 ## Runtime authority
 
-Artifact Studio must not reimplement Dagu scheduling or execution semantics.
+As-Code Studio must not reimplement Dagu scheduling or execution semantics.
 
 Preferred authority:
 
@@ -126,7 +126,7 @@ Do not rebuild Dagu's full Web UI, scheduler dashboard, logs UI, or run history 
 
 AI-generated or edited workflow YAML must pass Dagu validation before being accepted as valid.
 
-Dagu's own MCP server is the preferred future integration for agent-driven runtime state changes. Artifact Studio should not create a competing orchestration control protocol.
+Dagu's own MCP server is the preferred future integration for agent-driven runtime state changes. As-Code Studio should not create a competing orchestration control protocol.
 
 ## Core prerequisites before implementation
 
@@ -162,7 +162,7 @@ Do **not** expand this into the full Architecture Graph / transformation system 
 - [x] `dagu validate` diagnostics are surfaced as common findings.
 - [x] step dependencies render via the generic `GraphProjection` renderer.
 - [x] OPA and Dagu both use the same graph projection contract and renderer.
-- [x] invalid or cyclic workflow structure is not treated as valid based only on Artifact Studio's lightweight parser; Dagu validation remains authoritative.
+- [x] invalid or cyclic workflow structure is not treated as valid based only on As-Code Studio's lightweight parser; Dagu validation remains authoritative.
 - [x] Dagu binary absence degrades validation/runtime actions cleanly without breaking authoring.
 - [x] runtime invocation has no arbitrary command construction or path traversal.
 - [x] BPMN / Mermaid / OPA existing behavior and tests remain green.
