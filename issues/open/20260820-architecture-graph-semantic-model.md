@@ -2,9 +2,9 @@
 
 Status: open
 Date: 2026-08-20
-Target: As-Code Studio → Architecture Studio direction
+Target: As-Code Studio semantic graph capability
 Related:
-- `issues/open/20260820-artifact-composition-transformation-architecture.md`
+- `issues/closed/20260820-artifact-composition-transformation-architecture.md`
 - `issues/closed/20260820-opa-adapter.md`
 - `issues/closed/20260820-dagu-adapter.md`
 - `issues/open/20260820-n8n-adapter.md` (deferred)
@@ -12,10 +12,9 @@ Related:
 
 ## Summary
 
-As-Code Studio を「複数形式のArtifactを個別に編集・検証するStudio」から、
-**異なる設計Artifactの意味的関係を横断して扱う Architecture Studio** へ進化させる。
+As-Code Studio の product boundary を維持したまま、**異なるas-code Artifactの意味的関係を横断して扱う generic capability** として Architecture Graph を追加する。
 
-中心概念は diagram ではなく **Architecture Graph** とする。
+Architecture Graph は別product名へのrename理由ではなく、As-Code Studio core/workspaceが提供するsemantic infrastructureとする。中心概念は diagram ではなく **Artifact + SemanticRef + relationship graph** である。
 
 ```text
 Artifact
@@ -58,33 +57,29 @@ Business Entity: Invoice.amount
 必要なのは全てを1つの巨大schemaへ統合することではなく、
 **各artifactを独立させたまま、意味的な関係を第一級データとして扱うこと**である。
 
-## Product direction: Architecture Studio
+## Product direction: Architecture Graph inside As-Code Studio
 
-名称変更はこのissueでは即時実施しない。
-先に内部Architectureを一般化し、実態が伴った段階でrenameを判断する。
-
-想定方向:
+Product名は **As-Code Studio** とする。Architecture Graphはその内部capabilityであり、別の「Architecture Studio」へrenameしない。
 
 ```text
-Architecture Studio
+As-Code Studio
 │
 ├─ Artifact Adapters
 │   ├─ BPMN
 │   ├─ Mermaid
 │   ├─ OPA
-│   ├─ n8n
-│   ├─ Business Data Model
-│   ├─ Data Contract
-│   └─ DDD / Architecture models
+│   ├─ Dagu
+│   ├─ Bonita BDM
+│   └─ future as-code formats
 │
+├─ Artifact Workspace
 ├─ Architecture Graph
-├─ Transformations
-├─ Projections
-├─ Data Lineage
-└─ Architecture Validation
+├─ Transformations / Projections
+├─ Lineage
+└─ Validation / traversal / impact analysis
 ```
 
-`Artifact` は名称変更後も内部の重要概念として残す。
+`Artifact` と各adapter-owned canonical formatを中心に据え、Architecture Graphがそれらを置き換えるuniversal modelにはしない。
 
 ## Core principles
 
@@ -617,7 +612,7 @@ Architecture Graph自体にrule engineを適用できるようにする。
 
 Rule engineとして将来的にOPA adapter自身をdogfoodすることも可能。
 
-## Architecture Studio workspace
+## As-Code Studio Architecture Graph workspace
 
 Workspaceは単なるartifact storageからArchitecture Graph containerへ拡張する。
 
@@ -672,7 +667,7 @@ Architecture Graphはその上位navigationとして追加する。
 
 ## Source of truth
 
-Architecture Studio自体を全設計情報の唯一の正本にしない。
+As-Code Studio / Architecture Graph自体を全設計情報の唯一の正本にしない。
 
 各artifactのauthorityは各adapter/canonical sourceにある。
 
@@ -716,8 +711,8 @@ BPMN編集からBusiness Modelを自動変更する等のlossyなreverse transfo
 
 ## Relation to Artifact Composition proposal
 
-`artifact-composition-transformation-architecture` がArtifact A → Artifact Bの変換・projection・lineageを扱うのに対し、
-本issueはその上位に **semantic entity / relationship graph** を導入する。
+closed済みの `artifact-composition-transformation-architecture` が Artifact A → Artifact B の変換・projection・lineage基盤を確立した。
+本issueはその上に **semantic entity / relationship graph** を追加するfollow-upである。
 
 ```text
 Artifact Composition
@@ -763,10 +758,12 @@ Semantic relationships / impact analysis / architecture validation
 
 ### Phase 4 — Business Data Model + Data Contract
 
-- generic Business Data Model adapter/schema
+Bonita BDM adapter (`bdm/bom.xml`) is now implemented and provides a real external canonical data-model artifact. Do **not** introduce an As-Code Studio-specific generic BDM canonical schema.
+
+- expose Bonita Business Object / field identities as SemanticEntity/SemanticRef targets
 - entity/field semantic addressing
-- JSON Schema mapping
-- BPMN DataObject binding
+- future JSON Schema mapping
+- future BPMN DataObject binding
 
 ### Phase 5 — Data Lineage
 
@@ -826,26 +823,28 @@ Public repoに入れないもの:
 - 固有承認制度
 - private endpoint / credentials
 
-## Prerequisite progress
+## Current progress / next slice
 
-- 2026-08-21: `issues/closed/20260821-artifact-transform-regenerate-ui.md` completed the Studio-facing generic transform/lineage freshness workflow. This satisfies the transform-side prerequisite without starting Architecture Graph UI.
-- 2026-08-21: `issues/closed/20260821-artifact-workspace-v2-persistence.md` completed stable multi-artifact identity, active selection, migration, and reload-safe lineage freshness.
-- 2026-08-21: `issues/closed/20260821-artifact-relationship-semantic-ref-core.md` completed open-vocabulary ArtifactRelationship + SemanticRef persistence and referential validation.
-- Architecture Graph implementation remains blocked intentionally on the remaining prerequisites: Business Data Model semantic identities and ER projection.
+- 2026-08-21: transform/lineage freshness workflow completed.
+- 2026-08-21: Artifact Workspace v2 completed stable multi-artifact identity, migration and reload-safe lineage freshness.
+- 2026-08-21: open-vocabulary `ArtifactRelationship` + `SemanticRef` persistence and referential validation completed. Provenance distinguishes `declared`, `discovered`, and `generated`.
+- 2026-08-21: Bonita BDM adapter added with canonical `bdm/bom.xml`, Business Object/field parsing and relationship GraphProjection. This removes the need to invent a generic BDM format before semantic-entity work.
+
+**Next implementation slice:** define the minimal `SemanticEntity` exposure contract and use Bonita BDM Business Objects/fields as the first provider. Then project persisted ArtifactRelationships/SemanticRefs into a read-only graph and add generic traversal.
 
 ## Acceptance criteria for first implementation milestone
 
-- [ ] Adapter independenceを維持したArchitecture Graph logical contractが存在する
-- [ ] Artifact単位のrelationshipをworkspaceに保存・復元できる
-- [ ] Artifact内部SemanticEntityを最低1adapterで公開できる
-- [ ] relationshipをgraph projectionとして表示できる
-- [ ] declared / discovered provenanceを区別できる
-- [ ] source revision変更によるstale判定の基礎がある
-- [ ] broken/unresolved referenceを検出できる
-- [ ] BPMN/Mermaid既存機能が回帰しない
-- [ ] 特定企業/業務ドメインの知識をcoreに持ち込まない
+- [x] Artifact-level `ArtifactRelationship` / `SemanticRef` logical contractが存在する
+- [x] Artifact単位のrelationshipをworkspaceに保存・復元できる
+- [ ] Artifact内部`SemanticEntity`を最低1adapterで公開できる
+- [ ] persisted relationshipをgeneric `GraphProjection`として表示できる
+- [x] declared / discovered / generated provenanceを区別できる
+- [x] source revision変更によるstale判定の基礎がある
+- [x] broken/unresolved Artifact/SemanticRefを検出できる基礎がある
+- [x] BPMN/Mermaid既存機能が回帰しない
+- [x] 特定企業/業務ドメインの知識をcoreに持ち込まない
 
-## Success criteria for Architecture Studio direction
+## Success criteria for Architecture Graph capability
 
 将来的に次の問い合わせに答えられることを成功条件とする。
 
@@ -871,11 +870,10 @@ Public repoに入れないもの:
 - semantic address URIのformal syntax
 - relationship type vocabularyをどこまで標準化するか
 - authored relationの保存場所をworkspace metadataとするかsidecar fileとするか
-- Business Data Modelのcanonical formatを独自minimal YAML/JSONとするか既存標準を採用するか
+- Bonita BDM以外のdata-model formatsを追加した際に、SemanticEntity exposure contractをどこまで共通化するか
 - JSON Schema等とのentity/field identity mapping
 - BPMN extension elementへsemantic refsを埋め込むかsidecarにするか
 - OPA ASTからどの粒度までdependencyを安全に抽出できるか
 - n8n expression/node mappingからfield-level lineageをどこまで推論するか
 - OpenLineageとのimport/export boundary
 - architecture rule validationをOPAで統一するか独立rule APIを用意するか
-- As-Code Studio → Architecture Studio renameの時期

@@ -1,6 +1,6 @@
 # Adopt Kumo UI with As-Code Studio theme
 
-Status: open
+Status: closed — Kumo foundation adopted and adapter smoke verified
 Date: 2026-08-21
 Target: As-Code Studio browser shell
 
@@ -141,7 +141,7 @@ Avoid rewriting BPMN/Mermaid/OPA/Dagu logic merely to make it stylistically Reac
 - [x] Kumo standalone styling is integrated without requiring Tailwind configuration.
 - [x] As-Code Studio theme overrides preserve the current neutral/minimal visual character.
 - [x] At least representative shell controls use Kumo components.
-- [ ] Existing BPMN / Mermaid / OPA / Dagu functionality remains usable.
+- [x] Existing BPMN / Mermaid / OPA / Dagu functionality remains usable.
 - [x] BPMN and Mermaid lazy-loading behavior remains intact.
 - [x] production build succeeds.
 - [x] tests succeed.
@@ -151,6 +151,12 @@ Avoid rewriting BPMN/Mermaid/OPA/Dagu logic merely to make it stylistically Reac
 ## Future follow-up
 
 Implement a collapsible left session-history column using Kumo `Sidebar` after the Kumo foundation/theme is stable. Session history itself remains an As-Code Studio application pattern rather than a design-system primitive.
+
+## Completion evidence
+
+Foundation adoption is complete. A headless Chrome smoke pass on 2026-08-21 switched through BPMN, Mermaid, OPA, Dagu, and Bonita BDM from the shared adapter selector; every adapter selected successfully, its pane was visible, and no browser runtime exception was observed.
+
+New application patterns such as session history are separate product work and should not keep this foundation issue open indefinitely.
 
 ## Implementation progress — 2026-08-21
 

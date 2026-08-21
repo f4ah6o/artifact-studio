@@ -180,13 +180,13 @@ This issue does NOT implement:
 
 ## Acceptance criteria
 
-- [ ] As-Code Studio README/product boundary remains a generic structured-artifact workbench.
+- [x] As-Code Studio README/product boundary remains a generic structured-artifact workbench.
 - [ ] Upper-layer application code can open/reuse an Artifact editor/view through a generic runtime API rather than adapter-specific DOM knowledge.
 - [ ] A generic external/repository resource reference can be represented with optional revision provenance.
 - [ ] A proposed Artifact change can exist separately from canonical content and requires explicit apply.
 - [ ] Generic relationship traversal can return semantic paths without DDT-specific interpretation.
-- [ ] No Transformation / Fact / Decision / Concept domain dependency is introduced into As-Code Studio core.
-- [ ] Existing direct Artifact workflows remain first-class and all existing tests remain green.
+- [x] No Transformation / Fact / Decision / Concept domain dependency is introduced into As-Code Studio core.
+- [x] Existing direct Artifact workflows remain first-class and all existing tests remain green.
 
 ## Direction
 

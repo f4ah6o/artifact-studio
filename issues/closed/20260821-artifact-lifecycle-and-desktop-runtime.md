@@ -1,8 +1,22 @@
 # Artifact lifecycle と Desktop runtime の再設計
 
-- Status: open
+- Status: closed — browser lifecycle and host boundary implemented; desktop packaging deferred
 - Date: 2026-08-21
 - Scope: As-Code Studio shell / workspace / local runtime
+
+## Completion status
+
+2026-08-21 時点で、このissueのうち desktop packaging 以前に必要だった application boundary は実装済み。
+
+- human-readable Artifact title / selector
+- rename / delete
+- semantic-empty Artifact reuse / duplicate empty cleanup
+- stable lifecycle timestamps and lineage-safe delete
+- storage objectを差し替え可能な `ArtifactWorkspaceStore` boundary
+- browser HTTPを実装詳細へ隔離した `HostRuntime` boundary
+- OPA / Dagu / Bonita BDM client runtimeの `HostRuntime` 利用
+
+Electron / Tauri application自体は実装していない。これは当初からこのissueのnon-goalであり、必要になった時点でdesktop host固有issueとして改めて扱う。
 
 ## 背景
 
@@ -176,14 +190,14 @@ Tauri host
 
 ## Acceptance criteria
 
-- Artifact selector の主表示が human-readable title になる。
-- Artifact を rename できる。
-- Artifact を delete できる。
-- 空 Artifact が意図せず増殖しない。
-- internal ID が browser secure-context の有無に UI 品質を左右されない。
-- Artifact persistence が localStorage へ直接依存しない interface になる。
-- CLI / filesystem access が UI から直接 HTTP endpoint へ固定されず `HostRuntime` abstraction 経由になる。
-- Electron/Tauri のどちらにも載せ替えられる境界を定義する。
+- [x] Artifact selector の主表示が human-readable title になる。
+- [x] Artifact を rename できる。
+- [x] Artifact を delete できる。
+- [x] 空 Artifact が意図せず増殖しない。
+- [x] internal ID が browser secure-context の有無に UI 品質を左右されない。
+- [x] Artifact persistence が storage implementation を差し替え可能な boundary を持つ。
+- [x] CLI / filesystem/process access を UI から直接固定せず `HostRuntime` abstraction 経由にできる。
+- [x] Electron/Tauri のどちらにも載せ替えられる host boundary を定義する。
 
 ## Non-goals
 
@@ -191,3 +205,7 @@ Tauri host
 - Codex CLI 自体の置き換え。
 - OPA/Dagu の runtime semantics の再実装。
 - この issue の段階で Electron/Tauri のどちらかに即時固定すること。
+
+## Closure evidence
+
+Primary implementation child: `issues/closed/20260821-artifact-workspace-lifecycle-host-boundary.md`. Full regression suite and production build remained green after subsequent Bonita BDM and As-Code Studio rename work.

@@ -1,22 +1,23 @@
 # Artifact Composition / Transformation Architecture
 
-Status: open
+Status: closed — core architecture implemented; semantic graph follow-up separated
 Date: 2026-08-20
 Target: As-Code Studio
 
-## Current progress
+## Completion status
 
-As of 2026-08-21, Phase 2 is complete and Phase 3 is now active:
+The generic composition/transformation architecture is implemented and this parent issue is closed.
 
-- Phase 1: the minimal adapter/core contracts, adapter-independent `GraphProjection`, and generic renderer boundary are established.
-- Phase 2: OPA is the first GraphProjection consumer and Dagu is the second; the Dagu proof completed without adapter-specific leakage or a generic-core correction.
-- Phase 3 is now the active phase, but it will be implemented incrementally rather than by completing this parent issue in one change.
+Completed slices:
 
-Completed first Phase 3 child:
+- minimal adapter/core contracts and adapter-independent `GraphProjection`;
+- OPA and Dagu as independent `GraphProjection` consumers;
+- generic `ArtifactTransform` registry and deterministic GraphProjection-to-Mermaid transform;
+- source revision lineage, stale detection and explicit regenerate UI;
+- Artifact Workspace v2 with stable multi-artifact identity and lineage persistence;
+- open-vocabulary `ArtifactRelationship` / `SemanticRef` persistence and referential validation.
 
-- `issues/closed/20260821-artifact-transform-registry-lineage-stale-proof.md` — `ArtifactTransform` contract + registry + one deterministic GraphProjection-to-Mermaid transform + source revision lineage + current/stale/regenerate proof.
-
-Workspace persistence v2, relationship persistence/navigation, regenerate UI, and Architecture Graph UI remain deferred beyond this proof.
+Remaining semantic graph UI, semantic-entity exposure, traversal and impact analysis are **not unfinished work of this parent issue**. They continue in `issues/open/20260820-architecture-graph-semantic-model.md` and `issues/open/20260821-upper-layer-application-extension-points.md`.
 
 ## Goal
 
@@ -533,21 +534,21 @@ Completed workspace child: `issues/closed/20260821-artifact-workspace-v2-persist
 
 14. workspace persistence v2 ✅
 15. relationship persistence ✅
-16. read-only artifact graph view
-17. reference navigation
+16. read-only artifact graph view → moved to Architecture Graph issue
+17. reference navigation → moved to Architecture Graph / upper-layer extension issues
 
 ## Acceptance criteria
 
-- [ ] adapter 間の直接 import を増やさずに連動できる
-- [ ] Projection と Transformation と Reference が別概念としてモデル化されている
-- [ ] GraphProjection が adapter 非依存である
-- [ ] 少なくとも OPA + Dagu が同じ GraphProjection contract / renderer を利用する
-- [ ] generated artifact が source artifact / revision を lineage として保持できる
-- [ ] source 更新時に derived artifact の stale 判定ができる
-- [ ] derived artifact の手動編集を source へ自動逆同期しない
-- [ ] workspace が artifact relationships を永続化できる方向に拡張可能である
-- [ ] BPMN / Mermaid 等既存 adapter の独立性・回帰互換を維持する
-- [ ] As-Code Studio core に業務固有 domain model が入らない
+- [x] adapter 間の直接 import を増やさずに連動できる
+- [x] Projection と Transformation と Reference が別概念としてモデル化されている
+- [x] GraphProjection が adapter 非依存である
+- [x] 少なくとも OPA + Dagu が同じ GraphProjection contract / renderer を利用する
+- [x] generated artifact が source artifact / revision を lineage として保持できる
+- [x] source 更新時に derived artifact の stale 判定ができる
+- [x] derived artifact の手動編集を source へ自動逆同期しない
+- [x] workspace が artifact relationships を永続化できる方向に拡張可能である
+- [x] BPMN / Mermaid 等既存 adapter の独立性・回帰互換を維持する
+- [x] As-Code Studio core に業務固有 domain model が入らない
 
 ## Design questions to resolve during implementation
 
@@ -586,3 +587,7 @@ Completed workspace child: `issues/closed/20260821-artifact-workspace-v2-persist
 `*` は実需要が複数確認されてから共通化する。
 
 この architecture の中心は「adapter を結合する」ことではなく、**adapter の独立性を維持したまま artifact 同士の意味のある関係を core が扱えるようにすること**である。
+
+## Closure note — 2026-08-21
+
+The architectural uncertainty this issue was created to resolve is now closed: adapters can project, transform, persist lineage, detect stale derived artifacts, and persist semantic relationships without direct adapter-to-adapter coupling. Further work is intentionally tracked as semantic graph/application-host capabilities rather than extending this parent indefinitely.
