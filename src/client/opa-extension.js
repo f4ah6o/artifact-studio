@@ -414,6 +414,16 @@ registerArtifactRuntime('opa', {
     if (!hasFiles()) return null;
     return currentArtifactRecord('opa', workspaceContent(workspace));
   },
+  async semanticEntities(artifact) {
+    if (artifact?.content?.kind !== 'workspace') {
+      throw new Error('OPA semantic entities require workspace artifact content');
+    }
+    const data = await hostRuntime().artifactAction('opa', 'entities', {
+      workspace: artifact.content,
+      artifactId: artifact.id,
+    });
+    return data.entities || [];
+  },
   async project(artifact) {
     if (artifact?.content?.kind !== 'workspace') {
       throw new Error('OPA project requires workspace artifact content');

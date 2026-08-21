@@ -15,6 +15,10 @@ const themeSource = readFileSync(
   new URL('../src/client/as-code-studio-theme.css', import.meta.url),
   'utf8',
 );
+const opaExtensionSource = readFileSync(
+  new URL('../src/client/opa-extension.js', import.meta.url),
+  'utf8',
+);
 const bonitaBdmExtensionSource = readFileSync(
   new URL('../src/client/bonita-bdm-extension.js', import.meta.url),
   'utf8',
@@ -55,6 +59,13 @@ describe('client adapter lazy loading', () => {
     );
     expect(indexSource).toContain('id="bonita-bdm-load-sample"');
     expect(bonitaExtensionSource).toContain('../../examples/bonita-bdm/bom.xml?raw');
+  });
+
+  test('OPA semantic entities are exposed through the lazy HostRuntime boundary', () => {
+    expect(opaExtensionSource).toContain("artifactAction('opa', 'entities'");
+    expect(opaExtensionSource).toContain('artifactId: artifact.id');
+    expect(opaExtensionSource).toContain('semanticEntities(artifact)');
+    expect(opaExtensionSource).not.toContain('opa parse');
   });
 
   test('Bonita BDM semantic entities are an explicit HostRuntime-backed capability', () => {

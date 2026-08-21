@@ -134,6 +134,18 @@ describe('HTTP API', () => {
     expect(body.error).toMatch(/Unsafe workspace path/);
   });
 
+  test('OPA semantic entity route validates artifact identity before invoking OPA', async () => {
+    const response = await fetch(`${baseUrl}/api/v1/artifacts/opa/entities`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        workspace: { files: { 'policy.rego': 'package policy\n' } },
+      }),
+    });
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toMatch(/artifactId/i);
+  });
+
   test('OPA adapter rejects malformed JSON workspace data through the main server', async () => {
     const response = await fetch(`${baseUrl}/api/v1/artifacts/opa/check`, {
       method: 'POST',

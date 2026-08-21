@@ -282,6 +282,137 @@ async function materialize(workspaceValue, callback) {
   }
 }
 
+function opaSemanticId(kind, address) {
+  return `opa:${kind}:${encodeURIComponent(address)}`;
+}
+
+function normalizeParsedModule(value, file) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new OpaCliError(`OPA parse returned invalid module for ${file}`, {
+      code: 'OPA_INVALID_OUTPUT',
+    });
+  }
+  const packageAddress = refText(value.package?.path);
+  if (!packageAddress || !packageAddress.startsWith('data.')) {
+    throw new OpaCliError(`OPA parse returned invalid package for ${file}`, {
+      code: 'OPA_INVALID_OUTPUT',
+    });
+  }
+  return { file, packageAddress, rules: Array.isArray(value.rules) ? value.rules : [] };
+}
+
+export function opaSemanticEntitiesFromParsedModules(modules, artifactId) {
+  if (!Array.isArray(modules)) {
+    throw new OpaWorkspaceError('parsed OPA modules must be an array');
+  }
+  if (typeof artifactId !== 'string' || !artifactId.trim()) {
+    throw new OpaWorkspaceError('artifactId must be a non-empty string');
+  }
+
+  const packages = new Map();
+  const rules = new Map();
+  for (const rawModule of modules) {
+    const module = normalizeParsedModule(
+      rawModule.module ?? rawModule,
+      rawModule.file || 'policy.rego',
+    );
+    const packageName = module.packageAddress.slice('data.'.length);
+    if (!packages.has(module.packageAddress)) {
+      packages.set(module.packageAddress, { label: packageName, files: new Set() });
+    }
+    packages.get(module.packageAddress).files.add(module.file);
+
+    for (const rule of module.rules) {
+      const ruleName = typeof rule?.head?.name === 'string' ? rule.head.name.trim() : '';
+      if (!ruleName) continue;
+      const address = `${module.packageAddress}.${ruleName}`;
+      if (!rules.has(address)) {
+        rules.set(address, {
+          label: ruleName,
+          packageAddress: module.packageAddress,
+          files: new Set(),
+          definitionCount: 0,
+          hasDefault: false,
+          partial: false,
+          arities: new Set(),
+        });
+      }
+      const info = rules.get(address);
+      info.files.add(module.file);
+      info.definitionCount += 1;
+      info.hasDefault ||= rule.default === true;
+      info.partial ||= rule.head?.key !== undefined;
+      info.arities.add(Array.isArray(rule.head?.args) ? rule.head.args.length : 0);
+    }
+  }
+
+  const entities = [];
+  for (const [address, info] of [...packages.entries()].sort(([a], [b]) =>
+    a.localeCompare(b, 'en'),
+  )) {
+    entities.push({
+      id: opaSemanticId('package', address),
+      artifactId,
+      kind: 'package',
+      label: info.label,
+      address,
+      metadata: { files: [...info.files].sort((a, b) => a.localeCompare(b, 'en')) },
+    });
+  }
+  for (const [address, info] of [...rules.entries()].sort(([a], [b]) => a.localeCompare(b, 'en'))) {
+    entities.push({
+      id: opaSemanticId('rule', address),
+      artifactId,
+      kind: 'rule',
+      label: info.label,
+      address,
+      metadata: {
+        package: info.packageAddress,
+        files: [...info.files].sort((a, b) => a.localeCompare(b, 'en')),
+        definitionCount: info.definitionCount,
+        hasDefault: info.hasDefault,
+        partial: info.partial,
+        arities: [...info.arities].sort((a, b) => a - b),
+      },
+    });
+  }
+  return entities;
+}
+
+export async function semanticEntitiesWorkspace(workspaceValue, artifactId) {
+  const normalizedArtifactId =
+    typeof artifactId === 'string' && artifactId.trim() ? artifactId.trim() : null;
+  if (!normalizedArtifactId) {
+    throw new OpaWorkspaceError('artifactId must be a non-empty string');
+  }
+  return materialize(workspaceValue, async (context) => {
+    const regoFiles = Object.keys(context.workspace.files)
+      .filter((path) => extname(path).toLowerCase() === '.rego')
+      .sort();
+    if (!regoFiles.length) return [];
+
+    const check = await runOpa(
+      ['check', '--format=json', '--capabilities', context.capabilitiesPath, context.workspaceDir],
+      { allowFailure: true },
+    );
+    if (check.exitCode !== 0) {
+      throw new OpaCliError('OPA workspace is not semantically valid', {
+        code: 'OPA_SEMANTIC_SOURCE_INVALID',
+        exitCode: check.exitCode,
+        stdout: check.stdout,
+        stderr: check.stderr,
+      });
+    }
+
+    const modules = [];
+    for (const file of regoFiles) {
+      const result = await runOpa(['parse', '--format=json', context.pathFor(file)]);
+      modules.push({ file, module: parseJsonOutput(result.stdout, `parse ${file}`) });
+    }
+    return opaSemanticEntitiesFromParsedModules(modules, normalizedArtifactId);
+  });
+}
+
 function parseJsonOutput(text, label) {
   try {
     return JSON.parse(text || '{}');

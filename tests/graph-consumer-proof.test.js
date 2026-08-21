@@ -33,6 +33,11 @@ describe('GraphProjection second-consumer proof', () => {
     expect(supportsCapability(bpmn, 'semanticEntities')).toBe(true);
   });
 
+  test('registers OPA as a semantic entity provider', () => {
+    const opa = getArtifactAdapter('opa');
+    expect(supportsCapability(opa, 'semanticEntities')).toBe(true);
+  });
+
   test('registers Bonita BDM as an exact bom.xml text artifact without stealing generic XML', () => {
     const bdm = getArtifactAdapter('bonita-bdm');
     expect(bdm).toMatchObject({

@@ -833,8 +833,9 @@ Public repoに入れないもの:
 - 2026-08-21: persisted `ArtifactRelationship` / `SemanticRef` values can now be resolved through adapter semantic-entity providers into an in-memory Architecture Graph, projected into a read-only generic `GraphProjection`, and traversed with generic direction-aware shortest semantic paths. Broken/missing/unresolved refs remain visible with findings instead of being silently dropped.
 - 2026-08-21: BPMN became the second concrete `SemanticEntity` provider. Stable BPMN element IDs expose process/collaboration/participant/lane/flow-element identities through the same provider/runtime contract as Bonita BDM; BPMN DI remains outside the semantic layer.
 - 2026-08-21: a minimal workspace-level Architecture view now authors/removes declared relationships between Artifact roots or concrete SemanticEntities, persists them through `ArtifactWorkspaceStore`, renders the read-only generic GraphProjection, and surfaces broken/unresolved reference findings. Browser smoke proved a concrete `BPMN task -> Bonita BDM field` relationship without adapter-specific relationship code.
+- 2026-08-21: OPA became the third concrete `SemanticEntity` provider. OPA's own parser/checker is the authority; package paths and logical rule heads are exposed as stable `package` / `rule` entities, with multi-definition/default/function/partial-rule details retained as adapter-owned metadata. No independent Rego parser was introduced.
 
-**Next implementation slice:** add the next concrete semantic provider/discovery source (OPA is the leading candidate) or add navigation from Architecture Graph nodes back to their source Artifact/entity. Keep domain-specific impact-analysis semantics out of core.
+**Next implementation slice:** use OPA's AST/dependency facilities to discover safe `reads` relationships from rule entities, or add navigation from Architecture Graph nodes back to their source Artifact/entity. Keep domain-specific impact-analysis semantics out of core.
 
 ## Acceptance criteria for first implementation milestone
 

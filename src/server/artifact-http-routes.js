@@ -21,6 +21,7 @@ import {
   dependenciesWorkspace,
   evaluateWorkspace,
   formatWorkspace,
+  semanticEntitiesWorkspace,
   testWorkspace,
 } from '../adapters/opa.js';
 
@@ -181,6 +182,12 @@ async function handleOpaRequest(req, res) {
         sendJson(res, 200, {
           status: 'success',
           result: await dependenciesWorkspace(workspace, body.query),
+        });
+        return;
+      case '/api/v1/artifacts/opa/entities':
+        sendJson(res, 200, {
+          status: 'success',
+          entities: await semanticEntitiesWorkspace(workspace, body.artifactId),
         });
         return;
       default:

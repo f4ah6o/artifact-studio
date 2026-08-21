@@ -5,6 +5,7 @@ import {
   formatJsonSource,
   mapOpaErrors,
   normalizeWorkspace,
+  opaSemanticEntitiesFromParsedModules,
   validateWorkspacePath,
 } from '../../src/adapters/opa.js';
 
@@ -122,6 +123,75 @@ describe('OPA derived data', () => {
     );
     expect(graph.nodes).toEqual(
       expect.arrayContaining([expect.objectContaining({ label: 'input.tenant', kind: 'base' })]),
+    );
+  });
+});
+
+describe('OPA semantic entities', () => {
+  const term = (type, value) => ({ type, value });
+
+  test('exposes packages and aggregates logical rules across definitions', () => {
+    const entities = opaSemanticEntitiesFromParsedModules(
+      [
+        {
+          file: 'policy/approval.rego',
+          module: {
+            package: {
+              path: [term('var', 'data'), term('string', 'invoice'), term('string', 'approval')],
+            },
+            rules: [
+              { default: true, head: { name: 'allow', value: term('boolean', false) } },
+              { head: { name: 'allow', value: term('boolean', true) } },
+              { head: { name: 'is_admin', args: [term('var', 'user')] } },
+              { head: { name: 'roles', key: term('var', 'k'), value: term('var', 'v') } },
+            ],
+          },
+        },
+        {
+          file: 'policy/approval-extra.rego',
+          module: {
+            package: {
+              path: [term('var', 'data'), term('string', 'invoice'), term('string', 'approval')],
+            },
+            rules: [{ head: { name: 'allow', value: term('boolean', true) } }],
+          },
+        },
+      ],
+      'artifact-opa',
+    );
+
+    expect(entities).toEqual(
+      expect.arrayContaining([
+        {
+          id: 'opa:package:data.invoice.approval',
+          artifactId: 'artifact-opa',
+          kind: 'package',
+          label: 'invoice.approval',
+          address: 'data.invoice.approval',
+          metadata: { files: ['policy/approval-extra.rego', 'policy/approval.rego'] },
+        },
+        expect.objectContaining({
+          id: 'opa:rule:data.invoice.approval.allow',
+          artifactId: 'artifact-opa',
+          kind: 'rule',
+          label: 'allow',
+          address: 'data.invoice.approval.allow',
+          metadata: expect.objectContaining({
+            definitionCount: 3,
+            hasDefault: true,
+            partial: false,
+            arities: [0],
+          }),
+        }),
+        expect.objectContaining({
+          address: 'data.invoice.approval.is_admin',
+          metadata: expect.objectContaining({ arities: [1], partial: false }),
+        }),
+        expect.objectContaining({
+          address: 'data.invoice.approval.roles',
+          metadata: expect.objectContaining({ arities: [0], partial: true }),
+        }),
+      ]),
     );
   });
 });
