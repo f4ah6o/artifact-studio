@@ -577,9 +577,9 @@ function updateAdapterUi() {
   renderAiControls();
 }
 
-function configureAdapters(demo = {}) {
-  const configured = Array.isArray(demo.enabledAdapters)
-    ? demo.enabledAdapters
+function configureAdapters(studio = {}) {
+  const configured = Array.isArray(studio.enabledAdapters)
+    ? studio.enabledAdapters
     : Object.keys(artifactAdapters);
   const enabled = configured.filter((id) => Boolean(getArtifactAdapter(id)));
   state.enabledAdapters = enabled.length ? enabled : ['bpmn'];
@@ -1086,7 +1086,7 @@ async function refreshAppConfig() {
   if (!response.ok) throw new Error('Artifact Studio設定を取得できませんでした');
   const config = await response.json();
   state.appConfig = config;
-  configureAdapters(config.demo || {});
+  configureAdapters(config.studio || {});
   applyCodexStatus(config.codex);
   return config;
 }
@@ -1233,7 +1233,7 @@ async function bootstrap() {
     applyCodexStatus({ available: false, authenticated: false, error: error.message });
   }
 
-  const configuredDefault = config?.demo?.defaultAdapter || 'bpmn';
+  const configuredDefault = config?.studio?.defaultAdapter || 'bpmn';
   const storedArtifact = activeArtifactRecord();
   const storedAdapter = storedArtifact?.adapterId || null;
   const initialAdapter = state.enabledAdapters.includes(storedAdapter)

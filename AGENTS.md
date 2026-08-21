@@ -31,7 +31,7 @@ vp build
 Run the local application with:
 
 ```bash
-vp run demo
+vp run dev
 ```
 
 OPA is optional. OPA-specific actions require an `opa` executable on `PATH` or an absolute `OPA_BINARY`; the rest of Artifact Studio must continue to work when OPA is unavailable.

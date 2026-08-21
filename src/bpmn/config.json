@@ -102,7 +102,7 @@
     "elkWrapping": "auto",
     "elkWrappingNodeThreshold": 20
   },
-  "demo": {
+  "studio": {
     "defaultAdapter": "bpmn",
     "enabledAdapters": ["bpmn", "mermaid", "opa"]
   }

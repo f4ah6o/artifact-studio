@@ -22,13 +22,14 @@ Vite+ manages the JavaScript toolchain and package manager for this repository.
 
 ```bash
 vp install
-vp run demo
+vp run dev
 ```
 
-The demo starts:
+The development command starts:
 
 - the Artifact Studio API on `http://127.0.0.1:3000` by default;
 - the OPA adapter sidecar on `http://127.0.0.1:3001` by default;
+- the Dagu adapter sidecar on `http://127.0.0.1:3002` by default;
 - the Vite+ development server, normally on port `5173`.
 
 OPA is optional. BPMN and Mermaid remain usable without an `opa` executable. To enable OPA actions, install OPA on `PATH` or set `OPA_BINARY` to an absolute executable path.
@@ -40,7 +41,7 @@ API_PORT=3200 \
 OPA_API_PORT=3201 \
 VITE_PORT=5273 \
 VITE_HOST=127.0.0.1 \
-vp run demo
+vp run dev
 ```
 
 ## Development gates
@@ -54,6 +55,12 @@ vp build
 ```
 
 The CI workflow runs the same gates on supported Node.js LTS releases and finishes with a BPMN generation smoke test.
+
+## Versioning
+
+Artifact Studio uses CalVer `YYYY.M.PATCH`, for example `2026.8.0`. Releases are allocated by `f4ah6o/calver-action` using the `YYYY.MM.PATCH` action format (its `MM` token is an unpadded month) and the `Asia/Tokyo` timezone. Release tags are prefixless and immutable.
+
+Run the **Release** workflow manually to allocate the next version, validate the repository, update `package.json` in a release-only commit when necessary, and push the CalVer tag. The application HTTP/MCP version is read from `package.json`.
 
 ## BPMN pipeline
 

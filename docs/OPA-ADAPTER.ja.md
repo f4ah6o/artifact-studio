@@ -63,11 +63,12 @@ adapterで次を強制する。
 
 ## Development
 
-`vp run demo` は次の3processを起動する。
+`vp run dev` は次の4processを起動する。
 
 1. Artifact Studio API
 2. OPA adapter API（既定 `127.0.0.1:3001`）
-3. Vite+ dev server。`/api/v1/artifacts/opa/*` をOPA sidecarへproxyする
+3. Dagu adapter API（既定 `127.0.0.1:3002`）
+4. Vite+ dev server。`/api/v1/artifacts/opa/*` をOPA sidecarへproxyする
 
 sidecar portは `OPA_API_PORT` で変更でき、loopbackのみにbindする。
 

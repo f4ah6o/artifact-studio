@@ -22,10 +22,10 @@ BPMN が最も成熟した adapter ですが、browser shell と persistence は
 
 ```bash
 vp install
-vp run demo
+vp run dev
 ```
 
-demo では次の3プロセスを起動します。
+開発アプリでは次の3プロセスを起動します。
 
 - Artifact Studio API: 既定 `http://127.0.0.1:3000`
 - OPA adapter sidecar: 既定 `http://127.0.0.1:3001`
@@ -40,7 +40,7 @@ API_PORT=3200 \
 OPA_API_PORT=3201 \
 VITE_PORT=5273 \
 VITE_HOST=127.0.0.1 \
-vp run demo
+vp run dev
 ```
 
 ## Development gates
@@ -54,6 +54,12 @@ vp build
 ```
 
 CI でも supported Node.js LTS 上で同じ gate を実行し、最後に BPMN generation smoke test を行います。
+
+## バージョニング
+
+Artifact Studio は CalVer `YYYY.M.PATCH`（例: `2026.8.0`）を使用します。リリース番号は `f4ah6o/calver-action` で採番し、Action の指定は `YYYY.MM.PATCH`（同Actionの `MM` はゼロ埋めなし月）、タイムゾーンは `Asia/Tokyo` とします。リリースタグに `v` プレフィックスは付けず、immutable tag として扱います。
+
+GitHub Actions の **Release** workflow を手動実行すると、次のバージョンを採番し、検証後、必要なら `package.json` を release-only commit で更新して CalVer tag をpushします。HTTP/MCPが返すアプリバージョンも `package.json` を参照します。
 
 ## BPMN pipeline
 

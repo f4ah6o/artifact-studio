@@ -1,6 +1,6 @@
 {
   "name": "artifact-studio",
-  "version": "3.1.0",
+  "version": "2026.8.0",
   "description": "AI-assisted artifact studio — generate, edit, validate, persist and export structured artifacts; BPMN is the first adapter",
   "keywords": [
     "bpmn",
@@ -32,7 +32,7 @@
   "scripts": {
     "generate": "node src/bpmn/pipeline.js",
     "build:skill": "node tools/build-skill.mjs",
-    "demo": "node tools/dev.mjs"
+    "dev": "node tools/dev.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

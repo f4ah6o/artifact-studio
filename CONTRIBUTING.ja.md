@@ -13,10 +13,10 @@ vp test --run
 vp build
 ```
 
-Local demo:
+ローカル開発アプリ:
 
 ```bash
-vp run demo
+vp run dev
 ```
 
 ## Repository structure

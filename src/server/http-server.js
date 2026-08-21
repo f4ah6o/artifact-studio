@@ -30,8 +30,9 @@ import { deliver } from './delivery.js';
 import { auditLog } from './audit.js';
 import { validateLogicCoreSchema } from '../bpmn/schema-gate.js';
 import { CFG } from '../bpmn/utils.js';
-import { resolveDemoConfig } from './demo-config.js';
+import { resolveStudioConfig } from './studio-config.js';
 import { generateMermaidArtifact } from '../adapters/mermaid.js';
+import { ARTIFACT_STUDIO_VERSION } from '../version.js';
 
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.BPMN_API_KEY || null; // protects this HTTP app, unrelated to Codex auth
@@ -232,7 +233,7 @@ const server = createServer(async (req, res) => {
     return json(res, 200, {
       status: 'ok',
       uptime: Math.floor((Date.now() - startTime) / 1000),
-      version: '2.0.0',
+      version: ARTIFACT_STUDIO_VERSION,
     });
   }
 
@@ -240,7 +241,7 @@ const server = createServer(async (req, res) => {
   if (method === 'GET' && url === '/api/v1/config') {
     return json(res, 200, {
       codex: await getCodexStatus(),
-      demo: resolveDemoConfig(process.env, CFG),
+      studio: resolveStudioConfig(process.env, CFG),
     });
   }
 

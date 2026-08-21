@@ -1,27 +1,27 @@
 import { describe, expect, test } from 'vite-plus/test';
-import { resolveDemoConfig } from '../src/server/demo-config.js';
+import { resolveStudioConfig } from '../src/server/studio-config.js';
 
-describe('resolveDemoConfig', () => {
+describe('resolveStudioConfig', () => {
   test('uses configured adapter list and default', () => {
     expect(
-      resolveDemoConfig(
+      resolveStudioConfig(
         {},
         {
-          demo: { defaultAdapter: 'mermaid', enabledAdapters: ['bpmn', 'mermaid', 'opa'] },
+          studio: { defaultAdapter: 'mermaid', enabledAdapters: ['bpmn', 'mermaid', 'opa'] },
         },
       ),
     ).toEqual({ defaultAdapter: 'mermaid', enabledAdapters: ['bpmn', 'mermaid', 'opa'] });
   });
 
-  test('environment overrides demo config', () => {
+  test('environment overrides studio config', () => {
     expect(
-      resolveDemoConfig(
+      resolveStudioConfig(
         {
           ARTIFACT_STUDIO_DEFAULT_ADAPTER: 'opa',
           ARTIFACT_STUDIO_ENABLED_ADAPTERS: 'opa,mermaid,bpmn',
         },
         {
-          demo: { defaultAdapter: 'bpmn', enabledAdapters: ['bpmn'] },
+          studio: { defaultAdapter: 'bpmn', enabledAdapters: ['bpmn'] },
         },
       ),
     ).toEqual({ defaultAdapter: 'opa', enabledAdapters: ['opa', 'mermaid', 'bpmn'] });
@@ -29,10 +29,10 @@ describe('resolveDemoConfig', () => {
 
   test('drops unknown adapters and repairs an invalid default', () => {
     expect(
-      resolveDemoConfig(
+      resolveStudioConfig(
         {},
         {
-          demo: { defaultAdapter: 'unknown', enabledAdapters: ['unknown', 'opa'] },
+          studio: { defaultAdapter: 'unknown', enabledAdapters: ['unknown', 'opa'] },
         },
       ),
     ).toEqual({ defaultAdapter: 'opa', enabledAdapters: ['opa'] });
