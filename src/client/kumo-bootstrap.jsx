@@ -32,6 +32,13 @@ const controls = [
     disabled: true,
   },
   {
+    slot: 'architecture-button-slot',
+    id: 'architecture-button',
+    label: 'Architecture',
+    variant: 'secondary',
+    size: 'sm',
+  },
+  {
     slot: 'ai-session-reset-button-slot',
     id: 'ai-session-reset-button',
     label: 'New AI session',

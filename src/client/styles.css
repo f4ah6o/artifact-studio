@@ -687,3 +687,117 @@ textarea:focus {
   border-radius: 999px;
   opacity: 0.75;
 }
+
+/* Architecture Graph workspace */
+.architecture-pane {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+  min-height: 0;
+  background: #f8fafc;
+}
+.architecture-pane.hidden {
+  display: none;
+}
+.architecture-editor,
+.architecture-preview-pane {
+  min-width: 0;
+  min-height: 0;
+}
+.architecture-editor {
+  overflow: auto;
+  border-right: 1px solid #d1d5db;
+  background: #f8fafc;
+}
+.architecture-form {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+.architecture-form label {
+  display: grid;
+  gap: 4px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+}
+.architecture-form select,
+.architecture-form input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 7px 8px;
+  background: #fff;
+  color: #111827;
+  font-size: 12px;
+  font-weight: 400;
+}
+.architecture-relationship-list {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+.architecture-relationship-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+  padding: 8px 9px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+}
+.architecture-relationship-main {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+}
+.architecture-relationship-type {
+  font-weight: 700;
+}
+.architecture-relationship-ref {
+  overflow-wrap: anywhere;
+  color: #64748b;
+  font-size: 11px;
+}
+.architecture-preview-pane {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto minmax(90px, auto);
+  background: #fff;
+}
+.architecture-preview {
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 16px;
+}
+.architecture-findings {
+  max-height: 180px;
+  overflow: auto;
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #f8fafc;
+}
+.architecture-finding {
+  padding: 7px 8px;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  background: #fff;
+  color: #991b1b;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .architecture-pane {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(280px, 42%) minmax(0, 1fr);
+  }
+  .architecture-editor {
+    border-right: 0;
+    border-bottom: 1px solid #d1d5db;
+  }
+}

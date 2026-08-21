@@ -65,6 +65,16 @@ describe('client adapter lazy loading', () => {
     expect(bonitaBdmExtensionSource).not.toContain('fetch(');
   });
 
+  test('Architecture Graph is a workspace-level view, not an artifact adapter', () => {
+    expect(indexSource).toContain('id="architecture-button-slot"');
+    expect(indexSource).toContain('id="architecture-pane"');
+    expect(kumoBootstrapSource).toContain("id: 'architecture-button'");
+    expect(mainSource).toContain(
+      'initArchitectureWorkspace({ ensureArtifactRuntime: ensureAdapterUi })',
+    );
+    expect(adapterSource).not.toContain("id: 'architecture'");
+  });
+
   test('Kumo shell uses granular components and preserves adapter runtime boundaries', () => {
     expect(indexSource).toContain('/src/client/kumo-bootstrap.jsx');
     expect(kumoBootstrapSource).toContain('@cloudflare/kumo/components/button');

@@ -21,6 +21,7 @@
         <span id="new-artifact-button-slot" class="kumo-control-slot"></span>
         <span id="rename-artifact-button-slot" class="kumo-control-slot"></span>
         <span id="delete-artifact-button-slot" class="kumo-control-slot"></span>
+        <span id="architecture-button-slot" class="kumo-control-slot"></span>
       </div>
       <div class="actions">
         <span id="codex-state" class="subtle">Codex確認中…</span>
@@ -52,6 +53,66 @@
 
     <main class="workspace">
       <section class="diagram-pane">
+        <div
+          id="architecture-pane"
+          class="artifact-view architecture-pane hidden"
+          aria-label="Architecture Graph workspace"
+        >
+          <section class="architecture-editor">
+            <div class="artifact-pane-heading">Relationship</div>
+            <form id="architecture-relationship-form" class="architecture-form">
+              <label>
+                <span>From artifact</span>
+                <select id="architecture-from-artifact"></select>
+              </label>
+              <label>
+                <span>From entity</span>
+                <select id="architecture-from-entity"></select>
+              </label>
+              <label>
+                <span>Relationship type</span>
+                <input id="architecture-relationship-type" type="text" value="uses" />
+              </label>
+              <label>
+                <span>To artifact</span>
+                <select id="architecture-to-artifact"></select>
+              </label>
+              <label>
+                <span>To entity</span>
+                <select id="architecture-to-entity"></select>
+              </label>
+              <button id="architecture-add-relationship" class="button primary" type="submit">
+                Relationshipを追加
+              </button>
+            </form>
+            <div class="artifact-pane-heading row">
+              <span>Relationships</span>
+              <span id="architecture-relationship-count" class="count">0</span>
+            </div>
+            <div id="architecture-relationship-list" class="architecture-relationship-list">
+              <span class="muted">Relationshipはまだありません。</span>
+            </div>
+          </section>
+          <section class="architecture-preview-pane">
+            <div class="artifact-pane-heading row">
+              <span>Architecture Graph</span>
+              <button id="architecture-refresh" class="button secondary compact" type="button">
+                更新
+              </button>
+            </div>
+            <div id="architecture-preview" class="mermaid-preview architecture-preview">
+              <span class="muted">Workspace relationshipを表示します。</span>
+            </div>
+            <div class="artifact-pane-heading row">
+              <span>Reference findings</span>
+              <span id="architecture-finding-count" class="count">0</span>
+            </div>
+            <div id="architecture-findings" class="architecture-findings">
+              <span class="muted">検出事項はありません。</span>
+            </div>
+          </section>
+        </div>
+
         <div id="canvas" class="artifact-view" aria-label="BPMN modeler"></div>
 
         <div

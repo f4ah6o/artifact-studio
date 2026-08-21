@@ -32,6 +32,7 @@ import {
   artifactIsShellEmpty,
   nextAvailableArtifactTitle,
 } from './artifact-lifecycle.js';
+import { initArchitectureWorkspace } from './architecture-workspace.js';
 import { hostRuntime } from './host-runtime.js';
 
 const els = {
@@ -1349,6 +1350,8 @@ registerArtifactRuntime('mermaid', {
     return currentArtifactRecord('mermaid', textContent(els.mermaidSource.value));
   },
 });
+
+initArchitectureWorkspace({ ensureArtifactRuntime: ensureAdapterUi });
 
 els.codexLogin.addEventListener('click', loginCodex);
 
