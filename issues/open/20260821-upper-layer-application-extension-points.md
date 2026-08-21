@@ -156,6 +156,8 @@ Whether such a path means a DDT impact, governance violation, or business depend
 - preserve open-vocabulary relationship types
 - return paths without assigning upper-domain meaning
 
+Implemented 2026-08-21 via generic Architecture Graph traversal: direction-aware shortest paths preserve relationship type/provenance and SemanticRef endpoints without introducing DDT semantics.
+
 ### E. Upper-layer Host Integration
 
 - allow a host/application shell to provide navigation/context around As-Code Studio
@@ -184,7 +186,7 @@ This issue does NOT implement:
 - [ ] Upper-layer application code can open/reuse an Artifact editor/view through a generic runtime API rather than adapter-specific DOM knowledge.
 - [ ] A generic external/repository resource reference can be represented with optional revision provenance.
 - [ ] A proposed Artifact change can exist separately from canonical content and requires explicit apply.
-- [ ] Generic relationship traversal can return semantic paths without DDT-specific interpretation.
+- [x] Generic relationship traversal can return semantic paths without DDT-specific interpretation.
 - [x] No Transformation / Fact / Decision / Concept domain dependency is introduced into As-Code Studio core.
 - [x] Existing direct Artifact workflows remain first-class and all existing tests remain green.
 

@@ -1,4 +1,4 @@
-import { normalizeSemanticEntities } from '../core/semantic-entity.js';
+import { normalizeSemanticEntities, resolveSemanticEntity } from '../core/semantic-entity.js';
 import { readArtifactRecordById } from './artifact-content.js';
 
 const runtimes = new Map();
@@ -67,6 +67,13 @@ export async function semanticEntitiesForArtifact(artifact) {
   }
   const entities = await runtime.semanticEntities(artifact);
   return normalizeSemanticEntities(entities, { artifactId: artifact?.id });
+}
+
+export async function resolveSemanticRefForArtifact(ref, artifact) {
+  const runtime = getArtifactRuntime(artifact?.adapterId);
+  if (!runtime || typeof runtime.semanticEntities !== 'function') return undefined;
+  const entities = await semanticEntitiesForArtifact(artifact);
+  return resolveSemanticEntity(entities, ref);
 }
 
 export async function projectArtifact(artifact) {

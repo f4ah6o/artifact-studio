@@ -86,7 +86,7 @@ export async function validateArtifactRelationshipReferences(
         });
         continue;
       }
-      if (!ref.entityId) continue;
+      if (!ref.entityId && !ref.address) continue;
       if (typeof resolveEntity !== 'function') {
         findings.push({
           relationshipId: relationship.id,
@@ -97,7 +97,14 @@ export async function validateArtifactRelationshipReferences(
         continue;
       }
       const resolved = await resolveEntity(ref, artifact);
-      if (!resolved) {
+      if (resolved === undefined) {
+        findings.push({
+          relationshipId: relationship.id,
+          endpoint,
+          code: 'entity_unresolved',
+          ref,
+        });
+      } else if (!resolved) {
         findings.push({
           relationshipId: relationship.id,
           endpoint,

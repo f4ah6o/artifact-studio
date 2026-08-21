@@ -8,6 +8,7 @@ import {
   openArtifact,
   projectArtifact,
   registerArtifactRuntime,
+  resolveSemanticRefForArtifact,
   semanticEntitiesForArtifact,
 } from '../src/client/artifact-runtime-registry.js';
 import { textContent } from '../src/core/artifact-content.js';
@@ -50,6 +51,17 @@ describe('artifact runtime registry', () => {
     expect(await semanticEntitiesForArtifact(source)).toEqual([
       { id: 'source:entity', artifactId: 'source-1', kind: 'entity', address: 'Source.Entity' },
     ]);
+    expect(
+      await resolveSemanticRefForArtifact(
+        { artifactId: 'source-1', address: 'Source.Entity' },
+        source,
+      ),
+    ).toEqual({
+      id: 'source:entity',
+      artifactId: 'source-1',
+      kind: 'entity',
+      address: 'Source.Entity',
+    });
 
     const derived = { id: 'derived-1', adapterId: 'target', content: textContent('derived') };
     expect(await openArtifact(derived)).toEqual(derived);
@@ -64,6 +76,17 @@ describe('artifact runtime registry', () => {
     });
 
     await expect(semanticEntitiesForArtifact(artifact)).rejects.toThrow(/unexpected artifact/);
+  });
+
+  test('returns unresolved when an adapter has no semantic entity provider', async () => {
+    const artifact = { id: 'target-1', adapterId: 'target', content: textContent('target') };
+    registerArtifactRuntime('target', { currentArtifact: () => artifact });
+    expect(
+      await resolveSemanticRefForArtifact(
+        { artifactId: 'target-1', entityId: 'missing' },
+        artifact,
+      ),
+    ).toBeUndefined();
   });
 
   test('rejects duplicate runtime ids', () => {

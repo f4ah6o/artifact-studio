@@ -96,4 +96,45 @@ describe('ArtifactRelationship / SemanticRef core', () => {
     );
     expect(resolved.some((finding) => finding.code === 'entity_unresolved')).toBe(false);
   });
+  test('validates address-only refs and distinguishes unsupported providers from missing entities', async () => {
+    const relationships = [
+      {
+        id: 'address-ref',
+        type: 'reads',
+        from: { artifactId: 'process' },
+        to: { artifactId: 'model', address: 'Order#amount' },
+        provenance: 'declared',
+      },
+    ];
+    const artifacts = {
+      process: { id: 'process', adapterId: 'bpmn' },
+      model: { id: 'model', adapterId: 'bonita-bdm' },
+    };
+
+    expect(
+      await validateArtifactRelationshipReferences(relationships, {
+        artifacts,
+        resolveEntity: async () => undefined,
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        relationshipId: 'address-ref',
+        endpoint: 'to',
+        code: 'entity_unresolved',
+      }),
+    ]);
+
+    expect(
+      await validateArtifactRelationshipReferences(relationships, {
+        artifacts,
+        resolveEntity: async () => null,
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        relationshipId: 'address-ref',
+        endpoint: 'to',
+        code: 'missing_entity',
+      }),
+    ]);
+  });
 });

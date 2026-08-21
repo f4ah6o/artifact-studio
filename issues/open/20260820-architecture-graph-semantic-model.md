@@ -830,15 +830,16 @@ Public repoに入れないもの:
 - 2026-08-21: open-vocabulary `ArtifactRelationship` + `SemanticRef` persistence and referential validation completed. Provenance distinguishes `declared`, `discovered`, and `generated`.
 - 2026-08-21: Bonita BDM adapter added with canonical `bdm/bom.xml`, Business Object/field parsing and relationship GraphProjection. This removes the need to invent a generic BDM format before semantic-entity work.
 - 2026-08-21: `issues/closed/20260821-bonita-bdm-semantic-entities.md` completed the minimal generic `SemanticEntity` contract, adapter/runtime capability, Bonita Business Object + field provider, HostRuntime/server boundary, and generic resolver.
+- 2026-08-21: persisted `ArtifactRelationship` / `SemanticRef` values can now be resolved through adapter semantic-entity providers into an in-memory Architecture Graph, projected into a read-only generic `GraphProjection`, and traversed with generic direction-aware shortest semantic paths. Broken/missing/unresolved refs remain visible with findings instead of being silently dropped.
 
-**Next implementation slice:** resolve persisted ArtifactRelationships/SemanticRefs through semantic entity providers, project those relationships into a read-only generic GraphProjection, and then add generic traversal.
+**Next implementation slice:** expose the read-only Architecture Graph projection through a small workspace UI/navigation surface or add the next concrete SemanticEntity provider (BPMN) before introducing richer impact-analysis semantics.
 
 ## Acceptance criteria for first implementation milestone
 
 - [x] Artifact-level `ArtifactRelationship` / `SemanticRef` logical contractが存在する
 - [x] Artifact単位のrelationshipをworkspaceに保存・復元できる
 - [x] Artifact内部`SemanticEntity`を最低1adapterで公開できる
-- [ ] persisted relationshipをgeneric `GraphProjection`として表示できる
+- [x] persisted relationshipをgeneric `GraphProjection`として表示できる
 - [x] declared / discovered / generated provenanceを区別できる
 - [x] source revision変更によるstale判定の基礎がある
 - [x] broken/unresolved Artifact/SemanticRefを検出できる基礎がある
@@ -867,7 +868,6 @@ Public repoに入れないもの:
 
 ## Open questions
 
-- SemanticEntity identityをartifact固有IDだけで十分とするか、Studio側immutable IDも持つか
 - semantic address URIのformal syntax
 - relationship type vocabularyをどこまで標準化するか
 - authored relationの保存場所をworkspace metadataとするかsidecar fileとするか
