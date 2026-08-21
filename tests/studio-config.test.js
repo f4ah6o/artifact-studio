@@ -7,24 +7,33 @@ describe('resolveStudioConfig', () => {
       resolveStudioConfig(
         {},
         {
-          studio: { defaultAdapter: 'mermaid', enabledAdapters: ['bpmn', 'mermaid', 'opa'] },
+          studio: {
+            defaultAdapter: 'mermaid',
+            enabledAdapters: ['bpmn', 'mermaid', 'opa', 'dagu'],
+          },
         },
       ),
-    ).toEqual({ defaultAdapter: 'mermaid', enabledAdapters: ['bpmn', 'mermaid', 'opa'] });
+    ).toEqual({
+      defaultAdapter: 'mermaid',
+      enabledAdapters: ['bpmn', 'mermaid', 'opa', 'dagu'],
+    });
   });
 
   test('environment overrides studio config', () => {
     expect(
       resolveStudioConfig(
         {
-          ARTIFACT_STUDIO_DEFAULT_ADAPTER: 'opa',
-          ARTIFACT_STUDIO_ENABLED_ADAPTERS: 'opa,mermaid,bpmn',
+          ARTIFACT_STUDIO_DEFAULT_ADAPTER: 'dagu',
+          ARTIFACT_STUDIO_ENABLED_ADAPTERS: 'dagu,opa,mermaid,bpmn',
         },
         {
           studio: { defaultAdapter: 'bpmn', enabledAdapters: ['bpmn'] },
         },
       ),
-    ).toEqual({ defaultAdapter: 'opa', enabledAdapters: ['opa', 'mermaid', 'bpmn'] });
+    ).toEqual({
+      defaultAdapter: 'dagu',
+      enabledAdapters: ['dagu', 'opa', 'mermaid', 'bpmn'],
+    });
   });
 
   test('drops unknown adapters and repairs an invalid default', () => {
@@ -36,5 +45,12 @@ describe('resolveStudioConfig', () => {
         },
       ),
     ).toEqual({ defaultAdapter: 'opa', enabledAdapters: ['opa'] });
+  });
+
+  test('enables Dagu by default when no adapter list is configured', () => {
+    expect(resolveStudioConfig()).toEqual({
+      defaultAdapter: 'bpmn',
+      enabledAdapters: ['bpmn', 'mermaid', 'opa', 'dagu'],
+    });
   });
 });

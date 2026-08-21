@@ -104,6 +104,6 @@
   },
   "studio": {
     "defaultAdapter": "bpmn",
-    "enabledAdapters": ["bpmn", "mermaid", "opa"]
+    "enabledAdapters": ["bpmn", "mermaid", "opa", "dagu"]
   }
 }
