@@ -137,17 +137,35 @@ Avoid rewriting BPMN/Mermaid/OPA/Dagu logic merely to make it stylistically Reac
 
 ## Acceptance criteria
 
-- [ ] React and Kumo are installed and build successfully.
-- [ ] Kumo standalone styling is integrated without requiring Tailwind configuration.
-- [ ] Artifact Studio theme overrides preserve the current neutral/minimal visual character.
-- [ ] At least representative shell controls use Kumo components.
+- [x] React and Kumo are installed and build successfully.
+- [x] Kumo standalone styling is integrated without requiring Tailwind configuration.
+- [x] Artifact Studio theme overrides preserve the current neutral/minimal visual character.
+- [x] At least representative shell controls use Kumo components.
 - [ ] Existing BPMN / Mermaid / OPA / Dagu functionality remains usable.
-- [ ] BPMN and Mermaid lazy-loading behavior remains intact.
-- [ ] production build succeeds.
-- [ ] tests succeed.
-- [ ] no new lint errors are introduced.
-- [ ] migration remains incremental; adapter semantics are not coupled to React/Kumo.
+- [x] BPMN and Mermaid lazy-loading behavior remains intact.
+- [x] production build succeeds.
+- [x] tests succeed.
+- [x] no new lint errors are introduced.
+- [x] migration remains incremental; adapter semantics are not coupled to React/Kumo.
 
 ## Future follow-up
 
 Implement a collapsible left session-history column using Kumo `Sidebar` after the Kumo foundation/theme is stable. Session history itself remains an Artifact Studio application pattern rather than a design-system primitive.
+
+## Implementation progress — 2026-08-21
+
+Foundation implementation started after the issue-only commit.
+
+- Installed `@cloudflare/kumo@2.11.0`, `react@19.2.8`, `react-dom@19.2.8`, and `@phosphor-icons/react@2.1.10` through Vite+ package management.
+- Added `kumo-bootstrap.jsx` as an incremental React island/bootstrap boundary. It renders Kumo controls first and then imports the existing imperative `main.js`.
+- Added an `artifact-studio` Kumo theme mapped to the existing neutral palette and compact radius.
+- Migrated representative shell buttons (New Artifact, AI session reset, ChatGPT login, Validate, Format, AI Generate) to granular Kumo `Button` imports.
+- Kumo standalone CSS is used; Tailwind was not added to the application.
+- Headless Chrome confirms the Kumo buttons and BPMN canvas render in the running dev application.
+- Adapter lazy-loading remains split in the production build.
+
+### Bundle observation
+
+The Kumo/React foundation has a measurable initial-load cost. Before Kumo, the post-lazy-loading entry was approximately `50.66 kB` JS and `8.42 kB` CSS. With the current React + Kumo Button + standalone CSS foundation, the main entry is approximately `332.93 kB` JS (`107.44 kB` gzip) and `140.12 kB` CSS (`22.46 kB` gzip).
+
+This does not re-eager-load BPMN, Mermaid, OPA, or Dagu runtimes, but the shell cost should be considered before broad component migration. Keep granular Kumo imports and measure each expansion.

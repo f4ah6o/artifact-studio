@@ -1,0 +1,54 @@
+html[data-theme='artifact-studio'] {
+  color-scheme: light;
+
+  --color-kumo-canvas: #f3f4f6;
+  --color-kumo-base: #ffffff;
+  --color-kumo-elevated: #ffffff;
+  --color-kumo-recessed: #f8fafc;
+  --color-kumo-tint: #f8fafc;
+  --color-kumo-control: #ffffff;
+  --color-kumo-interact: #cbd5e1;
+  --color-kumo-fill: #e2e8f0;
+  --color-kumo-fill-hover: #f1f5f9;
+  --color-kumo-line: #cbd5e1;
+  --color-kumo-hairline: #e2e8f0;
+  --color-kumo-brand: #1d4ed8;
+  --color-kumo-brand-hover: #1e40af;
+  --color-kumo-focus: #60a5fa;
+
+  --text-color-kumo-default: #334155;
+  --text-color-kumo-strong: #1f2937;
+  --text-color-kumo-subtle: #6b7280;
+  --text-color-kumo-inactive: #94a3b8;
+  --text-color-kumo-placeholder: #94a3b8;
+  --text-color-kumo-link: #1d4ed8;
+  --text-color-kumo-brand: #1d4ed8;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+}
+
+.kumo-control-slot {
+  display: contents;
+}
+
+.artifact-kumo-button[data-kumo-component='Button'] {
+  min-width: 0;
+  height: 34px;
+  padding-inline: 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 400;
+  --tw-shadow: 0 0 #0000;
+}
+
+.artifact-kumo-button[data-kumo-component='Button'] > span[aria-hidden='true'] {
+  background: var(--color-kumo-brand);
+  box-shadow: none;
+}
+
+.brand > strong {
+  white-space: nowrap;
+}

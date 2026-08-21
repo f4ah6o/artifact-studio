@@ -1,11 +1,9 @@
 <!doctype html>
-<html lang="ja">
+<html lang="ja" data-mode="light" data-theme="artifact-studio">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Artifact Studio</title>
-    <link rel="stylesheet" href="/src/client/styles.css" />
-    <link rel="stylesheet" href="/src/client/opa.css" />
   </head>
   <body>
     <header class="topbar">
@@ -20,9 +18,7 @@
           <span class="sr-only">Artifact</span>
           <select id="artifact-select" aria-label="Artifact"></select>
         </label>
-        <button id="new-artifact-button" class="button secondary compact" type="button">
-          New Artifact
-        </button>
+        <span id="new-artifact-button-slot" class="kumo-control-slot"></span>
       </div>
       <div class="actions">
         <span id="codex-state" class="subtle">Codex確認中…</span>
@@ -36,24 +32,20 @@
             <select id="codex-effort-select" aria-label="Codex reasoning effort" disabled></select>
           </label>
           <span id="ai-session-state" class="subtle">Session: 新規</span>
-          <button id="ai-session-reset-button" class="button secondary" type="button" disabled>
-            New AI session
-          </button>
+          <span id="ai-session-reset-button-slot" class="kumo-control-slot"></span>
         </div>
-        <button id="codex-login-button" class="button secondary" type="button" hidden>
-          ChatGPTに接続
-        </button>
+        <span id="codex-login-button-slot" class="kumo-control-slot"></span>
         <label id="file-open-label" class="button secondary" for="file-input">ファイルを開く</label>
         <input id="file-input" type="file" multiple hidden />
-        <button id="validate-button" class="button secondary" type="button">検証</button>
-        <button id="format-button" class="button secondary" type="button" disabled>整形</button>
+        <span id="validate-button-slot" class="kumo-control-slot"></span>
+        <span id="format-button-slot" class="kumo-control-slot"></span>
         <button id="export-button" class="button secondary" type="button" disabled>書き出す</button>
       </div>
     </header>
 
     <section class="promptbar">
       <textarea id="process-prompt" rows="2"></textarea>
-      <button id="generate-button" class="button primary" type="button">AIで生成</button>
+      <span id="generate-button-slot" class="kumo-control-slot"></span>
     </section>
 
     <main class="workspace">
@@ -224,7 +216,8 @@
       </aside>
     </main>
 
-    <script type="module" src="/src/client/main.js"></script>
+    <div id="kumo-shell-root" hidden></div>
+    <script type="module" src="/src/client/kumo-bootstrap.jsx"></script>
     <script type="module" src="/src/client/artifact-transform-ui.js"></script>
   </body>
 </html>
