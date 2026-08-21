@@ -1,3 +1,4 @@
+import { normalizeArtifactRelationships } from '../core/artifact-relationship.js';
 import { normalizeSemanticEntities, resolveSemanticEntity } from '../core/semantic-entity.js';
 import { readArtifactRecordById } from './artifact-content.js';
 
@@ -67,6 +68,34 @@ export async function semanticEntitiesForArtifact(artifact) {
   }
   const entities = await runtime.semanticEntities(artifact);
   return normalizeSemanticEntities(entities, { artifactId: artifact?.id });
+}
+
+export async function discoveredRelationshipsForArtifact(artifact) {
+  const runtime = getArtifactRuntime(artifact?.adapterId);
+  if (!runtime || typeof runtime.discoverRelationships !== 'function') return [];
+  const values = await runtime.discoverRelationships(artifact);
+  const relationships = Object.values(normalizeArtifactRelationships(values));
+  for (const relationship of relationships) {
+    if (relationship.provenance !== 'discovered') {
+      throw new Error(
+        `artifact adapter returned non-discovered relationship: ${artifact?.adapterId || ''} / ${relationship.id}`,
+      );
+    }
+  }
+  return relationships;
+}
+
+export function createSemanticRefResolver() {
+  const entityPromises = new Map();
+  return async (ref, artifact) => {
+    const runtime = getArtifactRuntime(artifact?.adapterId);
+    if (!runtime || typeof runtime.semanticEntities !== 'function') return undefined;
+    if (!entityPromises.has(artifact.id)) {
+      entityPromises.set(artifact.id, semanticEntitiesForArtifact(artifact));
+    }
+    const entities = await entityPromises.get(artifact.id);
+    return resolveSemanticEntity(entities, ref);
+  };
 }
 
 export async function resolveSemanticRefForArtifact(ref, artifact) {

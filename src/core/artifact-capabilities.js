@@ -3,6 +3,7 @@ export const CORE_ADAPTER_CAPABILITIES = Object.freeze([
   'format',
   'project',
   'semanticEntities',
+  'discoverRelationships',
 ]);
 
 function uniqueStrings(values = []) {
@@ -14,6 +15,7 @@ export function adapterCapabilities({
   format = false,
   project = false,
   semanticEntities = false,
+  discoverRelationships = false,
   actions = [],
   views = [],
 } = {}) {
@@ -22,6 +24,7 @@ export function adapterCapabilities({
     format: Boolean(format),
     project: Boolean(project),
     semanticEntities: Boolean(semanticEntities),
+    discoverRelationships: Boolean(discoverRelationships),
     actions: uniqueStrings(actions),
     views: uniqueStrings(views),
   });

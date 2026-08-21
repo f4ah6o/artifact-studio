@@ -19,6 +19,7 @@ import {
   OpaWorkspaceError,
   checkWorkspace,
   dependenciesWorkspace,
+  discoveredRelationshipsWorkspace,
   evaluateWorkspace,
   formatWorkspace,
   semanticEntitiesWorkspace,
@@ -188,6 +189,12 @@ async function handleOpaRequest(req, res) {
         sendJson(res, 200, {
           status: 'success',
           entities: await semanticEntitiesWorkspace(workspace, body.artifactId),
+        });
+        return;
+      case '/api/v1/artifacts/opa/relationships':
+        sendJson(res, 200, {
+          status: 'success',
+          relationships: await discoveredRelationshipsWorkspace(workspace, body.artifactId),
         });
         return;
       default:

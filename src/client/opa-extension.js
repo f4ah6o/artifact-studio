@@ -424,6 +424,16 @@ registerArtifactRuntime('opa', {
     });
     return data.entities || [];
   },
+  async discoverRelationships(artifact) {
+    if (artifact?.content?.kind !== 'workspace') {
+      throw new Error('OPA relationship discovery requires workspace artifact content');
+    }
+    const data = await hostRuntime().artifactAction('opa', 'relationships', {
+      workspace: artifact.content,
+      artifactId: artifact.id,
+    });
+    return data.relationships || [];
+  },
   async project(artifact) {
     if (artifact?.content?.kind !== 'workspace') {
       throw new Error('OPA project requires workspace artifact content');

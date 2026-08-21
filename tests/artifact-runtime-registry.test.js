@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, test } from 'vite-plus/test';
 import {
   clearArtifactRuntimesForTests,
+  createSemanticRefResolver,
   currentArtifactForAdapter,
+  discoveredRelationshipsForArtifact,
   findCurrentArtifactById,
   getArtifactRuntime,
   listArtifactRuntimes,
@@ -87,6 +89,60 @@ describe('artifact runtime registry', () => {
         artifact,
       ),
     ).toBeUndefined();
+  });
+
+  test('normalizes discovered relationships and caches semantic entities per resolver', async () => {
+    const artifact = { id: 'policy-1', adapterId: 'opa', content: textContent('policy') };
+    let entityCalls = 0;
+    registerArtifactRuntime('opa', {
+      currentArtifact: () => artifact,
+      semanticEntities: () => {
+        entityCalls += 1;
+        return [
+          { id: 'rule-a', artifactId: artifact.id, kind: 'rule', address: 'data.p.a' },
+          { id: 'rule-b', artifactId: artifact.id, kind: 'rule', address: 'data.p.b' },
+        ];
+      },
+      discoverRelationships: () => [
+        {
+          id: 'dep-a-b',
+          type: 'depends-on',
+          from: { artifactId: artifact.id, entityId: 'rule-a', address: 'data.p.a' },
+          to: { artifactId: artifact.id, entityId: 'rule-b', address: 'data.p.b' },
+          provenance: 'discovered',
+        },
+      ],
+    });
+
+    expect(await discoveredRelationshipsForArtifact(artifact)).toEqual([
+      expect.objectContaining({ id: 'dep-a-b', provenance: 'discovered' }),
+    ]);
+
+    const resolve = createSemanticRefResolver();
+    expect(await resolve({ artifactId: artifact.id, address: 'data.p.a' }, artifact)).toEqual(
+      expect.objectContaining({ id: 'rule-a' }),
+    );
+    expect(await resolve({ artifactId: artifact.id, address: 'data.p.b' }, artifact)).toEqual(
+      expect.objectContaining({ id: 'rule-b' }),
+    );
+    expect(entityCalls).toBe(1);
+  });
+
+  test('rejects adapter discovery output with authored provenance', async () => {
+    const artifact = { id: 'source-1', adapterId: 'source', content: textContent('source') };
+    registerArtifactRuntime('source', {
+      currentArtifact: () => artifact,
+      discoverRelationships: () => [
+        {
+          id: 'bad',
+          type: 'uses',
+          from: { artifactId: artifact.id },
+          to: { artifactId: artifact.id },
+          provenance: 'declared',
+        },
+      ],
+    });
+    await expect(discoveredRelationshipsForArtifact(artifact)).rejects.toThrow(/non-discovered/);
   });
 
   test('rejects duplicate runtime ids', () => {

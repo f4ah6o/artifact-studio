@@ -5,6 +5,7 @@ import {
   formatJsonSource,
   mapOpaErrors,
   normalizeWorkspace,
+  opaDiscoveredRelationshipsFromDependencies,
   opaSemanticEntitiesFromParsedModules,
   validateWorkspacePath,
 } from '../../src/adapters/opa.js';
@@ -190,6 +191,53 @@ describe('OPA semantic entities', () => {
         expect.objectContaining({
           address: 'data.invoice.approval.roles',
           metadata: expect.objectContaining({ arities: [0], partial: true }),
+        }),
+      ]),
+    );
+  });
+
+  test('maps OPA dependency closure to discovered rule dependencies only', () => {
+    const entities = [
+      { id: 'rule-a', artifactId: 'artifact-opa', kind: 'rule', address: 'data.demo.a' },
+      { id: 'rule-b', artifactId: 'artifact-opa', kind: 'rule', address: 'data.demo.b' },
+      { id: 'rule-c', artifactId: 'artifact-opa', kind: 'rule', address: 'data.demo.c' },
+    ];
+    const ref = (...values) =>
+      values.map((value, index) => ({
+        type: index === 0 ? 'var' : 'string',
+        value,
+      }));
+    const relationships = opaDiscoveredRelationshipsFromDependencies(
+      entities,
+      {
+        'data.demo.a': {
+          base: [ref('input', 'x')],
+          virtual: [ref('data', 'demo', 'a'), ref('data', 'demo', 'b'), ref('data', 'demo', 'c')],
+        },
+        'data.demo.b': {
+          virtual: [ref('data', 'demo', 'b'), ref('data', 'demo', 'c')],
+        },
+        'data.demo.c': { virtual: [ref('data', 'demo', 'c'), ref('data', 'other', 'missing')] },
+      },
+      'artifact-opa',
+    );
+
+    expect(relationships).toHaveLength(3);
+    expect(relationships).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'depends-on',
+          provenance: 'discovered',
+          from: expect.objectContaining({ address: 'data.demo.a' }),
+          to: expect.objectContaining({ address: 'data.demo.b' }),
+        }),
+        expect.objectContaining({
+          from: expect.objectContaining({ address: 'data.demo.a' }),
+          to: expect.objectContaining({ address: 'data.demo.c' }),
+        }),
+        expect.objectContaining({
+          from: expect.objectContaining({ address: 'data.demo.b' }),
+          to: expect.objectContaining({ address: 'data.demo.c' }),
         }),
       ]),
     );

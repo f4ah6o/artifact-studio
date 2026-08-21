@@ -146,6 +146,18 @@ describe('HTTP API', () => {
     expect((await response.json()).error).toMatch(/artifactId/i);
   });
 
+  test('OPA discovered relationship route validates artifact identity before invoking OPA', async () => {
+    const response = await fetch(`${baseUrl}/api/v1/artifacts/opa/relationships`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        workspace: { files: { 'policy.rego': 'package policy\n' } },
+      }),
+    });
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toMatch(/artifactId/i);
+  });
+
   test('OPA adapter rejects malformed JSON workspace data through the main server', async () => {
     const response = await fetch(`${baseUrl}/api/v1/artifacts/opa/check`, {
       method: 'POST',

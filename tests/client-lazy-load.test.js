@@ -63,6 +63,7 @@ describe('client adapter lazy loading', () => {
 
   test('OPA semantic entities are exposed through the lazy HostRuntime boundary', () => {
     expect(opaExtensionSource).toContain("artifactAction('opa', 'entities'");
+    expect(opaExtensionSource).toContain("artifactAction('opa', 'relationships'");
     expect(opaExtensionSource).toContain('artifactId: artifact.id');
     expect(opaExtensionSource).toContain('semanticEntities(artifact)');
     expect(opaExtensionSource).not.toContain('opa parse');

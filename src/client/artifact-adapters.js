@@ -91,6 +91,7 @@ export const artifactAdapters = Object.freeze({
       format: true,
       project: true,
       semanticEntities: true,
+      discoverRelationships: true,
       actions: ['evaluate', 'test', 'coverage', 'dependencies'],
       views: ['source', 'dependencies', 'decision', 'tests'],
     }),

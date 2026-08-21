@@ -84,6 +84,58 @@ describe('Architecture Graph workspace runtime', () => {
     ]);
   });
 
+  test('merges ephemeral discovered relationships with persisted workspace relationships', async () => {
+    const policy = {
+      id: 'policy',
+      adapterId: 'opa',
+      title: 'Policy',
+      content: textContent('policy'),
+    };
+    registerArtifactRuntime('opa', {
+      currentArtifact: () => policy,
+      semanticEntities: () => [
+        { id: 'rule-a', artifactId: 'policy', kind: 'rule', label: 'a', address: 'data.p.a' },
+        { id: 'rule-b', artifactId: 'policy', kind: 'rule', label: 'b', address: 'data.p.b' },
+      ],
+      discoverRelationships: () => [
+        {
+          id: 'discovered-a-b',
+          type: 'depends-on',
+          from: { artifactId: 'policy', entityId: 'rule-a', address: 'data.p.a' },
+          to: { artifactId: 'policy', entityId: 'rule-b', address: 'data.p.b' },
+          provenance: 'discovered',
+        },
+      ],
+    });
+
+    const projected = await architectureGraphProjectionForWorkspace({
+      artifacts: { policy },
+      relationships: {
+        declared: {
+          id: 'declared',
+          type: 'contains',
+          from: { artifactId: 'policy' },
+          to: { artifactId: 'policy', entityId: 'rule-a', address: 'data.p.a' },
+          provenance: 'declared',
+        },
+      },
+    });
+
+    expect(projected.findings).toEqual([]);
+    expect(projected.graph.edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'contains',
+          metadata: { relationshipId: 'declared', provenance: 'declared' },
+        }),
+        expect.objectContaining({
+          kind: 'depends-on',
+          metadata: { relationshipId: 'discovered-a-b', provenance: 'discovered' },
+        }),
+      ]),
+    );
+  });
+
   test('marks semantic refs unresolved when the target adapter has no provider', async () => {
     const source = { id: 'source', adapterId: 'source', title: 'Source', content: textContent('') };
     const target = { id: 'target', adapterId: 'target', title: 'Target', content: textContent('') };

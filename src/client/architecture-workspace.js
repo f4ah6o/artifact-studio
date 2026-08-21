@@ -182,25 +182,28 @@ export function initArchitectureWorkspace({ ensureArtifactRuntime = async () => 
     const adapterIds = new Set(
       store
         .list()
-        .filter((artifact) =>
-          supportsCapability(getArtifactAdapter(artifact.adapterId), 'semanticEntities'),
-        )
+        .filter((artifact) => {
+          const adapter = getArtifactAdapter(artifact.adapterId);
+          return (
+            supportsCapability(adapter, 'semanticEntities') ||
+            supportsCapability(adapter, 'discoverRelationships')
+          );
+        })
         .map((artifact) => artifact.adapterId),
     );
     for (const adapterId of adapterIds) await ensureArtifactRuntime(adapterId);
   }
 
   async function renderArchitectureGraph(generation) {
-    if (!store.listRelationships().length) {
-      setEmpty(els.preview, 'Relationshipを追加するとArchitecture Graphを表示します。');
-      renderFindings([]);
-      return;
-    }
     try {
       await ensureSemanticRuntimes();
       const result = await architectureGraphProjectionForWorkspace(store.workspace);
       if (generation !== refreshGeneration) return;
       renderFindings(result.findings);
+      if (!result.graph.edges.length) {
+        setEmpty(els.preview, 'Relationshipを追加または検出するとArchitecture Graphを表示します。');
+        return;
+      }
       await renderGraphProjection(result.graph, els.preview);
     } catch (error) {
       if (generation !== refreshGeneration) return;

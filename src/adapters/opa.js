@@ -379,37 +379,110 @@ export function opaSemanticEntitiesFromParsedModules(modules, artifactId) {
   return entities;
 }
 
-export async function semanticEntitiesWorkspace(workspaceValue, artifactId) {
-  const normalizedArtifactId =
-    typeof artifactId === 'string' && artifactId.trim() ? artifactId.trim() : null;
-  if (!normalizedArtifactId) {
-    throw new OpaWorkspaceError('artifactId must be a non-empty string');
-  }
-  return materialize(workspaceValue, async (context) => {
-    const regoFiles = Object.keys(context.workspace.files)
-      .filter((path) => extname(path).toLowerCase() === '.rego')
-      .sort();
-    if (!regoFiles.length) return [];
+function requiredSemanticArtifactId(artifactId) {
+  const value = typeof artifactId === 'string' && artifactId.trim() ? artifactId.trim() : null;
+  if (!value) throw new OpaWorkspaceError('artifactId must be a non-empty string');
+  return value;
+}
 
-    const check = await runOpa(
-      ['check', '--format=json', '--capabilities', context.capabilitiesPath, context.workspaceDir],
-      { allowFailure: true },
-    );
-    if (check.exitCode !== 0) {
-      throw new OpaCliError('OPA workspace is not semantically valid', {
-        code: 'OPA_SEMANTIC_SOURCE_INVALID',
-        exitCode: check.exitCode,
-        stdout: check.stdout,
-        stderr: check.stderr,
+async function semanticEntitiesInContext(context, artifactId) {
+  const regoFiles = Object.keys(context.workspace.files)
+    .filter((path) => extname(path).toLowerCase() === '.rego')
+    .sort((a, b) => a.localeCompare(b, 'en'));
+  if (!regoFiles.length) return [];
+
+  const check = await runOpa(
+    ['check', '--format=json', '--capabilities', context.capabilitiesPath, context.workspaceDir],
+    { allowFailure: true },
+  );
+  if (check.exitCode !== 0) {
+    throw new OpaCliError('OPA workspace is not semantically valid', {
+      code: 'OPA_SEMANTIC_SOURCE_INVALID',
+      exitCode: check.exitCode,
+      stdout: check.stdout,
+      stderr: check.stderr,
+    });
+  }
+
+  const modules = [];
+  for (const file of regoFiles) {
+    const result = await runOpa(['parse', '--format=json', context.pathFor(file)]);
+    modules.push({ file, module: parseJsonOutput(result.stdout, `parse ${file}`) });
+  }
+  return opaSemanticEntitiesFromParsedModules(modules, artifactId);
+}
+
+export async function semanticEntitiesWorkspace(workspaceValue, artifactId) {
+  const normalizedArtifactId = requiredSemanticArtifactId(artifactId);
+  return materialize(workspaceValue, (context) =>
+    semanticEntitiesInContext(context, normalizedArtifactId),
+  );
+}
+
+function virtualDependencyAddresses(payload) {
+  const values = Array.isArray(payload?.virtual)
+    ? payload.virtual
+    : Array.isArray(payload?.virtual_documents)
+      ? payload.virtual_documents
+      : [];
+  return [...new Set(values.map(refText).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'en'));
+}
+
+export function opaDiscoveredRelationshipsFromDependencies(
+  entities,
+  dependenciesByAddress,
+  artifactId,
+) {
+  const normalizedArtifactId = requiredSemanticArtifactId(artifactId);
+  const rules = (Array.isArray(entities) ? entities : []).filter(
+    (entity) =>
+      entity?.kind === 'rule' && entity.artifactId === normalizedArtifactId && entity.address,
+  );
+  const ruleByAddress = new Map(rules.map((entity) => [entity.address, entity]));
+  const relationships = [];
+
+  for (const source of rules) {
+    const dependencies = dependenciesByAddress?.[source.address] || {};
+    for (const targetAddress of virtualDependencyAddresses(dependencies)) {
+      if (targetAddress === source.address) continue;
+      const target = ruleByAddress.get(targetAddress);
+      if (!target) continue;
+      relationships.push({
+        id: `opa:discovered:${encodeURIComponent(normalizedArtifactId)}:${encodeURIComponent(source.address)}:${encodeURIComponent(target.address)}`,
+        type: 'depends-on',
+        from: {
+          artifactId: normalizedArtifactId,
+          entityId: source.id,
+          address: source.address,
+        },
+        to: {
+          artifactId: normalizedArtifactId,
+          entityId: target.id,
+          address: target.address,
+        },
+        provenance: 'discovered',
       });
     }
+  }
 
-    const modules = [];
-    for (const file of regoFiles) {
-      const result = await runOpa(['parse', '--format=json', context.pathFor(file)]);
-      modules.push({ file, module: parseJsonOutput(result.stdout, `parse ${file}`) });
+  return relationships.sort((a, b) => a.id.localeCompare(b.id, 'en'));
+}
+
+export async function discoveredRelationshipsWorkspace(workspaceValue, artifactId) {
+  const normalizedArtifactId = requiredSemanticArtifactId(artifactId);
+  return materialize(workspaceValue, async (context) => {
+    const entities = await semanticEntitiesInContext(context, normalizedArtifactId);
+    const rules = entities.filter((entity) => entity.kind === 'rule');
+    const dependenciesByAddress = {};
+    for (const rule of rules) {
+      const result = await runOpa(['deps', rule.address, '--format=json', ...dataArgs(context)]);
+      dependenciesByAddress[rule.address] = parseJsonOutput(result.stdout, `deps ${rule.address}`);
     }
-    return opaSemanticEntitiesFromParsedModules(modules, normalizedArtifactId);
+    return opaDiscoveredRelationshipsFromDependencies(
+      entities,
+      dependenciesByAddress,
+      normalizedArtifactId,
+    );
   });
 }
 
