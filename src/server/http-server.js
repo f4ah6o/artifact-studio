@@ -242,7 +242,7 @@ const server = createServer(async (req, res) => {
   if (method === 'GET' && url === '/api/v1/config') {
     return json(res, 200, {
       codex: await getCodexStatus(),
-      studio: resolveStudioConfig(process.env, CFG),
+      studio: resolveStudioConfig(process.env),
     });
   }
 

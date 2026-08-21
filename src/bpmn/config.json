@@ -101,9 +101,5 @@
     "edgeLabelMaxShift": 25,
     "elkWrapping": "auto",
     "elkWrappingNodeThreshold": 20
-  },
-  "studio": {
-    "defaultAdapter": "bpmn",
-    "enabledAdapters": ["bpmn", "mermaid", "opa", "dagu"]
   }
 }
