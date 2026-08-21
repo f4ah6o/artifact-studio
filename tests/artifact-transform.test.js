@@ -99,6 +99,7 @@ describe('artifact revision and lineage', () => {
     const source = {
       id: 'dagu-main',
       adapterId: 'dagu',
+      title: 'Daily ETL',
       revision: 'source-r1',
       content: textContent(daguSource()),
     };
@@ -114,6 +115,7 @@ describe('artifact revision and lineage', () => {
     expect(derived).toMatchObject({
       id: 'dagu-main-graph',
       adapterId: 'mermaid',
+      title: 'Daily ETL · Graph Projection to Mermaid',
       content: { kind: 'text' },
       lineage: {
         derivedFrom: [{ artifactId: 'dagu-main', revision: 'source-r1' }],

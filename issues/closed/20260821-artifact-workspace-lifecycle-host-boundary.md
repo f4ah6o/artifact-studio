@@ -1,6 +1,6 @@
 # Artifact workspace lifecycle と host boundary を整理する
 
-- Status: open
+- Status: closed
 - Date: 2026-08-21
 - Scope: Artifact Studio shell / workspace / browser host runtime
 - Parent: `issues/open/20260821-artifact-lifecycle-and-desktop-runtime.md`
@@ -130,18 +130,18 @@ UI / adapter extensions
 
 ## Acceptance criteria
 
-- [ ] Artifact record が `title`, `createdAt`, `updatedAt` を持つ。
-- [ ] 既存 workspace を読み込んでも title が欠落しない。
-- [ ] Artifact selector は internal ID ではなく title を主表示する。
-- [ ] rename できる。
-- [ ] delete できる。
-- [ ] lineage source Artifact の削除は拒否される。
-- [ ] `New Artifact` 連打で空 Artifact が増えない。
-- [ ] 安全な重複 empty cleanup が実装される。
-- [ ] `src/client/main.js` が Artifact操作のために `localStorage` を直接渡さない。
-- [ ] client の OPA / Dagu / shell API call が HostRuntime 経由になる。
-- [ ] existing transforms / lineage semantics を壊さない。
-- [ ] tests / format / build が通る。
+- [x] Artifact record が `title`, `createdAt`, `updatedAt` を持つ。
+- [x] 既存 workspace を読み込んでも title が欠落しない。
+- [x] Artifact selector は internal ID ではなく title を主表示する。
+- [x] rename できる。
+- [x] delete できる。
+- [x] lineage source Artifact の削除は拒否される。
+- [x] `New Artifact` 連打で空 Artifact が増えない。
+- [x] 安全な重複 empty cleanup が実装される。
+- [x] `src/client/main.js` が Artifact操作のために `localStorage` を直接渡さない。
+- [x] client の OPA / Dagu / shell API call が HostRuntime 経由になる。
+- [x] existing transforms / lineage semantics を壊さない。
+- [x] tests / format / build が通る。
 
 ## Non-goals
 
@@ -150,3 +150,22 @@ UI / adapter extensions
 - desktop installer / updater。
 - Dagu runtime Web UI の再実装。
 - OPA/Dagu/Codex CLI 自体の置き換え。
+## Implementation summary
+
+- Artifact record に `title`, `createdAt`, `updatedAt` を追加。
+- 既存 record は stable fallback title/timestamp で正規化し、shell 起動時に adapter label + ordinal title へ補正。
+- selector から internal ID 表示を削除。
+- `名前変更` / `削除` action を追加。
+- lineage source の削除は拒否し、直接 relationship は削除時に cleanup。
+- empty Artifact を adapter ごとに再利用し、起動時に安全な重複 empty record を cleanup。
+- BPMN は blank definitions/process XML を semantic empty として扱い、空図の `New Artifact` 連打でも増殖しないようにした。
+- derived Artifact は source title + transform label を title として引き継ぐ。
+- `BrowserHttpHostRuntime` を追加し、main / OPA / Dagu の直接 `fetch()` を除去。
+- Electron/Tauri implementation は追加していない。
+
+Validation:
+
+- `vp check`: pass（既存 warning のみ）
+- `vp test --run`: 439 passed / 1 skipped
+- `vp build`: pass
+

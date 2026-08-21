@@ -9,6 +9,7 @@ import {
   notifyArtifactRuntimeChange,
   registerArtifactRuntime,
 } from './artifact-runtime-registry.js';
+import { hostRuntime } from './host-runtime.js';
 
 const els = {
   adapter: document.querySelector('#adapter-select'),
@@ -190,18 +191,7 @@ function workspacePayload() {
 }
 
 async function api(action, body = {}) {
-  const response = await fetch(`/api/v1/artifacts/opa/${action}`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ workspace: workspacePayload(), ...body }),
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = new Error(data.error || `${response.status} ${response.statusText}`);
-    error.code = data.code;
-    throw error;
-  }
-  return data;
+  return hostRuntime().artifactAction('opa', action, { workspace: workspacePayload(), ...body });
 }
 
 function renderFindings(findings = []) {
@@ -432,13 +422,10 @@ registerArtifactRuntime('opa', {
     if (!query) {
       throw new Error('OPA transform requires a query or workspace entrypoint');
     }
-    const response = await fetch('/api/v1/artifacts/opa/deps', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ workspace: artifact.content, query }),
+    const data = await hostRuntime().artifactAction('opa', 'deps', {
+      workspace: artifact.content,
+      query,
     });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || `${response.status} ${response.statusText}`);
     if (!data.result?.graph) throw new Error('OPA project did not return GraphProjection');
     return data.result.graph;
   },

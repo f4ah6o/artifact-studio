@@ -129,6 +129,8 @@ function sourceArtifact(artifact) {
   const id = requiredText(artifact.id, 'source artifact id');
   const adapterId = requiredIdentifier(artifact.adapterId, 'source artifact adapterId');
   const normalized = { id, adapterId, content: frozenContent(artifact.content) };
+  if (typeof artifact.title === 'string' && artifact.title.trim())
+    normalized.title = artifact.title.trim();
   if (artifact.revision != null) normalized.revision = artifact.revision;
   return Object.freeze(normalized);
 }
@@ -170,6 +172,7 @@ export async function executeArtifactTransform({
   const content = normalizeArtifactContent(await transform.transform(source, context));
   const derived = {
     adapterId: transform.to,
+    title: `${source.title || source.adapterId} · ${transform.label}`,
     content,
     lineage: {
       derivedFrom: [{ artifactId: source.id, revision }],

@@ -16,6 +16,22 @@ const controls = [
     size: 'sm',
   },
   {
+    slot: 'rename-artifact-button-slot',
+    id: 'rename-artifact-button',
+    label: '名前変更',
+    variant: 'secondary',
+    size: 'sm',
+    disabled: true,
+  },
+  {
+    slot: 'delete-artifact-button-slot',
+    id: 'delete-artifact-button',
+    label: '削除',
+    variant: 'secondary',
+    size: 'sm',
+    disabled: true,
+  },
+  {
     slot: 'ai-session-reset-button-slot',
     id: 'ai-session-reset-button',
     label: 'New AI session',

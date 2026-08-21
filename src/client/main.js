@@ -7,6 +7,7 @@ import {
 import {
   activeArtifactRecord,
   artifactWorkspaceSnapshot,
+  cleanupEmptyArtifactRecords,
   createArtifactRecord,
   currentArtifactRecord,
   listArtifactRecords,
@@ -14,6 +15,9 @@ import {
   persistArtifactRecord,
   readArtifactContent,
   readArtifactRecordById,
+  removeArtifactRecord,
+  renameArtifactRecord,
+  reusableEmptyArtifact,
   replaceArtifactWorkspace,
   selectArtifactRecord,
   textContent,
@@ -23,11 +27,19 @@ import {
   notifyArtifactRuntimeChange,
   registerArtifactRuntime,
 } from './artifact-runtime-registry.js';
+import {
+  artifactDisplayTitle,
+  artifactIsShellEmpty,
+  nextAvailableArtifactTitle,
+} from './artifact-lifecycle.js';
+import { hostRuntime } from './host-runtime.js';
 
 const els = {
   adapterSelect: document.querySelector('#adapter-select'),
   artifactSelect: document.querySelector('#artifact-select'),
   newArtifact: document.querySelector('#new-artifact-button'),
+  renameArtifact: document.querySelector('#rename-artifact-button'),
+  deleteArtifact: document.querySelector('#delete-artifact-button'),
   adapterDescription: document.querySelector('#adapter-description'),
   prompt: document.querySelector('#process-prompt'),
   generate: document.querySelector('#generate-button'),
@@ -160,14 +172,23 @@ function persistArtifact(adapterId, source) {
   notifyArtifactRuntimeChange();
 }
 
+function nextArtifactTitle(adapterId) {
+  return nextAvailableArtifactTitle(
+    adapterId,
+    getArtifactAdapter(adapterId)?.label || adapterId,
+    listArtifactRecords(),
+  );
+}
+
 function persistActiveAdapter(adapterId, artifactId = null) {
   let artifact = artifactId ? readArtifactRecordById(artifactId) : activeArtifactRecord();
   if (!artifact || artifact.adapterId !== adapterId) {
-    artifact = listArtifactRecords(localStorage, adapterId)[0] || null;
+    artifact = listArtifactRecords().find((candidate) => candidate.adapterId === adapterId) || null;
   }
   if (!artifact) {
-    artifact = createArtifactRecord(adapterId, emptyContentForAdapter(adapterId), localStorage, {
+    artifact = createArtifactRecord(adapterId, emptyContentForAdapter(adapterId), undefined, {
       activate: true,
+      title: nextArtifactTitle(adapterId),
     });
   } else if (activeArtifactRecord()?.id !== artifact.id) {
     artifact = selectArtifactRecord(artifact.id);
@@ -371,20 +392,7 @@ function isArtifactLoaded() {
 }
 
 async function api(path, body) {
-  const response = await fetch(path, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const summary = data.error || data.status || `${response.status} ${response.statusText}`;
-    const details = Array.isArray(data.errors)
-      ? data.errors.map((error) => `${error.path || '(root)'}: ${error.message}`).join('; ')
-      : '';
-    throw new Error(details ? `${summary}: ${details}` : summary);
-  }
-  return data;
+  return hostRuntime().post(path, body);
 }
 
 function asArray(value) {
@@ -541,17 +549,43 @@ function renderSelected(element) {
 
 function updateActionStates() {
   const loaded = isArtifactLoaded();
+  const activeArtifact = activeArtifactRecord();
   els.generate.disabled = !state.llmAvailable;
   els.validate.disabled = !loaded;
   els.format.disabled = !loaded;
   els.export.disabled = !loaded;
   els.review.disabled = !state.llmAvailable || !loaded;
+  els.renameArtifact.disabled = !activeArtifact;
+  els.deleteArtifact.disabled = !activeArtifact;
 }
 
 function artifactOptionLabel(artifact) {
-  const adapter = getArtifactAdapter(artifact.adapterId);
-  const shortId = artifact.id.split(':').at(-1)?.slice(0, 8) || artifact.id;
-  return `${adapter?.label || artifact.adapterId}${artifact.lineage ? ' · derived' : ''} · ${shortId}`;
+  const title = artifactDisplayTitle(
+    artifact,
+    getArtifactAdapter(artifact.adapterId)?.label || artifact.adapterId,
+  );
+  return `${title}${artifact.lineage ? ' · derived' : ''}`;
+}
+
+function normalizeArtifactTitles() {
+  const artifacts = listArtifactRecords();
+  for (const adapterId of new Set(artifacts.map((artifact) => artifact.adapterId))) {
+    const adapter = getArtifactAdapter(adapterId);
+    const base = adapter?.label || adapterId;
+    const group = artifacts.filter((artifact) => artifact.adapterId === adapterId);
+    const used = new Set(
+      group.map((artifact) => artifact.title).filter((title) => title && title !== adapterId),
+    );
+    let ordinal = 1;
+    for (const artifact of group) {
+      if (artifact.title && artifact.title !== adapterId) continue;
+      while (used.has(`${base} ${ordinal}`)) ordinal += 1;
+      const title = `${base} ${ordinal}`;
+      renameArtifactRecord(artifact.id, title);
+      used.add(title);
+      ordinal += 1;
+    }
+  }
 }
 
 function renderArtifactSelector() {
@@ -1124,9 +1158,7 @@ function applyCodexStatus(codex) {
 }
 
 async function refreshAppConfig() {
-  const response = await fetch('/api/v1/config');
-  if (!response.ok) throw new Error('Artifact Studio設定を取得できませんでした');
-  const config = await response.json();
+  const config = await hostRuntime().getConfig();
   state.appConfig = config;
   configureAdapters(config.studio || {});
   applyCodexStatus(config.codex);
@@ -1182,16 +1214,21 @@ els.artifactSelect.addEventListener('change', () => {
 els.newArtifact.addEventListener('click', () => {
   flushArtifactEditors();
   Promise.resolve(persistCurrentArtifact())
-    .then(() =>
-      createArtifactRecord(
+    .then(() => {
+      const reusable = reusableEmptyArtifact(state.activeAdapter, {
+        isEmpty: artifactIsShellEmpty,
+      });
+      if (reusable) return selectArtifactRecord(reusable.id);
+      return createArtifactRecord(
         state.activeAdapter,
         emptyContentForAdapter(state.activeAdapter),
-        localStorage,
+        undefined,
         {
           activate: true,
+          title: nextArtifactTitle(state.activeAdapter),
         },
-      ),
-    )
+      );
+    })
     .then((artifact) => {
       syncWorkspaceState();
       return activateAdapter(artifact.adapterId, {
@@ -1201,8 +1238,50 @@ els.newArtifact.addEventListener('click', () => {
         announce: false,
       });
     })
-    .then(() => setStatus(`新しい${currentAdapter().label} Artifactを作成しました`))
+    .then(() => setStatus(`${currentAdapter().label} の空Artifactを準備しました`))
     .catch((error) => setStatus(`Artifact作成エラー: ${error.message}`));
+});
+
+els.renameArtifact.addEventListener('click', () => {
+  const artifact = activeArtifactRecord();
+  if (!artifact) return;
+  const title = window.prompt(
+    'Artifact名',
+    artifactOptionLabel(artifact).replace(/ · derived$/, ''),
+  );
+  if (title == null) return;
+  try {
+    const renamed = renameArtifactRecord(artifact.id, title);
+    syncWorkspaceState();
+    renderArtifactSelector();
+    updateActionStates();
+    setStatus(`Artifact名を「${renamed.title}」に変更しました`);
+    notifyArtifactRuntimeChange();
+  } catch (error) {
+    setStatus(`Artifact名変更エラー: ${error.message}`);
+  }
+});
+
+els.deleteArtifact.addEventListener('click', () => {
+  const artifact = activeArtifactRecord();
+  if (!artifact) return;
+  if (!window.confirm(`Artifact「${artifactOptionLabel(artifact)}」を削除しますか？`)) return;
+  flushArtifactEditors();
+  Promise.resolve()
+    .then(() => removeArtifactRecord(artifact.id))
+    .then(async () => {
+      syncWorkspaceState();
+      const next = activeArtifactRecord() || persistActiveAdapter(state.activeAdapter);
+      await activateAdapter(next.adapterId, {
+        artifactId: next.id,
+        restore: true,
+        persistBeforeSwitch: false,
+        announce: false,
+      });
+      notifyArtifactRuntimeChange();
+      setStatus(`Artifact「${artifactOptionLabel(artifact)}」を削除しました`);
+    })
+    .catch((error) => setStatus(`Artifact削除エラー: ${error.message}`));
 });
 els.codexModel.addEventListener('change', () => {
   const session = currentAiSession();
@@ -1260,7 +1339,12 @@ registerArtifactRuntime('mermaid', {
 els.codexLogin.addEventListener('click', loginCodex);
 
 async function bootstrap() {
+  const removedEmptyArtifacts = cleanupEmptyArtifactRecords({ isEmpty: artifactIsShellEmpty });
+  normalizeArtifactTitles();
   state.workspace = readWorkspace();
+  if (removedEmptyArtifacts.length) {
+    console.info(`Removed ${removedEmptyArtifacts.length} duplicate empty artifacts`);
+  }
 
   let config = null;
   try {

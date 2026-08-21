@@ -26,6 +26,21 @@ function normalizeLineage(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : undefined;
 }
 
+function normalizedTitle(value, adapterId) {
+  const title = typeof value === 'string' ? value.trim() : '';
+  return title || adapterId;
+}
+
+export function artifactContentIsEmpty(content) {
+  const normalized = normalizeArtifactContent(content);
+  if (normalized.kind === 'text') return !normalized.source.trim();
+  if (normalized.kind === 'workspace') {
+    const files = Object.values(normalized.files || {});
+    return files.every((file) => !String(file ?? '').trim());
+  }
+  return false;
+}
+
 export function normalizeArtifactNode(value, fallbackId = null) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const adapterId = typeof value.adapterId === 'string' ? value.adapterId.trim() : '';
@@ -39,11 +54,25 @@ export function normalizeArtifactNode(value, fallbackId = null) {
     return null;
   }
 
-  const node = { id, adapterId, content };
+  const createdAt =
+    typeof value.createdAt === 'string' && value.createdAt
+      ? value.createdAt
+      : typeof value.updatedAt === 'string' && value.updatedAt
+        ? value.updatedAt
+        : '1970-01-01T00:00:00.000Z';
+  const updatedAt =
+    typeof value.updatedAt === 'string' && value.updatedAt ? value.updatedAt : createdAt;
+  const node = {
+    id,
+    adapterId,
+    title: normalizedTitle(value.title, adapterId),
+    content,
+    createdAt,
+    updatedAt,
+  };
   if (typeof value.revision === 'string' && value.revision.trim()) node.revision = value.revision;
   const lineage = normalizeLineage(value.lineage);
   if (lineage) node.lineage = lineage;
-  if (typeof value.updatedAt === 'string' && value.updatedAt) node.updatedAt = value.updatedAt;
   return node;
 }
 
@@ -95,7 +124,9 @@ function legacyContentRecord(adapterId, entry) {
     {
       id: typeof entry.id === 'string' && entry.id.trim() ? entry.id : defaultLegacyId(adapterId),
       adapterId,
+      title: entry.title,
       content,
+      createdAt: entry.createdAt,
       revision: entry.revision,
       lineage: entry.lineage,
       updatedAt: entry.updatedAt,
@@ -243,12 +274,15 @@ export class ArtifactWorkspaceStore {
     return artifact;
   }
 
-  create(adapterId, content, { id = null, activate = true } = {}) {
+  create(adapterId, content, { id = null, activate = true, title = null } = {}) {
+    const now = new Date().toISOString();
     const node = normalizeArtifactNode({
       id: id || createArtifactId(adapterId),
       adapterId,
+      title: normalizedTitle(title, adapterId),
       content,
-      updatedAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
     });
     if (!node) throw new Error('invalid artifact');
     if (this.workspace.artifacts[node.id]) throw new Error(`duplicate artifact id: ${node.id}`);
@@ -260,7 +294,12 @@ export class ArtifactWorkspaceStore {
   }
 
   upsert(artifact, { activate = false } = {}) {
-    const node = normalizeArtifactNode({ ...artifact, updatedAt: new Date().toISOString() });
+    const existing = this.get(artifact?.id);
+    const node = normalizeArtifactNode({
+      ...artifact,
+      createdAt: artifact?.createdAt || existing?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
     if (!node) throw new Error('invalid artifact');
     this.workspace.artifacts[node.id] = node;
     if (activate) this.workspace.activeArtifactId = node.id;
@@ -273,6 +312,105 @@ export class ArtifactWorkspaceStore {
     const current = this.activeForAdapter(adapterId);
     if (!current) return this.create(adapterId, content, { activate: true });
     return this.upsert({ ...current, content }, { activate: this.active()?.id === current.id });
+  }
+
+  rename(artifactId, title) {
+    const artifact = this.get(artifactId);
+    if (!artifact) throw new Error(`unknown artifact: ${artifactId}`);
+    const nextTitle = String(title || '').trim();
+    if (!nextTitle) throw new Error('artifact title is required');
+    return this.upsert(
+      { ...artifact, title: nextTitle },
+      { activate: this.active()?.id === artifact.id },
+    );
+  }
+
+  dependentArtifacts(artifactId) {
+    const id = String(artifactId || '');
+    return this.list().filter((artifact) =>
+      (artifact.lineage?.derivedFrom || []).some((source) => source?.artifactId === id),
+    );
+  }
+
+  referencedByRelationship(artifactId) {
+    const id = String(artifactId || '');
+    return this.listRelationships().some(
+      (relationship) => relationship.from?.artifactId === id || relationship.to?.artifactId === id,
+    );
+  }
+
+  remove(artifactId) {
+    const artifact = this.get(artifactId);
+    if (!artifact) throw new Error(`unknown artifact: ${artifactId}`);
+    const dependents = this.dependentArtifacts(artifactId);
+    if (dependents.length) {
+      throw new Error(
+        `artifact is referenced by derived artifacts: ${dependents.map((item) => item.title).join(', ')}`,
+      );
+    }
+
+    for (const relationship of this.listRelationships()) {
+      if (
+        relationship.from?.artifactId === artifact.id ||
+        relationship.to?.artifactId === artifact.id
+      ) {
+        delete this.workspace.relationships[relationship.id];
+      }
+    }
+
+    delete this.workspace.artifacts[artifact.id];
+    if (this.workspace.activeArtifactId === artifact.id) {
+      this.workspace.activeArtifactId =
+        this.list(artifact.adapterId)[0]?.id || this.list()[0]?.id || null;
+    }
+    this.persist();
+    this.notify();
+    return artifact;
+  }
+
+  firstReusableEmpty(
+    adapterId,
+    { isEmpty = (artifact) => artifactContentIsEmpty(artifact.content) } = {},
+  ) {
+    return (
+      this.list(adapterId).find(
+        (artifact) =>
+          isEmpty(artifact) && !artifact.lineage && !this.referencedByRelationship(artifact.id),
+      ) || null
+    );
+  }
+
+  cleanupEmptyArtifacts({
+    keepOnePerAdapter = true,
+    isEmpty = (artifact) => artifactContentIsEmpty(artifact.content),
+  } = {}) {
+    const removed = [];
+    for (const adapterId of new Set(this.list().map((artifact) => artifact.adapterId))) {
+      const candidates = this.list(adapterId).filter(
+        (artifact) =>
+          isEmpty(artifact) &&
+          !artifact.lineage &&
+          !this.referencedByRelationship(artifact.id) &&
+          this.dependentArtifacts(artifact.id).length === 0,
+      );
+      const activeId = this.active()?.id;
+      const keepId = keepOnePerAdapter
+        ? candidates.find((artifact) => artifact.id === activeId)?.id || candidates[0]?.id
+        : null;
+      for (const artifact of candidates) {
+        if (artifact.id === keepId) continue;
+        delete this.workspace.artifacts[artifact.id];
+        removed.push(artifact);
+      }
+    }
+    if (removed.length) {
+      if (!this.get(this.workspace.activeArtifactId)) {
+        this.workspace.activeArtifactId = this.list()[0]?.id || null;
+      }
+      this.persist();
+      this.notify();
+    }
+    return removed;
   }
 
   listRelationships() {

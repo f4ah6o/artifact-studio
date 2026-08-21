@@ -9,6 +9,7 @@ import {
   notifyArtifactRuntimeChange,
   registerArtifactRuntime,
 } from './artifact-runtime-registry.js';
+import { hostRuntime } from './host-runtime.js';
 import {
   addDaguDependency,
   addDaguStep,
@@ -321,18 +322,7 @@ function renderPreviewError(message) {
 }
 
 async function api(action, body, { method = 'POST' } = {}) {
-  const response = await fetch(`/api/v1/artifacts/dagu/${action}`, {
-    method,
-    headers: method === 'POST' ? { 'content-type': 'application/json' } : undefined,
-    body: method === 'POST' ? JSON.stringify(body || {}) : undefined,
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = new Error(data.error || `${response.status} ${response.statusText}`);
-    error.code = data.code;
-    throw error;
-  }
-  return data;
+  return hostRuntime().artifactAction('dagu', action, body || {}, { method });
 }
 
 function syncActionStates() {

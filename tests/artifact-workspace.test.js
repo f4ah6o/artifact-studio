@@ -42,6 +42,56 @@ describe('artifact workspace v2', () => {
     expect(JSON.parse(storage.getItem(ARTIFACT_WORKSPACE_STORAGE_KEY)).version).toBe(2);
   });
 
+  test('persists human-readable title and lifecycle timestamps', () => {
+    const storage = memoryStorage();
+    const store = new ArtifactWorkspaceStore(storage);
+    const artifact = store.create('dagu', textContent('steps: []\n'), {
+      id: 'dagu-main',
+      title: 'Daily ETL',
+    });
+
+    expect(artifact).toMatchObject({ id: 'dagu-main', adapterId: 'dagu', title: 'Daily ETL' });
+    expect(artifact.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(artifact.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+
+    const reloaded = new ArtifactWorkspaceStore(storage).get('dagu-main');
+    expect(reloaded.title).toBe('Daily ETL');
+    expect(reloaded.createdAt).toBe(artifact.createdAt);
+  });
+
+  test('renames and deletes artifacts while protecting lineage sources', () => {
+    const storage = memoryStorage();
+    const store = new ArtifactWorkspaceStore(storage);
+    store.create('dagu', textContent('steps: []\n'), { id: 'source', title: 'Source' });
+    store.create('mermaid', textContent('flowchart LR\n'), { id: 'derived', title: 'View' });
+    store.upsert({
+      ...store.get('derived'),
+      lineage: {
+        derivedFrom: [{ artifactId: 'source', revision: 'r1' }],
+        transform: 'graph-projection-to-mermaid',
+        transformVersion: '1',
+      },
+    });
+
+    expect(store.rename('derived', 'Dependency View').title).toBe('Dependency View');
+    expect(() => store.remove('source')).toThrow('referenced by derived artifacts');
+    expect(store.remove('derived').id).toBe('derived');
+    expect(store.remove('source').id).toBe('source');
+    expect(store.list()).toEqual([]);
+  });
+
+  test('reuses one empty artifact and safely cleans duplicate empty records', () => {
+    const storage = memoryStorage();
+    const store = new ArtifactWorkspaceStore(storage);
+    store.create('dagu', textContent(''), { id: 'empty-a', title: 'Dagu 1' });
+    store.create('dagu', textContent(''), { id: 'empty-b', title: 'Dagu 2' });
+    store.create('dagu', textContent('steps: []\n'), { id: 'real', title: 'Dagu 3' });
+
+    expect(store.firstReusableEmpty('dagu')?.id).toBe('empty-a');
+    expect(store.cleanupEmptyArtifacts().map((artifact) => artifact.id)).toEqual(['empty-b']);
+    expect(store.list('dagu').map((artifact) => artifact.id)).toEqual(['empty-a', 'real']);
+  });
+
   test('migrates generic content, shell metadata, and legacy BPMN without overwriting richer records', () => {
     const storage = memoryStorage();
     storage.setItem(

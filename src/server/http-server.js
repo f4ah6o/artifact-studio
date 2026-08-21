@@ -29,7 +29,6 @@ import { AiWorkSessionStore, resolveCodexDefaults } from '../ai/ai-work-sessions
 import { deliver } from './delivery.js';
 import { auditLog } from './audit.js';
 import { validateLogicCoreSchema } from '../bpmn/schema-gate.js';
-import { CFG } from '../bpmn/utils.js';
 import { resolveStudioConfig } from './studio-config.js';
 import { generateMermaidArtifact } from '../adapters/mermaid.js';
 import { ARTIFACT_STUDIO_VERSION } from '../version.js';

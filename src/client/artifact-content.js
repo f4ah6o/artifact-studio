@@ -80,6 +80,22 @@ export function createArtifactRecord(adapterId, content, storage = localStorage,
   return storeFor(storage).create(adapterId, normalizeArtifactContent(content), options);
 }
 
+export function renameArtifactRecord(artifactId, title, storage = localStorage) {
+  return storeFor(storage).rename(artifactId, title);
+}
+
+export function removeArtifactRecord(artifactId, storage = localStorage) {
+  return storeFor(storage).remove(artifactId);
+}
+
+export function reusableEmptyArtifact(adapterId, options = {}, storage = localStorage) {
+  return storeFor(storage).firstReusableEmpty(adapterId, options);
+}
+
+export function cleanupEmptyArtifactRecords(options = {}, storage = localStorage) {
+  return storeFor(storage).cleanupEmptyArtifacts(options);
+}
+
 export function selectArtifactRecord(artifactId, storage = localStorage) {
   return storeFor(storage).select(artifactId);
 }
