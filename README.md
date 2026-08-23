@@ -55,6 +55,17 @@ vp run dev
 
 Supported file types include `.bpmn`, `.xml`, `.mmd`, `.mermaid`, `.rego`, `.yaml`, `.yml`, and OPA workspace JSON files. The Studio also recognizes Bonita `bom.xml` files.
 
+## Architecture Graph
+
+The **Architecture** workspace view connects artifacts and elements across formats without replacing their native source files.
+
+- Create explicit relationships between whole artifacts or concrete elements such as BPMN tasks, Rego rules, Dagu steps, and Bonita BDM fields.
+- See dependencies discovered from canonical source. OPA rule dependencies and Dagu `depends` declarations are currently supported.
+- Keep authored relationships in the local artifact workspace while discovered relationships are derived on demand.
+- Click a graph node to return to the source artifact and, where supported, focus the corresponding element.
+
+Semantic entities are currently exposed by BPMN, OPA / Rego, Dagu, and Bonita BDM.
+
 ## Optional external tools
 
 Most BPMN and Mermaid work is self-contained.

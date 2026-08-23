@@ -55,6 +55,17 @@ vp run dev
 
 `.bpmn`、`.xml`、`.mmd`、`.mermaid`、`.rego`、`.yaml`、`.yml`、OPA workspace JSON などを扱えます。Bonita の `bom.xml` も認識します。
 
+## Architecture Graph
+
+**Architecture** workspace view では、各形式の native source を置き換えずに、artifact やその内部要素を形式横断で関連付けられます。
+
+- Artifact 全体、または BPMN task、Rego rule、Dagu step、Bonita BDM field などの具体的な要素同士に relationship を作成できます。
+- Canonical source から検出した dependency も表示します。現在は OPA rule dependency と Dagu の `depends` 宣言に対応しています。
+- 手動で作成した relationship はローカル workspace に保存し、検出した relationship は source から都度導出します。
+- Graph node をクリックすると元の artifact を開き、対応している形式では該当要素まで focus します。
+
+現在 SemanticEntity を公開しているのは BPMN、OPA / Rego、Dagu、Bonita BDM です。
+
 ## 外部ツールが必要な機能
 
 BPMN と Mermaid の主な機能は As-Code Studio 単体で利用できます。
