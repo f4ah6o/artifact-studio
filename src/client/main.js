@@ -26,6 +26,7 @@ import {
 import {
   notifyArtifactRuntimeChange,
   registerArtifactRuntime,
+  revealSemanticRefForArtifact,
 } from './artifact-runtime-registry.js';
 import {
   artifactDisplayTitle,
@@ -1316,6 +1317,18 @@ registerArtifactRuntime('bpmn', {
     const { xml } = await modeler.saveXML({ format: true });
     return currentArtifactRecord('bpmn', textContent(xml));
   },
+  async revealSemanticEntity(_artifact, ref) {
+    const elementId = ref?.entityId?.startsWith('bpmn:')
+      ? ref.entityId.slice('bpmn:'.length)
+      : ref?.address?.startsWith('#')
+        ? ref.address.slice(1)
+        : null;
+    if (!elementId) return false;
+    const registry = currentBpmnModeler()?.get('elementRegistry');
+    if (!registry?.get(elementId)) return false;
+    focusElement(elementId);
+    return true;
+  },
   async semanticEntities(artifact) {
     if (artifact?.content?.kind !== 'text') {
       throw new Error('BPMN semantic entities require text artifact content');
@@ -1351,7 +1364,30 @@ registerArtifactRuntime('mermaid', {
   },
 });
 
-initArchitectureWorkspace({ ensureArtifactRuntime: ensureAdapterUi });
+async function navigateSemanticRef(ref) {
+  const artifactId = typeof ref?.artifactId === 'string' ? ref.artifactId : '';
+  const artifact = artifactId ? readArtifactRecordById(artifactId) : null;
+  if (!artifact) throw new Error(`unknown artifact: ${artifactId}`);
+  await activateAdapter(artifact.adapterId, {
+    artifactId: artifact.id,
+    restore: true,
+    announce: false,
+  });
+  const current = readArtifactRecordById(artifact.id) || artifact;
+  const revealed = await revealSemanticRefForArtifact(ref, current);
+  const target = ref.address || ref.entityId || current.title;
+  setStatus(
+    revealed
+      ? `Architecture Graphから ${target} を開きました`
+      : `Architecture Graphから ${current.title} を開きました`,
+  );
+  return { artifact: current, revealed };
+}
+
+initArchitectureWorkspace({
+  ensureArtifactRuntime: ensureAdapterUi,
+  navigateSemanticRef,
+});
 
 els.codexLogin.addEventListener('click', loginCodex);
 

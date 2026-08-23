@@ -196,6 +196,7 @@ function renderSelectedObject() {
   for (const field of businessObject.fields) {
     const row = document.createElement('div');
     row.className = `bonita-bdm-field ${field.kind}`;
+    row.dataset.fieldName = field.name;
     const value = field.kind === 'relation' ? relationFieldLabel(field) : simpleFieldLabel(field);
     row.textContent = value;
     if (field.kind === 'relation') {
@@ -429,6 +430,27 @@ registerArtifactRuntime('bonita-bdm', {
   currentArtifact() {
     if (!hasSource()) return null;
     return currentArtifactRecord('bonita-bdm', textContent(els.source.value));
+  },
+  async revealSemanticEntity(_artifact, ref) {
+    if (!ref?.address) return false;
+    if (!currentModel) await inspectAndProject();
+    const [qualifiedName, fieldName] = ref.address.split('#', 2);
+    if (!currentModel?.businessObjects.some((item) => item.qualifiedName === qualifiedName)) {
+      return false;
+    }
+    selectBusinessObject(qualifiedName);
+    for (const row of els.selected.querySelectorAll('.bonita-bdm-field.semantic-focus')) {
+      row.classList.remove('semantic-focus');
+    }
+    if (fieldName) {
+      const row = [...els.selected.querySelectorAll('.bonita-bdm-field')].find(
+        (item) => item.dataset.fieldName === fieldName,
+      );
+      if (!row) return false;
+      row.classList.add('semantic-focus');
+      row.scrollIntoView({ block: 'nearest' });
+    }
+    return true;
   },
   async project(artifact) {
     if (artifact?.content?.kind !== 'text') {

@@ -29,7 +29,10 @@ function refLabel(ref, artifacts) {
   return entityLabel ? `${artifactLabel} / ${entityLabel}` : artifactLabel;
 }
 
-export function initArchitectureWorkspace({ ensureArtifactRuntime = async () => {} } = {}) {
+export function initArchitectureWorkspace({
+  ensureArtifactRuntime = async () => {},
+  navigateSemanticRef = async () => false,
+} = {}) {
   if (initialized) return;
   initialized = true;
 
@@ -57,6 +60,23 @@ export function initArchitectureWorkspace({ ensureArtifactRuntime = async () => 
 
   let active = false;
   let refreshGeneration = 0;
+
+  function closeArchitectureView() {
+    active = false;
+    els.pane.classList.add('hidden');
+    els.button.setAttribute('aria-pressed', 'false');
+  }
+
+  async function navigateGraphNode(node) {
+    const metadata = node?.metadata || {};
+    if (!metadata.artifactId || !store.get(metadata.artifactId)) return false;
+    const ref = { artifactId: metadata.artifactId };
+    if (metadata.entityId) ref.entityId = metadata.entityId;
+    if (metadata.address) ref.address = metadata.address;
+    closeArchitectureView();
+    await navigateSemanticRef(ref);
+    return true;
+  }
 
   function setEmpty(target, message) {
     target.replaceChildren();
@@ -204,7 +224,9 @@ export function initArchitectureWorkspace({ ensureArtifactRuntime = async () => 
         setEmpty(els.preview, 'Relationshipを追加または検出するとArchitecture Graphを表示します。');
         return;
       }
-      await renderGraphProjection(result.graph, els.preview);
+      await renderGraphProjection(result.graph, els.preview, {
+        onNodeClick: (node) => void navigateGraphNode(node),
+      });
     } catch (error) {
       if (generation !== refreshGeneration) return;
       setEmpty(els.preview, `Architecture Graph error: ${error.message}`);

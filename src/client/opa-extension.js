@@ -139,6 +139,33 @@ function renderInputFileOptions() {
   if (!els.inputFile.value) workspace.inputFile = null;
 }
 
+function regexEscape(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function revealOpaSource(entity) {
+  const files = Array.isArray(entity?.metadata?.files) ? entity.metadata.files : [];
+  const path = files.find((item) => Object.hasOwn(workspace.files, item));
+  if (!path) return false;
+  workspace.activeFile = path;
+  renderWorkspace();
+  persistNow();
+
+  const source = workspace.files[path];
+  let pattern = null;
+  if (entity.kind === 'package' && entity.address?.startsWith('data.')) {
+    pattern = new RegExp(`^\\s*package\\s+${regexEscape(entity.address.slice(5))}\\b`, 'm');
+  } else if (entity.kind === 'rule' && entity.label) {
+    pattern = new RegExp(`^\\s*(?:default\\s+)?${regexEscape(entity.label)}\\b`, 'm');
+  }
+  const match = pattern?.exec(source);
+  if (match) {
+    els.source.focus();
+    els.source.setSelectionRange(match.index, match.index + match[0].length);
+  }
+  return true;
+}
+
 function renderWorkspace() {
   renderFileList();
   renderInputFileOptions();
@@ -413,6 +440,20 @@ registerArtifactRuntime('opa', {
   currentArtifact() {
     if (!hasFiles()) return null;
     return currentArtifactRecord('opa', workspaceContent(workspace));
+  },
+  async revealSemanticEntity(artifact, ref) {
+    if (artifact?.content?.kind !== 'workspace') return false;
+    const data = await hostRuntime().artifactAction('opa', 'entities', {
+      workspace: artifact.content,
+      artifactId: artifact.id,
+    });
+    const entity = (data.entities || []).find(
+      (item) =>
+        item.artifactId === ref?.artifactId &&
+        (!ref?.entityId || item.id === ref.entityId) &&
+        (!ref?.address || item.address === ref.address),
+    );
+    return entity ? revealOpaSource(entity) : false;
   },
   async semanticEntities(artifact) {
     if (artifact?.content?.kind !== 'workspace') {

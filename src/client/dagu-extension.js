@@ -615,6 +615,16 @@ registerArtifactRuntime('dagu', {
     if (!hasSource()) return null;
     return currentArtifactRecord('dagu', textContent(els.source.value));
   },
+  async revealSemanticEntity(_artifact, ref) {
+    const stepIndex = ref?.entityId ? nodeIndexMap().get(ref.entityId) : null;
+    if (stepIndex == null) return false;
+    selectedStepIndex = stepIndex;
+    connectFromStepIndex = null;
+    renderSelected();
+    syncActionStates();
+    await renderCurrentGraph();
+    return true;
+  },
   async semanticEntities(artifact) {
     if (artifact?.content?.kind !== 'text') {
       throw new Error('Dagu semantic entities require text artifact content');

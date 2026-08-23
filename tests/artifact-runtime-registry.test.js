@@ -11,6 +11,7 @@ import {
   projectArtifact,
   registerArtifactRuntime,
   resolveSemanticRefForArtifact,
+  revealSemanticRefForArtifact,
   semanticEntitiesForArtifact,
 } from '../src/client/artifact-runtime-registry.js';
 import { textContent } from '../src/core/artifact-content.js';
@@ -143,6 +144,25 @@ describe('artifact runtime registry', () => {
       ],
     });
     await expect(discoveredRelationshipsForArtifact(artifact)).rejects.toThrow(/non-discovered/);
+  });
+
+  test('reveals a semantic ref through an optional runtime hook', async () => {
+    const artifact = { id: 'process-1', adapterId: 'bpmn', content: textContent('process') };
+    const calls = [];
+    registerArtifactRuntime('bpmn', {
+      currentArtifact: () => artifact,
+      revealSemanticEntity(current, ref) {
+        calls.push({ current, ref });
+        return ref.entityId === 'bpmn:task-1';
+      },
+    });
+
+    const ref = { artifactId: artifact.id, entityId: 'bpmn:task-1', address: '#task-1' };
+    expect(await revealSemanticRefForArtifact(ref, artifact)).toBe(true);
+    expect(calls).toEqual([{ current: artifact, ref }]);
+    expect(await revealSemanticRefForArtifact(ref, { id: 'other', adapterId: 'missing' })).toBe(
+      false,
+    );
   });
 
   test('rejects duplicate runtime ids', () => {

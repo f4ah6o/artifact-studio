@@ -105,6 +105,12 @@ export async function resolveSemanticRefForArtifact(ref, artifact) {
   return resolveSemanticEntity(entities, ref);
 }
 
+export async function revealSemanticRefForArtifact(ref, artifact) {
+  const runtime = getArtifactRuntime(artifact?.adapterId);
+  if (!runtime || typeof runtime.revealSemanticEntity !== 'function') return false;
+  return (await runtime.revealSemanticEntity(artifact, ref)) !== false;
+}
+
 export async function projectArtifact(artifact) {
   const runtime = getArtifactRuntime(artifact?.adapterId);
   if (!runtime || typeof runtime.project !== 'function') {

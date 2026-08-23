@@ -91,9 +91,9 @@ describe('client adapter lazy loading', () => {
     expect(indexSource).toContain('id="architecture-button-slot"');
     expect(indexSource).toContain('id="architecture-pane"');
     expect(kumoBootstrapSource).toContain("id: 'architecture-button'");
-    expect(mainSource).toContain(
-      'initArchitectureWorkspace({ ensureArtifactRuntime: ensureAdapterUi })',
-    );
+    expect(mainSource).toContain('initArchitectureWorkspace({');
+    expect(mainSource).toContain('ensureArtifactRuntime: ensureAdapterUi');
+    expect(mainSource).toContain('navigateSemanticRef');
     expect(adapterSource).not.toContain("id: 'architecture'");
   });
 
@@ -105,5 +105,13 @@ describe('client adapter lazy loading', () => {
     expect(kumoBootstrapSource).toContain("await import('./main.js')");
     expect(themeSource).toContain("data-theme='as-code-studio'");
     expect(themeSource).toContain('--color-kumo-brand: #1d4ed8;');
+  });
+  test('Architecture navigation uses generic graph and semantic reveal hooks', () => {
+    expect(mainSource).toContain('revealSemanticRefForArtifact');
+    expect(mainSource).toContain('navigateSemanticRef');
+    expect(mainSource).toContain('revealSemanticEntity(_artifact, ref)');
+    expect(daguExtensionSource).toContain('revealSemanticEntity(_artifact, ref)');
+    expect(opaExtensionSource).toContain('revealSemanticEntity(artifact, ref)');
+    expect(bonitaBdmExtensionSource).toContain('revealSemanticEntity(_artifact, ref)');
   });
 });

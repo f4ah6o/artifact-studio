@@ -801,3 +801,17 @@ textarea:focus {
     border-bottom: 1px solid #d1d5db;
   }
 }
+
+.graph-projection-node-interactive {
+  cursor: pointer;
+}
+.graph-projection-node-interactive:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+}
+
+.bonita-bdm-field.semantic-focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
